@@ -1,6 +1,16 @@
 unit CastleJoystickManager;
 
-{$mode objfpc}{$H+}
+{TODO:
+
+ * TJoyState has max 8 axes [0..7], however, database has as much as 14 axes \
+ * I have no idea what "~" means in the database for axes, simply removing the symbol
+ * Data[0] is GUID and we can't use it at the moment, however, maybe we can get it from backend?
+   it seems like this is a joystick driver-specific value
+ * Note that in Windows we get a wrong reported joystick name as Microsoft PC-joystick driver
+   while the joystick name reported by SDL2 is G-Shark GS-GP702 and the true name is Esperanza EG102
+ * Defatul X-Box like gamepad layout
+
+}
 
 interface
 
@@ -10,6 +20,7 @@ uses
 
 type
   TJoystickEvent = (
+    { The event was not detected, in other words, it means an error }
     jeNone,
 
     { Primary pad buttons }
@@ -33,8 +44,7 @@ type
     { Hat buttons/axes }
     hatLeft, hatRight, hatUp, hatDown,
 
-    { ? }
-
+    { X-Box button }
     buttonGuide
 
     );
@@ -187,7 +197,6 @@ procedure TJoystickRecord.Parse(const AString: String);
         WriteLnLog('Unexpected prefix for joystick value', AString);
     end;
     Value := Copy(AString, Length(Prefix) + 1, Length(AString));
-    //I have no idea what "~" means in the database for axes
     if Pos('~', Value) > 0 then
       Value := Copy(Value, 1, Pos('~', Value) - 1);
     Result.Value := StrToInt(Value);
@@ -200,9 +209,7 @@ var
 begin
   Data := CreateTokens(AString, [',']);
   begin
-    //Data[0] is GUID and we can't use it at the moment, however, maybe we can get it from backend?
     Guid := Data[0];
-    //Note that in Windows we get a wrong reported joystick name as Microsoft PC-joystick driver while the joystick name reported by SDL2 is G-Shark GS-GP702 and the true name is Esperanza EG102
     JoystickName := Data[1];
     for J := 2 to Pred(Data.Count) do
       if Data[J] <> '' then
