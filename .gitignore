@@ -52,4 +52,9 @@ zlib1.dll
 
 # Linux executables
 
-Mendel
+JoystickDetector
+
+# Joystick mapping tool
+
+tool
+
