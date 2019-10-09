@@ -22,7 +22,7 @@ uses
 type
   TJoystickEvent = (
     { The event was not detected, in other words, it means an error }
-    jeNone,
+    unknownEvent, unknownAxisEvent, unknownButtonEvent,
 
     { Primary pad buttons }
     padX, padY, padA, padB,
@@ -50,8 +50,13 @@ type
 
     );
 
+const
+  AxisEvents = [axisLeftX, axisLeftY, axisRightX, axisRightY,
+    axisLeftXPlus, axisLeftXMinus, axisLeftYPlus, axisLeftYMinus,
+    axisRightYPlus, axisRightYMinus];
+
 type
-  TJoystickDictionary = specialize TDictionary<Integer, TJoystickEvent>;
+  TJoystickDictionary = specialize TDictionary<Byte, TJoystickEvent>;
 
 type
   TJoystickRecord = class
@@ -65,6 +70,9 @@ type
     Platform: String;
     JoystickName: String;
     function IsJoystickName(const AName: String): Boolean;
+    function AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
+    function ButtonEvent(const ButtonID: Byte): TJoystickEvent;
+    function JoystickEventToStr(const Event: TJoystickEvent): String;
     procedure Parse(const AString: String);
     constructor Create; //override;
     destructor Destroy; override;
@@ -76,7 +84,10 @@ type
   TCastleJoystickManager = class
   strict private
     Database: TJoystickDatabase;
+    FDefaultJoystickRecord: TJoystickRecord;
     function GetJoystickRecord(const Joy: TJoystick): TJoystickRecord; inline;
+    procedure SayJoystickEvent(const Joy: TJoystick; const Prefix: String; const JE: TJoystickEvent; const Value: Single = 0);
+    function DefaultJoystickRecord: TJoystickRecord;
   public
     procedure DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
     procedure DoButtonDown(const Joy: TJoystick; const Button: Byte);
@@ -117,9 +128,47 @@ begin
   Result := Pos(AName, JoystickName) > 0;
 end;
 
+function TJoystickRecord.AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
+begin
+  if AxisValue >= 0 then
+  begin
+    if not AxesPlus.TryGetValue(AxisID, Result) then
+      Result := unknownAxisEvent;
+  end else
+    if not AxesMinus.TryGetValue(AxisID, Result) then
+      Result := unknownAxisEvent;
+
+  //todo
+  if Result = unknownAxisEvent then
+  begin
+    //try interpret the event as hat - see bugs section above
+    if AxisID = 6 then
+    begin
+      if AxisValue >= 0 then
+        Result := hatLeft
+      else
+        Result := hatRight;
+    end else
+    if AxisID = 7 then
+    begin
+      if AxisValue >= 0 then
+        Result := hatUp
+      else
+        Result := hatDown;
+    end;
+    //Hats.TryGetValue()
+  end;
+end;
+
+function TJoystickRecord.ButtonEvent(const ButtonID: Byte): TJoystickEvent;
+begin
+  if not Buttons.TryGetValue(ButtonID, Result) then
+    Result := unknownButtonEvent;
+end;
+
 function TJoystickRecord.StrToJoystickEvent(const AString: String): TJoystickEvent;
 begin
-  Result := jeNone; //this is an "error"
+  Result := unknownEvent; //this is an "error"
   case AString of
     'x': Result := padX; //note the mapping of ABYX is different for PC!
     'y': Result := padY;
@@ -155,8 +204,13 @@ begin
 
     'guide': Result := buttonGuide;
     else
-      WriteLnLog('Unknown joystick JoystickEvent', AString);
+      WriteLnLog('ERROR: Unknown joystick JoystickEvent', AString);
   end;
+end;
+
+function TJoystickRecord.JoystickEventToStr(const Event: TJoystickEvent): String;
+begin
+  WriteStr(Result, Event);
 end;
 
 procedure TJoystickRecord.Parse(const AString: String);
@@ -258,39 +312,64 @@ end;
 function TCastleJoystickManager.GetJoystickRecord(const Joy: TJoystick): TJoystickRecord; inline;
 begin
   if not Database.TryGetValue(Joy, Result) then
-    //Result := SomeDefaultJoystickRecord;
-    Result := nil;
+    Result := DefaultJoystickRecord;
 end;
 
+procedure TCastleJoystickManager.SayJoystickEvent(const Joy: TJoystick; const Prefix: String; const JE: TJoystickEvent; const Value: Single = 0);
+begin
+  if JE in AxisEvents then
+    WriteLnLog(Joy.Info.Name, Prefix + ':' + FloatToStr(Value))
+  else
+    WriteLnLog(Joy.Info.Name, Prefix);
+end;
 
 procedure TCastleJoystickManager.DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
 var
   R: TJoystickRecord;
+  JE: TJoystickEvent;
 begin
   R := GetJoystickRecord(Joy);
-  WriteLnLog(Joy.Info.Name + 'AxisMove ' + IntToStr(Axis) + ':' + FloatToStr(Value));
+  JE := R.AxisEvent(Axis, Value);
+  SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE, Value);
 end;
 procedure TCastleJoystickManager.DoButtonDown(const Joy: TJoystick; const Button: Byte);
 var
   R: TJoystickRecord;
+  JE: TJoystickEvent;
 begin
   R := GetJoystickRecord(Joy);
-  WriteLnLog(Joy.Info.Name + 'ButtonDown ' + IntToStr(Button));
+  JE := R.ButtonEvent(Button);
+  SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE);
 end;
 procedure TCastleJoystickManager.DoButtonUp(const Joy: TJoystick; const Button: Byte);
 var
   R: TJoystickRecord;
+  JE: TJoystickEvent;
 begin
   R := GetJoystickRecord(Joy);
-  WriteLnLog(Joy.Info.Name + 'ButtonUp ' + IntToStr(Button));
+  JE := R.ButtonEvent(Button);
+  SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE);
 end;
 procedure TCastleJoystickManager.DoButtonPress(const Joy: TJoystick; const Button: Byte);
 var
   R: TJoystickRecord;
+  JE: TJoystickEvent;
 begin
   R := GetJoystickRecord(Joy);
-  WriteLnLog(Joy.Info.Name + 'ButtonPress ' + IntToStr(Button));
+  JE := R.ButtonEvent(Button);
+  SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE);
 end;
+
+function TCastleJoystickManager.DefaultJoystickRecord: TJoystickRecord;
+begin
+  if FDefaultJoystickRecord = nil then
+  begin
+    FDefaultJoystickRecord := TJoystickRecord.Create;
+    FDefaultJoystickRecord.Parse('03000000790000000600000010010000,Microntek USB Joystick,a:b2,b:b1,x:b3,y:b0,back:b8,start:b9,leftshoulder:b4,rightshoulder:b5,dpup:h0.1,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:b6,righttrigger:b7,rightstick:b11,leftstick:b10,platform:Linux,');
+  end;
+  Result := FDefaultJoystickRecord;
+end;
+
 
 procedure TCastleJoystickManager.ParseJoysticksDatabase(const URL: String);
 const
@@ -343,6 +422,7 @@ end;
 
 destructor TCastleJoystickManager.Destroy;
 begin
+  FreeAndNil(FDefaultJoystickRecord);
   FreeAndNil(Database);
   inherited;
 end;
