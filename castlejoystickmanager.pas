@@ -70,18 +70,28 @@ type
     destructor Destroy; override;
   end;
 
-  TJoystickRecordsList = specialize TObjectList<TJoystickRecord>;
+  TJoystickDatabase = specialize TObjectDictionary<TJoystick, TJoystickRecord>;
 
 type
-  TJoystickManager = class
+  TCastleJoystickManager = class
+  strict private
+    Database: TJoystickDatabase;
+    function GetJoystickRecord(const Joy: TJoystick): TJoystickRecord; inline;
   public
+    procedure DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
+    procedure DoButtonDown(const Joy: TJoystick; const Button: Byte);
+    procedure DoButtonUp(const Joy: TJoystick; const Button: Byte);
+    procedure DoButtonPress(const Joy: TJoystick; const Button: Byte);
     procedure ParseJoysticksDatabase(const URL: String);
+    destructor Destroy; override;
   end;
 
-function JoystickManager: TJoystickManager;
+function JoystickManager: TCastleJoystickManager;
 implementation
 uses
   CastleLog, CastleDownload, CastleStringUtils;
+
+{ TJoystickRecord ---------------------------------------------------------}
 
 constructor TJoystickRecord.Create;
 begin
@@ -243,7 +253,46 @@ begin
   FreeAndNil(Data);
 end;
 
-procedure TJoystickManager.ParseJoysticksDatabase(const URL: String);
+{ TJoystickManager ---------------------------------------------------------}
+
+function TCastleJoystickManager.GetJoystickRecord(const Joy: TJoystick): TJoystickRecord; inline;
+begin
+  if not Database.TryGetValue(Joy, Result) then
+    //Result := SomeDefaultJoystickRecord;
+    Result := nil;
+end;
+
+
+procedure TCastleJoystickManager.DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
+var
+  R: TJoystickRecord;
+begin
+  R := GetJoystickRecord(Joy);
+  WriteLnLog(Joy.Info.Name + 'AxisMove ' + IntToStr(Axis) + ':' + FloatToStr(Value));
+end;
+procedure TCastleJoystickManager.DoButtonDown(const Joy: TJoystick; const Button: Byte);
+var
+  R: TJoystickRecord;
+begin
+  R := GetJoystickRecord(Joy);
+  WriteLnLog(Joy.Info.Name + 'ButtonDown ' + IntToStr(Button));
+end;
+procedure TCastleJoystickManager.DoButtonUp(const Joy: TJoystick; const Button: Byte);
+var
+  R: TJoystickRecord;
+begin
+  R := GetJoystickRecord(Joy);
+  WriteLnLog(Joy.Info.Name + 'ButtonUp ' + IntToStr(Button));
+end;
+procedure TCastleJoystickManager.DoButtonPress(const Joy: TJoystick; const Button: Byte);
+var
+  R: TJoystickRecord;
+begin
+  R := GetJoystickRecord(Joy);
+  WriteLnLog(Joy.Info.Name + 'ButtonPress ' + IntToStr(Button));
+end;
+
+procedure TCastleJoystickManager.ParseJoysticksDatabase(const URL: String);
 const
   CurrentPlatform =
     {$IFDEF Windows}'Windows'{$ENDIF}
@@ -255,11 +304,16 @@ const
 var
   Stream: TStream;
   Strings: TStringList;
-  I: Integer;
+  I, J: Integer;
   Rec: TJoystickRecord;
 begin
   if not Joysticks.Initialized then
     Joysticks.Initialize;
+  if Database = nil then
+    Database := TJoystickDatabase.Create
+  else
+    Database.Clear;
+
   try
     Stream := Download(URL);
     Strings := TStringList.Create;
@@ -270,8 +324,15 @@ begin
         Rec := TJoystickRecord.Create;
         Rec.Parse(Strings[I]);
         if Rec.Platform = CurrentPlatform then
-          FreeAndNil(Rec) //add it to list
-        else
+        begin
+          for J := 0 to Pred(Joysticks.Count) do
+            if Rec.IsJoystickName(JOysticks[J].Info.Name) then
+            begin
+              Database.AddOrSetValue(JOysticks[J], Rec);
+              Break;
+            end else
+              FreeAndNil(Rec);
+        end else
           FreeAndNil(Rec);
       end;
     FreeAndNil(Strings);
@@ -280,16 +341,23 @@ begin
   end;
 end;
 
-var
-  FJoystickManager: TJoystickManager;
-
-function JoystickManager: TJoystickManager;
+destructor TCastleJoystickManager.Destroy;
 begin
-  if FJoystickManager = nil then
-    FJoystickManager := TJoystickManager.Create;
-  Result := FJoystickManager;
+  FreeAndNil(Database);
+  inherited;
 end;
 
+{------------------------------------------------------------------------}
+
+var
+  FJoystickManager: TCastleJoystickManager;
+
+function JoystickManager: TCastleJoystickManager;
+begin
+  if FJoystickManager = nil then
+    FJoystickManager := TCastleJoystickManager.Create;
+  Result := FJoystickManager;
+end;
 
 finalization
   FreeAndNil(FJoystickManager);
