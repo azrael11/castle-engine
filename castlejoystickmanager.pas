@@ -10,6 +10,7 @@ unit CastleJoystickManager;
    while the joystick name reported by SDL2 is G-Shark GS-GP702 and the true name is Esperanza EG102
  * Defatul X-Box like gamepad layout
  * What is the difference between ButtonPress and ButtonDown events?
+ * Button press/release based on Value for axis-driven buttons
 
 }
 
@@ -43,7 +44,7 @@ type
     buttonLeftStick, buttonRightStick,
 
     { Hat buttons/axes }
-    hatLeft, hatRight, hatUp, hatDown,
+    dpadLeft, dpadRight, dpadUp, dpadDown,
 
     { X-Box button }
     buttonGuide
@@ -63,7 +64,7 @@ type
   protected
     { GUID of the joystick in the database, unused for now }
     Guid: String;
-    Buttons, AxesPlus, AxesMinus, Hats: TJoystickDictionary;
+    Buttons, AxesPlus, AxesMinus, DPad: TJoystickDictionary;
     function StrToJoystickEvent(const AString: String): TJoystickEvent;
   public
     { Platform of the database report }
@@ -110,7 +111,7 @@ begin
   Buttons := TJoystickDictionary.Create;
   AxesPlus := TJoystickDictionary.Create;
   AxesMinus := TJoystickDictionary.Create;
-  Hats := TJoystickDictionary.Create;
+  DPad := TJoystickDictionary.Create;
 end;
 
 destructor TJoystickRecord.Destroy;
@@ -118,7 +119,7 @@ begin
   FreeAndNil(Buttons);
   FreeAndNil(AxesPlus);
   FreeAndNil(AxesMinus);
-  FreeAndNil(Hats);
+  FreeAndNil(DPad);
   inherited;
 end;
 
@@ -141,22 +142,22 @@ begin
   //todo
   if Result = unknownAxisEvent then
   begin
-    //try interpret the event as hat - see bugs section above
+    //try interpret the event as D-Pad - see bugs section above
     if AxisID = 6 then
     begin
       if AxisValue >= 0 then
-        Result := hatLeft
+        Result := dpadLeft
       else
-        Result := hatRight;
+        Result := dpadRight;
     end else
     if AxisID = 7 then
     begin
       if AxisValue >= 0 then
-        Result := hatUp
+        Result := dpadUp
       else
-        Result := hatDown;
+        Result := dpadDown;
     end;
-    //Hats.TryGetValue()
+    //DPad.TryGetValue()
   end;
 end;
 
@@ -190,10 +191,10 @@ begin
     'leftstick': Result := buttonLeftStick;
     'rightstick': Result := buttonRightStick;
 
-    'dpleft': Result := hatLeft;
-    'dpright': Result := hatRight;
-    'dpup': Result := hatUp;
-    'dpdown': Result := hatDown;
+    'dpleft': Result := dpadLeft;
+    'dpright': Result := dpadRight;
+    'dpup': Result := dpadUp;
+    'dpdown': Result := dpadDown;
 
     '+leftx': Result := axisLeftXPlus;
     '-leftx': Result := axisLeftXMinus;
@@ -229,7 +230,7 @@ procedure TJoystickRecord.Parse(const AString: String);
   end;
   type
     TValueType = (
-      vtButton, vtBothAxes, vtHat,
+      vtButton, vtBothAxes, vtDPad,
       vtAxisPlus, vtAxisMinus);
     TParsedValue = record
       ValueType: TValueType;
@@ -260,7 +261,7 @@ procedure TJoystickRecord.Parse(const AString: String);
     case Prefix of
       'a': Result.ValueType := vtBothAxes;
       'b': Result.ValueType := vtButton;
-      'h0.': Result.ValueType := vtHat;
+      'h0.': Result.ValueType := vtDPad;
       '+a': Result.ValueType := vtAxisPlus;
       '-a': Result.ValueType := vtAxisMinus;
       else
@@ -293,7 +294,7 @@ begin
           case VT.ValueType of
             //warning! we have duplicates!
             vtButton: Buttons.AddOrSetValue(VT.Value, StrToJoystickEvent(Pair.Caption));
-            vtHat: Hats.AddOrSetValue(VT.Value, StrToJoystickEvent(Pair.Caption)); //note, we don't have access to hats.
+            vtDPad: DPad.AddOrSetValue(VT.Value, StrToJoystickEvent(Pair.Caption)); //note, we don't have access to D-pads.
             vtBothAxes: begin
                           AxesPlus.AddOrSetValue(VT.Value, StrToJoystickEvent(Pair.Caption));
                           AxesMinus.AddOrSetValue(VT.Value, StrToJoystickEvent(Pair.Caption));
