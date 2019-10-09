@@ -3,14 +3,16 @@ program JoystickDetector;
 
 uses
   SysUtils,
-  CastleJoystickManager, CastleJoysticks, CastleLog;
+  CastleJoystickManager, CastleJoysticks, CastleLog, CastleWindow, CastleApplicationProperties;
 
+var
+  Window: TCastleWindowBase;
+
+procedure ApplicationInitialize;
 var
   I: Integer;
   J: TJoystick;
 begin
-  InitializeLog;
-  Joysticks.Initialize;
   ParseJoysticksDatabase('castle-data:/gamecontrollerdb.txt');
   WriteLnLog('===================');
   for I := 0 to Pred(Joysticks.Count) do
@@ -22,5 +24,17 @@ begin
     WriteLnLog('Joystick Caps', IntToStr(J.Info.Caps));
     WriteLnLog('--------------------');
   end;
+end;
+
+begin
+  InitializeLog;
+  Joysticks.Initialize;
+
+  ApplicationProperties.ApplicationName := 'Joystick manager';
+  Application.OnInitialize := @ApplicationInitialize;
+  Window := TCastleWindowBase.Create(Application);
+  Application.MainWindow := Window;
+
+  Application.MainWindow.OpenAndRun;
 end.
 
