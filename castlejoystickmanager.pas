@@ -9,6 +9,7 @@ unit CastleJoystickManager;
  * Note that in Windows we get a wrong reported joystick name as Microsoft PC-joystick driver
    while the joystick name reported by SDL2 is G-Shark GS-GP702 and the true name is Esperanza EG102
  * Defatul X-Box like gamepad layout
+ * What is the difference between ButtonPress and ButtonDown events?
 
 }
 
