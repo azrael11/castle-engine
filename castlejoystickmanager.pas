@@ -6,7 +6,7 @@ unit CastleJoystickManager;
  * I have no idea what "~" means in the database for axes, simply removing the symbol
  * Data[0] is GUID and we can't use it at the moment, however, maybe we can get it from backend?
    it seems like this is a joystick driver-specific value
- * Note that in Windows we get a wrong reported joystick name as Microsoft PC-joystick driver
+ * [CRITICAL] Note that in Windows we get a wrong reported joystick name as Microsoft PC-joystick driver
    while the joystick name reported by SDL2 is G-Shark GS-GP702 and the true name is Esperanza EG102
  * Defatul X-Box like gamepad layout
  * What is the difference between ButtonPress and ButtonDown events?
@@ -72,8 +72,13 @@ type
 
   TJoystickRecordsList = specialize TObjectList<TJoystickRecord>;
 
-procedure ParseJoysticksDatabase(const URL: String);
+type
+  TJoystickManager = class
+  public
+    procedure ParseJoysticksDatabase(const URL: String);
+  end;
 
+function JoystickManager: TJoystickManager;
 implementation
 uses
   CastleLog, CastleDownload, CastleStringUtils;
@@ -238,7 +243,7 @@ begin
   FreeAndNil(Data);
 end;
 
-procedure ParseJoysticksDatabase(const URL: String);
+procedure TJoystickManager.ParseJoysticksDatabase(const URL: String);
 const
   CurrentPlatform =
     {$IFDEF Windows}'Windows'{$ENDIF}
@@ -253,6 +258,8 @@ var
   I: Integer;
   Rec: TJoystickRecord;
 begin
+  if not Joysticks.Initialized then
+    Joysticks.Initialize;
   try
     Stream := Download(URL);
     Strings := TStringList.Create;
@@ -273,5 +280,18 @@ begin
   end;
 end;
 
+var
+  FJoystickManager: TJoystickManager;
+
+function JoystickManager: TJoystickManager;
+begin
+  if FJoystickManager = nil then
+    FJoystickManager := TJoystickManager.Create;
+  Result := FJoystickManager;
+end;
+
+
+finalization
+  FreeAndNil(FJoystickManager);
 end.
 

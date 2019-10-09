@@ -38,7 +38,7 @@ var
   I: Integer;
   J: TJoystick;
 begin
-  ParseJoysticksDatabase('castle-data:/gamecontrollerdb.txt');
+  JoystickManager.ParseJoysticksDatabase('castle-data:/gamecontrollerdb.txt');
   WriteLnLog('===================');
   for I := 0 to Pred(Joysticks.Count) do
   begin
@@ -57,7 +57,6 @@ end;
 
 begin
   InitializeLog;
-  Joysticks.Initialize;
 
   ApplicationProperties.ApplicationName := 'Joystick manager';
   Application.OnInitialize := @ApplicationInitialize;
