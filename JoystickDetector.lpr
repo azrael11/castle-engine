@@ -13,7 +13,7 @@ var
   I: Integer;
   J: TJoystick;
 begin
-  //JoystickManager.ParseJoysticksDatabase('castle-data:/gamecontrollerdb.txt');
+  Joysticks.Initialize;
   WriteLnLog('===================');
   for I := 0 to Pred(Joysticks.Count) do
   begin
