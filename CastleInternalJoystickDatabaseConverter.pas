@@ -2,7 +2,7 @@ program CastleInternalJoystickDatabaseConverter;
 
 uses
   Classes, SysUtils, Generics.Collections,
-  CastleDownload,
+  CastleDownload, CastleLog,
   CastleInternalJoystickRecord;
 
 type
@@ -10,10 +10,12 @@ type
   protected
     function StrToJoystickEvent(const AString: String): TJoystickEvent;
   public
+    { Platform of the database report }
+    Platform: String;
     procedure Parse(const AString: String);
   end;
 
-function TJoystickRecord.StrToJoystickEvent(const AString: String): TJoystickEvent;
+function TJoystickParser.StrToJoystickEvent(const AString: String): TJoystickEvent;
 begin
   Result := unknownEvent; //this is an "error"
   case AString of
@@ -55,7 +57,7 @@ begin
   end;
 end;
 
-procedure TJoystickRecord.Parse(const AString: String);
+procedure TJoystickParser.Parse(const AString: String);
   type
     TStringPair = record
       Caption: String;

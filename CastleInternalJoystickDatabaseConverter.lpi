@@ -38,11 +38,6 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="CastleInternalJoystickRecord"/>
       </Unit>
-      <Unit>
-        <Filename Value="castlejoystickmanager.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="CastleJoystickManager"/>
-      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

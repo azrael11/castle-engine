@@ -51,8 +51,6 @@ type
     Guid: String;
     Buttons, AxesPlus, AxesMinus, DPad: TJoystickDictionary;
   public
-    { Platform of the database report }
-    Platform: String;
     JoystickName: String;
     function IsJoystickName(const AName: String): Boolean;
     function AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
