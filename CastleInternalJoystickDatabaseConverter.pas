@@ -183,10 +183,7 @@ begin
       begin
         Rec := TJoystickParser.Create;
         Rec.Parse(Strings[I]);
-        if Rec.Platform = CurrentPlatform then
-          Database.AddOrSetValue(Rec.JoystickName, Rec)
-        else
-          FreeAndNil(Rec);
+        Database.AddOrSetValue(Rec.JoystickName, Rec)
       end;
     FreeAndNil(Strings);
   finally
