@@ -65,7 +65,7 @@ type
 implementation
 uses
   Classes, SysUtils,
-  CastleLog, CastleStringUtils;
+  CastleLog;
 
 { TJoystickRecord ---------------------------------------------------------}
 

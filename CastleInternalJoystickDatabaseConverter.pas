@@ -2,7 +2,7 @@ program CastleInternalJoystickDatabaseConverter;
 
 uses
   Classes, SysUtils, Generics.Collections,
-  CastleDownload, CastleLog,
+  CastleDownload, CastleLog, CastleStringUtils,
   CastleInternalJoystickRecord;
 
 type
@@ -167,7 +167,7 @@ var
   Stream: TStream;
   Strings: TStringList;
   I: Integer;
-  Rec: TJoystickRecord;
+  Rec: TJoystickParser;
 begin
   if Database = nil then
     Database := TJoystickDatabase.Create([doOwnsValues])
@@ -181,7 +181,7 @@ begin
     for I := 0 to Pred(Strings.Count) do
       if (Strings[I] <> '') and (Copy(Strings[I], 0, 1) <> '#') then
       begin
-        Rec := TJoystickRecord.Create;
+        Rec := TJoystickParser.Create;
         Rec.Parse(Strings[I]);
         if Rec.Platform = CurrentPlatform then
           Database.AddOrSetValue(Rec.JoystickName, Rec)
