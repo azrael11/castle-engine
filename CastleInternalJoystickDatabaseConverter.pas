@@ -155,14 +155,6 @@ var
   Database: TJoystickDatabase;
 
 procedure ParseJoysticksDatabase(const URL: String);
-const
-  CurrentPlatform =
-    {$IFDEF Windows}'Windows'{$ENDIF}
-    //{$IFDEF MacOS}'Mac OS X'{$ENDIF}
-    {$IFDEF Linux}'Linux'{$ENDIF}
-    //{$IFDEF Android}'Android'{$ENDIF}
-    //{$IFDEF IOS}'iOS'{$ENDIF}
-    ;
 var
   Stream: TStream;
   Strings: TStringList;
@@ -191,6 +183,15 @@ begin
   end;
 end;
 
+procedure WriteDatabase;
 begin
+
+end;
+
+begin
+  InitializeLog;
+  ParseJoysticksDatabase('castle-data:/gamecontrollerdb.txt');
+  WriteDatabase;
+  FreeAndNil(Database);
 end.
 
