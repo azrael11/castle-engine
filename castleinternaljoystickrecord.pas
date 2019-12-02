@@ -61,6 +61,9 @@ type
 
   TJoystickDatabase = specialize TObjectDictionary<String, TJoystickRecord>;
 
+var
+  JoystickDatabase: TJoystickDatabase;
+
 implementation
 uses
   Classes, SysUtils,

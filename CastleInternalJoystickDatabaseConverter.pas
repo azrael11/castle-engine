@@ -202,7 +202,7 @@ procedure WriteDatabase(const Platform: String);
       end;
 
     begin
-      Result :=
+      Result := NL +
         '  JoyData := TJoystickRecord.Create;' + NL +
         '  JoyData.JoystickName := ''' + StringReplace(Rec.JoystickName, '''', '''''', [rfReplaceAll]) + '''' + NL +
         '  JoyData.Guid := ''' + Rec.Guid + '''' + NL;
@@ -210,14 +210,16 @@ procedure WriteDatabase(const Platform: String);
       Result += JoyDictionaryToString('AxesPlus', Rec.AxesPlus);
       Result += JoyDictionaryToString('AxesMinus', Rec.AxesMinus);
       Result += JoyDictionaryToString('DPad', Rec.DPad);
-      Result += NL ;
+      Result +=
+        '  JoystickDatabase.Add(JoyData.JoystickName, JoyData);' + NL;
     end;
   var
     S: String;
   begin
     Result := NL +
       'procedure InitDatabase;' + NL +
-      'begin' + NL;
+      'begin' + NL +
+      '  JoystickDatabase := TJoystickDatabase.Create([doOwnsValues]);' + NL;
     for S in Database.Keys do
       if (Database[S] as TJoystickParser).Platform = Platform then
         Result := Result + DatabaseRecordToString((Database[S] as TJoystickParser));
@@ -244,18 +246,18 @@ begin
     NL);
 
   OutputUnit.Write(
-    'implementation' + NL);
+    'implementation' + NL +
+    NL +
+    'uses SysUtils, Generics.Collections;' + NL + NL);
 
   OutputUnit.Write(DatabaseToString);
 
   OutputUnit.Write(
     NL +
-    'uses SysUtils;' + NL +
-    NL +
     'initialization' + NL +
-    //CodeInitialization +
+    '  InitDatabase;' + NL +
     'finalization' + NL +
-    //CodeFinalization +
+    '  FreeAndNil(JoystickDatabase);' + NL +
     'end.');
   FreeAndNil(OutputUnit);
 end;
@@ -264,7 +266,7 @@ begin
   InitializeLog;
   ParseJoysticksDatabase('castle-data:/gamecontrollerdb.txt');
   WriteDatabase('Windows');
-  //WriteDatabase('Linux');
+  WriteDatabase('Linux');
   FreeAndNil(Database);
 end.
 
