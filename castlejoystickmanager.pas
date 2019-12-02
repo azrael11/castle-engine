@@ -23,7 +23,6 @@ uses
 type
   TCastleJoystickManager = class
   strict private
-    Database: TJoystickDatabase;
     FDefaultJoystickRecord: TJoystickRecord;
     function GetJoystickRecord(const Joy: TJoystick): TJoystickRecord; inline;
     procedure SayJoystickEvent(const Joy: TJoystick; const Prefix: String; const JE: TJoystickEvent; const Value: Single = 0);
@@ -33,7 +32,6 @@ type
     procedure DoButtonDown(const Joy: TJoystick; const Button: Byte);
     procedure DoButtonUp(const Joy: TJoystick; const Button: Byte);
     procedure DoButtonPress(const Joy: TJoystick; const Button: Byte);
-    procedure ParseJoysticksDatabase(const URL: String);
     destructor Destroy; override;
   end;
 
@@ -41,7 +39,7 @@ function JoystickManager: TCastleJoystickManager;
 implementation
 uses
   Generics.Collections,
-  CastleLog, CastleDownload;
+  CastleLog;
 
 { TJoystickManager ---------------------------------------------------------}
 
@@ -104,48 +102,6 @@ begin
     FDefaultJoystickRecord.Parse('03000000790000000600000010010000,Microntek USB Joystick,a:b2,b:b1,x:b3,y:b0,back:b8,start:b9,leftshoulder:b4,rightshoulder:b5,dpup:h0.1,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:b6,righttrigger:b7,rightstick:b11,leftstick:b10,platform:Linux,');
   end;
   Result := FDefaultJoystickRecord;
-end;
-
-procedure TCastleJoystickManager.ParseJoysticksDatabase(const URL: String);
-const
-  CurrentPlatform =
-    {$IFDEF Windows}'Windows'{$ENDIF}
-    //{$IFDEF MacOS}'Mac OS X'{$ENDIF}
-    {$IFDEF Linux}'Linux'{$ENDIF}
-    //{$IFDEF Android}'Android'{$ENDIF}
-    //{$IFDEF IOS}'iOS'{$ENDIF}
-    ;
-var
-  Stream: TStream;
-  Strings: TStringList;
-  I: Integer;
-  Rec: TJoystickRecord;
-begin
-  if not Joysticks.Initialized then
-    Joysticks.Initialize;
-  if Database = nil then
-    Database := TJoystickDatabase.Create([doOwnsValues])
-  else
-    Database.Clear;
-
-  try
-    Stream := Download(URL);
-    Strings := TStringList.Create;
-    Strings.LoadFromStream(Stream);
-    for I := 0 to Pred(Strings.Count) do
-      if (Strings[I] <> '') and (Copy(Strings[I], 0, 1) <> '#') then
-      begin
-        Rec := TJoystickRecord.Create;
-        Rec.Parse(Strings[I]);
-        if Rec.Platform = CurrentPlatform then
-          Database.AddOrSetValue(Rec.JoystickName, Rec)
-        else
-          FreeAndNil(Rec);
-      end;
-    FreeAndNil(Strings);
-  finally
-    FreeAndNil(Stream);
-  end;
 end;
 
 destructor TCastleJoystickManager.Destroy;
