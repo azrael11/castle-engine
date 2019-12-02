@@ -2,8 +2,8 @@
 program JoystickDetector;
 
 uses
-  SysUtils,
-  CastleJoystickManager, CastleJoysticks, CastleLog, CastleWindow, CastleApplicationProperties;
+  SysUtils, CastleJoystickManager, CastleJoysticks, CastleLog, CastleWindow,
+  CastleApplicationProperties;
 
 var
   Window: TCastleWindowBase;
