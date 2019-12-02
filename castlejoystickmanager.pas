@@ -32,13 +32,13 @@ type
     procedure DoButtonDown(const Joy: TJoystick; const Button: Byte);
     procedure DoButtonUp(const Joy: TJoystick; const Button: Byte);
     procedure DoButtonPress(const Joy: TJoystick; const Button: Byte);
-    destructor Destroy; override;
   end;
 
 function JoystickManager: TCastleJoystickManager;
 implementation
 uses
-  Generics.Collections,
+  {$ifdef Linux}CastleInternalJoystickDatabaseLinux,{$endif}
+  {$ifdef Windows}CastleInternalJoystickDatabaseWindows{$endif}
   CastleLog;
 
 { TJoystickManager ---------------------------------------------------------}
@@ -96,18 +96,7 @@ end;
 
 function TCastleJoystickManager.DefaultJoystickRecord: TJoystickRecord;
 begin
-  if FDefaultJoystickRecord = nil then
-  begin
-    FDefaultJoystickRecord := TJoystickRecord.Create;
-    //FDefaultJoystickRecord.Parse('03000000790000000600000010010000,Microntek USB Joystick,a:b2,b:b1,x:b3,y:b0,back:b8,start:b9,leftshoulder:b4,rightshoulder:b5,dpup:h0.1,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,leftx:a0,lefty:a1,rightx:a2,righty:a3,lefttrigger:b6,righttrigger:b7,rightstick:b11,leftstick:b10,platform:Linux,');
-  end;
-  Result := FDefaultJoystickRecord;
-end;
-
-destructor TCastleJoystickManager.Destroy;
-begin
-  FreeAndNil(FDefaultJoystickRecord);
-  inherited;
+  Result := JoystickDatabase['Microntek USB Joystick'];
 end;
 
 {------------------------------------------------------------------------}
