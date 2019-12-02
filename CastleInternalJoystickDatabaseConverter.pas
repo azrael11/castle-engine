@@ -204,8 +204,8 @@ procedure WriteDatabase(const Platform: String);
     begin
       Result := NL +
         '  JoyData := TJoystickRecord.Create;' + NL +
-        '  JoyData.JoystickName := ''' + StringReplace(Rec.JoystickName, '''', '''''', [rfReplaceAll]) + '''' + NL +
-        '  JoyData.Guid := ''' + Rec.Guid + '''' + NL;
+        '  JoyData.JoystickName := ''' + StringReplace(Rec.JoystickName, '''', '''''', [rfReplaceAll]) + ''';' + NL +
+        '  JoyData.Guid := ''' + Rec.Guid + ''';' + NL;
       Result += JoyDictionaryToString('Buttons', Rec.Buttons);
       Result += JoyDictionaryToString('AxesPlus', Rec.AxesPlus);
       Result += JoyDictionaryToString('AxesMinus', Rec.AxesMinus);
@@ -218,6 +218,8 @@ procedure WriteDatabase(const Platform: String);
   begin
     Result := NL +
       'procedure InitDatabase;' + NL +
+      'var' + NL +
+      '  JoyData: TJoystickRecord;' + NL +
       'begin' + NL +
       '  JoystickDatabase := TJoystickDatabase.Create([doOwnsValues]);' + NL;
     for S in Database.Keys do
