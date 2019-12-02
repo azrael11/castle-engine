@@ -184,6 +184,46 @@ begin
 end;
 
 procedure WriteDatabase(const Platform: String);
+
+  function DatabaseToString: String;
+
+    function DatabaseRecordToString(const Rec: TJoystickParser): String;
+
+      function JoyDictionaryToString(const AName: String; const ADictionary: TJoystickDictionary): String;
+      var
+        B: Byte;
+      begin
+        Result := '';
+        for B in ADictionary.Keys do
+          Result +=
+            '  JoyData.' + AName + '.Add(' + IntToStr(B) + ', ' +
+            Rec.JoystickEventToStr(ADictionary.Items[B]) + ');' +
+            NL;
+      end;
+
+    begin
+      Result :=
+        '  JoyData := TJoystickRecord.Create;' + NL +
+        '  JoyData.JoystickName := ''' + Rec.JoystickName + '''' + NL +
+        '  JoyData.Guid := ''' + Rec.Guid + '''' + NL;
+      Result += JoyDictionaryToString('Buttons', Rec.Buttons);
+      Result += JoyDictionaryToString('AxesPlus', Rec.AxesPlus);
+      Result += JoyDictionaryToString('AxesMinus', Rec.AxesMinus);
+      Result += JoyDictionaryToString('DPad', Rec.DPad);
+      Result += NL ;
+    end;
+  var
+    S: String;
+  begin
+    Result := NL +
+      'procedure InitDatabase;' + NL +
+      'begin' + NL;
+    for S in Database.Keys do
+      if (Database[S] as TJoystickParser).Platform = Platform then
+        Result := Result + DatabaseRecordToString((Database[S] as TJoystickParser));
+    Result += 'end;' + NL;
+  end;
+
 var
   OutputUnit: TTextWriter;
   UnitName: String;
@@ -202,9 +242,13 @@ begin
     NL +
     'uses CastleInternalJoystickRecord;' + NL +
     NL);
-  //OutputUnit.Write(CodeInterface);
+
   OutputUnit.Write(
-    'implementation' + NL +
+    'implementation' + NL);
+
+  OutputUnit.Write(DatabaseToString);
+
+  OutputUnit.Write(
     NL +
     'uses SysUtils;' + NL +
     NL +
@@ -220,7 +264,7 @@ begin
   InitializeLog;
   ParseJoysticksDatabase('castle-data:/gamecontrollerdb.txt');
   WriteDatabase('Windows');
-  WriteDatabase('Linux');
+  //WriteDatabase('Linux');
   FreeAndNil(Database);
 end.
 

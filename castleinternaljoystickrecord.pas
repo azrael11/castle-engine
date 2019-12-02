@@ -46,11 +46,10 @@ type
 
 type
   TJoystickRecord = class
-  protected
+  public
     { GUID of the joystick in the database, unused for now }
     Guid: String;
     Buttons, AxesPlus, AxesMinus, DPad: TJoystickDictionary;
-  public
     JoystickName: String;
     function IsJoystickName(const AName: String): Boolean;
     function AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
