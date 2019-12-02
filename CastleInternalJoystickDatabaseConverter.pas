@@ -204,7 +204,7 @@ procedure WriteDatabase(const Platform: String);
     begin
       Result :=
         '  JoyData := TJoystickRecord.Create;' + NL +
-        '  JoyData.JoystickName := ''' + Rec.JoystickName + '''' + NL +
+        '  JoyData.JoystickName := ''' + StringReplace(Rec.JoystickName, '''', '''''', [rfReplaceAll]) + '''' + NL +
         '  JoyData.Guid := ''' + Rec.Guid + '''' + NL;
       Result += JoyDictionaryToString('Buttons', Rec.Buttons);
       Result += JoyDictionaryToString('AxesPlus', Rec.AxesPlus);
