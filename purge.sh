@@ -9,4 +9,5 @@ rm link.res
 # Remove compiled executables
 
 rm JoystickDetector
+rm CastleInternalJoystickDatabaseConverter
 rm *.exe
