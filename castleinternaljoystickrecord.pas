@@ -82,6 +82,7 @@ type
     function HasDPad: Boolean;
     function HasAbyx: Boolean;
     procedure CacheJoystickEvents;
+    function LogJoystickFeatures: String;
 
     function JoystickEventToStr(const Event: TJoystickEvent): String; {todo: move to JoystickParser?}
     constructor Create; //override;
@@ -107,7 +108,7 @@ var
 implementation
 uses
   Classes, SysUtils,
-  CastleLog;
+  CastleLog, CastleUtils;
 
 { TJoystickRecord ---------------------------------------------------------}
 
@@ -226,6 +227,19 @@ begin
     (padA in JoystickHasEvents) and
     (padB in JoystickHasEvents);
 end;
+
+function TJoystickRecord.LogJoystickFeatures: String;
+var
+  J: TJoystickEvent;
+begin
+  Result := 'Joystick ' + JoystickName + ' has the following features:' + NL;
+  Result += 'GUID: ' + Guid + NL;
+  if BuggyGuid then
+    Result += 'This joystick GUID is known to be shared by different joyticks with different layouts' + NL;
+  for J in TJoystickEvent do
+    Result += JoystickEventToStr(J) + ': ' + (J in JoystickHasEvents).ToString(TUseBoolStrs.True) + NL;
+end;
+
 
 end.
 
