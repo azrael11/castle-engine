@@ -96,7 +96,12 @@ end;
 
 function TCastleJoystickManager.DefaultJoystickRecord: TJoystickRecord;
 begin
-  Result := JoystickDatabase['Microntek USB Joystick'];
+  if FDefaultJoystickRecord = nil then
+  begin
+    FDefaultJoystickRecord := JoystickDatabase['Microntek USB Joystick'];
+    WriteLnLog(FDefaultJoystickRecord.LogJoystickFeatures);
+  end;
+  Result := FDefaultJoystickRecord;
 end;
 
 {------------------------------------------------------------------------}
