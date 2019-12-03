@@ -49,12 +49,18 @@ type
   public
     { GUID of the joystick in the database, unused for now }
     Guid: String;
+    { Which number of event (button/axis/pad) corresponds to which joystick event
+      Note that some joysticks are tricky and have buttons assigned to axes
+      or D-Pad to buttons }
     Buttons, AxesPlus, AxesMinus, DPad: TJoystickDictionary;
+    { Reported name of the joystick. Note, that currently our backend reports
+      different joystick names, especially on Windows, where it often simply
+      reports 'Microsoft PC-joystick driver' }
     JoystickName: String;
     function IsJoystickName(const AName: String): Boolean;
     function AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
     function ButtonEvent(const ButtonID: Byte): TJoystickEvent;
-    function JoystickEventToStr(const Event: TJoystickEvent): String;
+    function JoystickEventToStr(const Event: TJoystickEvent): String; {todo: move to JoystickParser?}
     constructor Create; //override;
     destructor Destroy; override;
   end;
@@ -62,7 +68,21 @@ type
   TJoystickDatabase = specialize TObjectDictionary<String, TJoystickRecord>;
 
 var
+  { Database of joysticks by name,
+    A database corresponding to the current OS will be loaded
+    As different OS report different GUIDs and names for the same joystick
+    (note, that you can have only one database loaded simultaneously)}
   JoystickDatabase: TJoystickDatabase;
+  { todo: When we have the autodetection pipeline, we'll have to use
+  JoystickGUIDDatabase: TJoystickDatabase;
+    and detect the joystick by its GUID.
+    Note that some joysticks use the same GUID, but have different axis/buttons layout.
+    That includes my Esperanza EG102, with (Linux) reported name
+    'Microntek USB Joystick' and sharing GUID '03000000780000000600000010010000'
+    with several other joysticks with different layouts.
+    Here we can also try to "surpass" the available database
+    and allow joysticks be detected not only by GUID but also by name
+    or at least leave a warning for the user in log about ambiguous joystick GUID }
 
 implementation
 uses
