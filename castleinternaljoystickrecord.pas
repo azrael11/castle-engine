@@ -237,7 +237,8 @@ begin
   if BuggyDuplicateEvents then
     Result += 'The database for this joystick contains duplicate events, which makes mapping unreliable.' + NL;
   for J in TJoystickEvent do
-    Result += JoystickEventToStr(J) + ': ' + (J in JoystickHasEvents).ToString(TUseBoolStrs.True) + NL;
+    if not (J in [unknownEvent, unknownAxisEvent, unknownButtonEvent]) then
+      Result += JoystickEventToStr(J) + ': ' + (J in JoystickHasEvents).ToString(TUseBoolStrs.True) + NL;
 end;
 
 
