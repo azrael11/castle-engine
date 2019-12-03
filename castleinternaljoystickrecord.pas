@@ -21,14 +21,15 @@ type
     buttonRightTrigger, buttonLeftTrigger,
 
     { Primary axes }
-    axisLeftX, axisLeftY, axisRightX, axisRightY,
+    axisLeftX, axisLeftY,
+    axisRightX, axisRightY,
     axisLeftXPlus, axisLeftXMinus, axisLeftYPlus, axisLeftYMinus,
-    axisRightYPlus, axisRightYMinus,
+    axisRightYPlus, axisRightYMinus, {note: there are no RightXPlus/minux events in the database }
 
     { Pressing on the sticks }
     buttonLeftStick, buttonRightStick,
 
-    { Hat buttons/axes }
+    { D-Pad buttons/axes }
     dpadLeft, dpadRight, dpadUp, dpadDown,
 
     { X-Box button }
@@ -49,6 +50,15 @@ type
 
 type
   TJoystickRecord = class
+  strict private
+    FCacheNotReady: Boolean;
+    JoystickHasEvents: set of TJoystickEvent; //maybe it's better to publish it as a property so that the user may easily check if the joystick has an event?
+    FHasLeftStick: Boolean;
+    FHasRightStick: Boolean;
+    FHasDPad: Boolean;
+    FHasAbyx: Boolean;
+    { Caches which event the joystick has }
+    procedure Cache;
   public
     { GUID of the joystick in the database, unused for now }
     Guid: TGuid;
@@ -64,8 +74,16 @@ type
       sharing the same GUID with other joysticks with different axes/buttons layouts }
     BuggyGuid: Boolean;
     function IsJoystickName(const AName: String): Boolean;
+    { Translate axis, D-Pads and button events reported by Backend to TJoystickEvent }
     function AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
     function ButtonEvent(const ButtonID: Byte): TJoystickEvent;
+    //function DPadEvent(const DPadParameters): TJoystickEvent;
+    { Report if the joystick has a specific feature }
+    function HasLeftStick: Boolean;
+    function HasRightStick: Boolean;
+    function HasDPad: Boolean;
+    function HasAbyx: Boolean;
+
     function JoystickEventToStr(const Event: TJoystickEvent): String; {todo: move to JoystickParser?}
     constructor Create; //override;
     destructor Destroy; override;
@@ -98,6 +116,7 @@ constructor TJoystickRecord.Create;
 begin
   inherited; //parent is empty
   BuggyGuid := false;
+  FCacheNotReady := true;
   Buttons := TJoystickDictionary.Create;
   AxesPlus := TJoystickDictionary.Create;
   AxesMinus := TJoystickDictionary.Create;
@@ -160,6 +179,65 @@ end;
 function TJoystickRecord.JoystickEventToStr(const Event: TJoystickEvent): String;
 begin
   WriteStr(Result, Event);
+end;
+
+procedure TJoystickRecord.Cache;
+  procedure ScanDictionary(const ADictionary: TJoystickDictionary);
+  var
+    B: Byte;
+  begin
+    for B in ADictionary.Keys do
+      JoystickHasEvents := JoystickHasEvents + [ADictionary.Items[B]];
+  end;
+begin
+  JoystickHasEvents := [];
+  ScanDictionary(Buttons);
+  ScanDictionary(AxesPlus);
+  ScanDictionary(AxesMinus);
+  ScanDictionary(DPad);
+
+  FHasLeftStick := (axisLeftX in JoystickHasEvents) and
+                   (axisLeftY in JoystickHasEvents);
+  FHasRightStick := (axisRightX  in JoystickHasEvents) and
+                    (axisRightY in JoystickHasEvents);
+  FHasDPad := (dpadLeft in JoystickHasEvents) and
+              (dpadRight in JoystickHasEvents) and
+              (dpadUp in JoystickHasEvents) and
+              (dpadDown in JoystickHasEvents);
+  FHasAbyx := (padX in JoystickHasEvents) and
+              (padY in JoystickHasEvents) and
+              (padA in JoystickHasEvents) and
+              (padB in JoystickHasEvents);
+
+  FCacheNotReady := false;
+end;
+
+function TJoystickRecord.HasLeftStick: Boolean;
+begin
+  if FCacheNotReady then
+    Cache;
+  Result := FHasLeftStick;
+end;
+
+function TJoystickRecord.HasRightStick: Boolean;
+begin
+  if FCacheNotReady then
+    Cache;
+  Result := FHasRightStick;
+end;
+
+function TJoystickRecord.HasDPad: Boolean;
+begin
+  if FCacheNotReady then
+    Cache;
+  Result := FHasDPad;
+end;
+
+function TJoystickRecord.HasAbyx: Boolean;
+begin
+  if FCacheNotReady then
+    Cache;
+  Result := FHasAbyx;
 end;
 
 end.
