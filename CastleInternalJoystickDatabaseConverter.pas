@@ -246,6 +246,8 @@ procedure WriteDatabase(const Platform: String);
       Result += JoyDictionaryToString('AxesMinus', Rec.AxesMinus);
       Result += JoyDictionaryToString('DPad', Rec.DPad);
       Result +=
+        '  JoyData.CacheJoystickEvents;' + NL;
+      Result +=
         '  JoystickDatabase.Add(JoyData.JoystickName, JoyData);' + NL;
     end;
   var
