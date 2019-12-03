@@ -135,6 +135,7 @@ procedure TJoystickParser.Parse(const AString: String);
           ' has duplicate entry.' +
           ' The old value ' + JoystickEventToStr(ADictionary.Items[AValue]) +
           ' was overwritten with ' + JoystickEventToStr(AEvent) + '.');
+        BuggyDuplicateEvents := true;
       end;
     ADictionary.AddOrSetValue(AValue, AEvent);
   end;
@@ -249,6 +250,9 @@ procedure WriteDatabase(const Platform: String);
       if IsBuggyGuid(Rec) then
         Result +=
         '  JoyData.BuggyGuid := true;' + NL;
+      if Rec.BuggyDuplicateEvents then
+      Result +=
+        '  JoyData.BuggyDuplicateEvents := true;' + NL;
       Result += JoyDictionaryToString('Buttons', Rec.Buttons);
       Result += JoyDictionaryToString('AxesPlus', Rec.AxesPlus);
       Result += JoyDictionaryToString('AxesMinus', Rec.AxesMinus);

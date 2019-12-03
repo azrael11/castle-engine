@@ -69,7 +69,10 @@ type
     { This joystick was reported as "buggy",
       sharing the same GUID with other joysticks with different axes/buttons layouts }
     BuggyGuid: Boolean;
-    function IsJoystickName(const AName: String): Boolean;
+    { The database for this joystick has duplicate entries for the same event
+      e.g. axis[0] is reported as both LeftX and RightX.
+      This means the data for this joystick is unreliable }
+    BuggyDuplicateEvents: Boolean;
     { Translate axis, D-Pads and button events reported by Backend to TJoystickEvent }
     function AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
     function ButtonEvent(const ButtonID: Byte): TJoystickEvent;
@@ -116,6 +119,7 @@ constructor TJoystickRecord.Create;
 begin
   inherited; //parent is empty
   BuggyGuid := false;
+  BuggyDuplicateEvents := false;
   Buttons := TJoystickDictionary.Create;
   AxesPlus := TJoystickDictionary.Create;
   AxesMinus := TJoystickDictionary.Create;
@@ -129,12 +133,6 @@ begin
   FreeAndNil(AxesMinus);
   FreeAndNil(DPad);
   inherited;
-end;
-
-function TJoystickRecord.IsJoystickName(const AName: String): Boolean;
-begin
-  //we might have additional information in JoystickName
-  Result := Pos(AName, JoystickName) > 0;
 end;
 
 function TJoystickRecord.AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
@@ -236,6 +234,8 @@ begin
   Result += 'GUID: ' + Guid + NL;
   if BuggyGuid then
     Result += 'This joystick GUID is known to be shared by different joyticks with different layouts' + NL;
+  if BuggyDuplicateEvents then
+    Result += 'The database for this joystick contains duplicate events, which makes mapping unreliable.' + NL;
   for J in TJoystickEvent do
     Result += JoystickEventToStr(J) + ': ' + (J in JoystickHasEvents).ToString(TUseBoolStrs.True) + NL;
 end;
