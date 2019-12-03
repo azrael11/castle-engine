@@ -6,6 +6,12 @@ uses
   CastleInternalJoystickRecord;
 
 type
+  TBuggyGuidDictionary = specialize TDictionary<String, TGuid>;
+
+var
+  BuggyGuids: TBuggyGuidDictionary;
+
+type
   TJoystickParser = class(TJoystickRecord)
   protected
     function StrToJoystickEvent(const AString: String): TJoystickEvent;
@@ -151,6 +157,23 @@ begin
   FreeAndNil(Data);
 end;
 
+procedure GetBuggyGuids;
+begin
+  BuggyGuids := TBuggyGuidDictionary.Create;
+  BuggyGuids.Add('Windows', '03000000790000000600000000000000');
+  BuggyGuids.Add('Linux', '03000000780000000600000010010000');
+end;
+
+function IsBuggyGuid(const ARec: TJoystickParser): Boolean;
+var
+  OS: String;
+begin
+  Result := false;
+  for OS in BuggyGuids.Keys do
+    if (OS = ARec.Platform) and (BuggyGuids.Items[OS] = ARec.Guid) then
+      Result := true;
+end;
+
 var
   Database: TJoystickDatabase;
 
@@ -206,6 +229,9 @@ procedure WriteDatabase(const Platform: String);
         '  JoyData := TJoystickRecord.Create;' + NL +
         '  JoyData.JoystickName := ''' + StringReplace(Rec.JoystickName, '''', '''''', [rfReplaceAll]) + ''';' + NL +
         '  JoyData.Guid := ''' + Rec.Guid + ''';' + NL;
+      if IsBuggyGuid(Rec) then
+        Result +=
+        '  JoyData.BuggyGuid := true;' + NL;
       Result += JoyDictionaryToString('Buttons', Rec.Buttons);
       Result += JoyDictionaryToString('AxesPlus', Rec.AxesPlus);
       Result += JoyDictionaryToString('AxesMinus', Rec.AxesMinus);
@@ -266,9 +292,11 @@ end;
 
 begin
   InitializeLog;
+  GetBuggyGuids;
   ParseJoysticksDatabase('castle-data:/gamecontrollerdb.txt');
   WriteDatabase('Windows');
   WriteDatabase('Linux');
+  FreeAndNil(BuggyGuids);
   FreeAndNil(Database);
 end.
 

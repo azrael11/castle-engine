@@ -42,13 +42,16 @@ const
     axisRightYPlus, axisRightYMinus];
 
 type
+  TGuid = String[32];
+
+type
   TJoystickDictionary = specialize TDictionary<Byte, TJoystickEvent>;
 
 type
   TJoystickRecord = class
   public
     { GUID of the joystick in the database, unused for now }
-    Guid: String;
+    Guid: TGuid;
     { Which number of event (button/axis/pad) corresponds to which joystick event
       Note that some joysticks are tricky and have buttons assigned to axes
       or D-Pad to buttons }
@@ -57,6 +60,9 @@ type
       different joystick names, especially on Windows, where it often simply
       reports 'Microsoft PC-joystick driver' }
     JoystickName: String;
+    { This joystick was reported as "buggy",
+      sharing the same GUID with other joysticks with different axes/buttons layouts }
+    BuggyGuid: Boolean;
     function IsJoystickName(const AName: String): Boolean;
     function AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
     function ButtonEvent(const ButtonID: Byte): TJoystickEvent;
@@ -77,9 +83,6 @@ var
   JoystickGUIDDatabase: TJoystickDatabase;
     and detect the joystick by its GUID.
     Note that some joysticks use the same GUID, but have different axis/buttons layout.
-    That includes my Esperanza EG102, with (Linux) reported name
-    'Microntek USB Joystick' and sharing GUID '03000000780000000600000010010000'
-    with several other joysticks with different layouts.
     Here we can also try to "surpass" the available database
     and allow joysticks be detected not only by GUID but also by name
     or at least leave a warning for the user in log about ambiguous joystick GUID }
@@ -94,6 +97,7 @@ uses
 constructor TJoystickRecord.Create;
 begin
   inherited; //parent is empty
+  BuggyGuid := false;
   Buttons := TJoystickDictionary.Create;
   AxesPlus := TJoystickDictionary.Create;
   AxesMinus := TJoystickDictionary.Create;
