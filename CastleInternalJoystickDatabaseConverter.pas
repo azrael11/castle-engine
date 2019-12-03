@@ -64,11 +64,13 @@ begin
 end;
 
 procedure TJoystickParser.Parse(const AString: String);
+
   type
     TStringPair = record
       Caption: String;
       Value: String;
     end;
+
   function SplitStringPair(const AString: String): TStringPair;
   var
     SemicolonPosition: Integer;
@@ -85,6 +87,7 @@ procedure TJoystickParser.Parse(const AString: String);
       ValueType: TValueType;
       Value: Integer;
     end;
+
   function ParseValueType(const AString: String): TParsedValue;
   var
     Prefix: String;
@@ -121,6 +124,13 @@ procedure TJoystickParser.Parse(const AString: String);
       Value := Copy(Value, 1, Pos('~', Value) - 1);
     Result.Value := StrToInt(Value);
   end;
+
+  procedure AddDictionaryEntry(const ADictionary: TJoystickDictionary;
+    const AValue: Byte; const AEvent: TJoystickEvent);
+  begin
+    ADictionary.AddOrSetValue(AValue, AEvent);
+  end;
+
 var
   Data: TStringList;
   J: Integer;
@@ -141,15 +151,14 @@ begin
         begin
           VT := ParseValueType(Pair.Value);
           case VT.ValueType of
-            //warning! we have duplicates!
-            vtButton: Buttons.AddOrSetValue(VT.Value, StrToJoystickEvent(Pair.Caption));
-            vtDPad: DPad.AddOrSetValue(VT.Value, StrToJoystickEvent(Pair.Caption)); //note, we don't have access to D-pads.
+            vtButton: AddDictionaryEntry(Buttons, VT.Value, StrToJoystickEvent(Pair.Caption));
+            vtDPad: AddDictionaryEntry(DPad, VT.Value, StrToJoystickEvent(Pair.Caption));
             vtBothAxes: begin
-                          AxesPlus.AddOrSetValue(VT.Value, StrToJoystickEvent(Pair.Caption));
-                          AxesMinus.AddOrSetValue(VT.Value, StrToJoystickEvent(Pair.Caption));
+                          AddDictionaryEntry(AxesPlus, VT.Value, StrToJoystickEvent(Pair.Caption));
+                          AddDictionaryEntry(AxesMinus, VT.Value, StrToJoystickEvent(Pair.Caption));
                         end;
-            vtAxisPlus: AxesPlus.AddOrSetValue(VT.Value, StrToJoystickEvent(Pair.Caption));
-            vtAxisMinus: AxesMinus.AddOrSetValue(VT.Value, StrToJoystickEvent(Pair.Caption));
+            vtAxisPlus: AddDictionaryEntry(AxesPlus, VT.Value, StrToJoystickEvent(Pair.Caption));
+            vtAxisMinus: AddDictionaryEntry(AxesMinus, VT.Value, StrToJoystickEvent(Pair.Caption));
           end;
         end;
       end;
