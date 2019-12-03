@@ -197,15 +197,18 @@ end;
 function TJoystickRecord.HasLeftStick: Boolean;
 begin
   Result :=
-    (axisLeftX in JoystickHasEvents) and
-    (axisLeftY in JoystickHasEvents);
+    ((axisLeftX in JoystickHasEvents) or
+    ((axisLeftXPlus in JoystickHasEvents) and (axisLeftXMinus in JoystickHasEvents))) and
+    ((axisLeftY in JoystickHasEvents) or
+    ((axisLeftYPlus in JoystickHasEvents) and (axisLeftYMinus in JoystickHasEvents)));
 end;
 
 function TJoystickRecord.HasRightStick: Boolean;
 begin
   Result :=
     (axisRightX  in JoystickHasEvents) and
-    (axisRightY in JoystickHasEvents);
+    ((axisRightY in JoystickHasEvents) or
+    ((axisRightYPlus in JoystickHasEvents) and (axisRightYMinus in JoystickHasEvents)));
 end;
 
 function TJoystickRecord.HasDPad: Boolean;
