@@ -128,6 +128,14 @@ procedure TJoystickParser.Parse(const AString: String);
   procedure AddDictionaryEntry(const ADictionary: TJoystickDictionary;
     const AValue: Byte; const AEvent: TJoystickEvent);
   begin
+    if ADictionary.ContainsKey(AValue) then
+      if ADictionary.Items[AValue] <> AEvent then
+      begin
+        WriteLnLog('Warning', 'Joystick "' + JoystickName + '"' +
+          ' has duplicate entry.' +
+          ' The old value ' + JoystickEventToStr(ADictionary.Items[AValue]) +
+          ' was overwritten with ' + JoystickEventToStr(AEvent) + '.');
+      end;
     ADictionary.AddOrSetValue(AValue, AEvent);
   end;
 
