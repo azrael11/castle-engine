@@ -48,7 +48,7 @@ type
     function DefaultJoystickRecord: TJoystickRecord;
 
     procedure DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
-    procedure DoButtonDown(const Joy: TJoystick; const Button: Byte);
+    //procedure DoButtonDown(const Joy: TJoystick; const Button: Byte);
     procedure DoButtonUp(const Joy: TJoystick; const Button: Byte);
     procedure DoButtonPress(const Joy: TJoystick; const Button: Byte);
   public
@@ -88,7 +88,7 @@ begin
   JE := R.AxisEvent(Axis, Value);
   SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE, Value);
 end;
-procedure TCastleJoysticks.DoButtonDown(const Joy: TJoystick; const Button: Byte);
+{procedure TCastleJoysticks.DoButtonDown(const Joy: TJoystick; const Button: Byte);
 var
   R: TJoystickRecord;
   JE: TJoystickEvent;
@@ -96,7 +96,7 @@ begin
   R := GetJoystickRecord(Joy);
   JE := R.ButtonEvent(Button);
   SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE);
-end;
+end;}
 procedure TCastleJoysticks.DoButtonUp(const Joy: TJoystick; const Button: Byte);
 var
   R: TJoystickRecord;
@@ -130,7 +130,7 @@ procedure TCastleJoysticks.Initialize;
 begin
   Joysticks.Initialize;
   Joysticks.OnAxisMove := @DoAxisMove;
-  Joysticks.OnButtonDown := @DoButtonDown;
+  //Joysticks.OnButtonDown := @DoButtonDown;
   Joysticks.OnButtonUp := @DoButtonUp;
   Joysticks.OnButtonPress := @DoButtonPress;
 end;
