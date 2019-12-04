@@ -21,20 +21,24 @@ uses
   CastleJoysticks, CastleInternalJoystickRecord;
 
 type
-  TCastleJoystickManager = class
+  TCastleJoysticks = class
   strict private
     FDefaultJoystickRecord: TJoystickRecord;
+
     function GetJoystickRecord(const Joy: TJoystick): TJoystickRecord; inline;
     procedure SayJoystickEvent(const Joy: TJoystick; const Prefix: String; const JE: TJoystickEvent; const Value: Single = 0);
     function DefaultJoystickRecord: TJoystickRecord;
-  public
+
     procedure DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
     procedure DoButtonDown(const Joy: TJoystick; const Button: Byte);
     procedure DoButtonUp(const Joy: TJoystick; const Button: Byte);
     procedure DoButtonPress(const Joy: TJoystick; const Button: Byte);
+  public
+    procedure Initialize;
   end;
 
-function JoystickManager: TCastleJoystickManager;
+function JoysticksNew: TCastleJoysticks;
+
 implementation
 uses
   {$ifdef Linux}CastleInternalJoystickDatabaseLinux,{$endif}
@@ -43,13 +47,13 @@ uses
 
 { TJoystickManager ---------------------------------------------------------}
 
-function TCastleJoystickManager.GetJoystickRecord(const Joy: TJoystick): TJoystickRecord; inline;
+function TCastleJoysticks.GetJoystickRecord(const Joy: TJoystick): TJoystickRecord; inline;
 begin
   //if not Database.TryGetValue(Joy, Result) then
   Result := DefaultJoystickRecord;
 end;
 
-procedure TCastleJoystickManager.SayJoystickEvent(const Joy: TJoystick; const Prefix: String; const JE: TJoystickEvent; const Value: Single = 0);
+procedure TCastleJoysticks.SayJoystickEvent(const Joy: TJoystick; const Prefix: String; const JE: TJoystickEvent; const Value: Single = 0);
 begin
   if JE in AxisEvents then
     WriteLnLog(Joy.Info.Name, Prefix + ':' + FloatToStr(Value))
@@ -57,7 +61,7 @@ begin
     WriteLnLog(Joy.Info.Name, Prefix);
 end;
 
-procedure TCastleJoystickManager.DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
+procedure TCastleJoysticks.DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
 var
   R: TJoystickRecord;
   JE: TJoystickEvent;
@@ -66,7 +70,7 @@ begin
   JE := R.AxisEvent(Axis, Value);
   SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE, Value);
 end;
-procedure TCastleJoystickManager.DoButtonDown(const Joy: TJoystick; const Button: Byte);
+procedure TCastleJoysticks.DoButtonDown(const Joy: TJoystick; const Button: Byte);
 var
   R: TJoystickRecord;
   JE: TJoystickEvent;
@@ -75,7 +79,7 @@ begin
   JE := R.ButtonEvent(Button);
   SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE);
 end;
-procedure TCastleJoystickManager.DoButtonUp(const Joy: TJoystick; const Button: Byte);
+procedure TCastleJoysticks.DoButtonUp(const Joy: TJoystick; const Button: Byte);
 var
   R: TJoystickRecord;
   JE: TJoystickEvent;
@@ -84,7 +88,7 @@ begin
   JE := R.ButtonEvent(Button);
   SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE);
 end;
-procedure TCastleJoystickManager.DoButtonPress(const Joy: TJoystick; const Button: Byte);
+procedure TCastleJoysticks.DoButtonPress(const Joy: TJoystick; const Button: Byte);
 var
   R: TJoystickRecord;
   JE: TJoystickEvent;
@@ -94,7 +98,7 @@ begin
   SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE);
 end;
 
-function TCastleJoystickManager.DefaultJoystickRecord: TJoystickRecord;
+function TCastleJoysticks.DefaultJoystickRecord: TJoystickRecord;
 begin
   if FDefaultJoystickRecord = nil then
   begin
@@ -104,19 +108,28 @@ begin
   Result := FDefaultJoystickRecord;
 end;
 
+procedure TCastleJoysticks.Initialize;
+begin
+  Joysticks.Initialize;
+  Joysticks.OnAxisMove := @DoAxisMove;
+  Joysticks.OnButtonDown := @DoButtonDown;
+  Joysticks.OnButtonUp := @DoButtonUp;
+  Joysticks.OnButtonPress := @DoButtonPress;
+end;
+
 {------------------------------------------------------------------------}
 
 var
-  FJoystickManager: TCastleJoystickManager;
+  FJoysticks: TCastleJoysticks;
 
-function JoystickManager: TCastleJoystickManager;
+function JoysticksNew: TCastleJoysticks;
 begin
-  if FJoystickManager = nil then
-    FJoystickManager := TCastleJoystickManager.Create;
-  Result := FJoystickManager;
+  if FJoysticks = nil then
+    FJoysticks := TCastleJoysticks.Create;
+  Result := FJoysticks;
 end;
 
 finalization
-  FreeAndNil(FJoystickManager);
+  FreeAndNil(FJoysticks);
 end.
 

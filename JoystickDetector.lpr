@@ -2,32 +2,26 @@
 program JoystickDetector;
 
 uses
-  SysUtils, CastleJoystickManager, CastleJoysticks, CastleLog, CastleWindow,
+  SysUtils, CastleJoystickManager, CastleLog, CastleWindow,
   CastleApplicationProperties;
 
 var
   Window: TCastleWindowBase;
 
 procedure ApplicationInitialize;
-var
-  I: Integer;
-  J: TJoystick;
 begin
-  Joysticks.Initialize;
-  WriteLnLog('===================');
+  JoysticksNew.Initialize;
+
+  {WriteLnLog('===================');
   for I := 0 to Pred(Joysticks.Count) do
   begin
-    J := Joysticks[I];
-    Joysticks.OnAxisMove := @JoystickManager.DoAxisMove;
-    Joysticks.OnButtonDown := @JoystickManager.DoButtonDown;
-    Joysticks.OnButtonUp := @JoystickManager.DoButtonUp;
-    Joysticks.OnButtonPress := @JoystickManager.DoButtonPress;
-    WriteLnLog('Joystick Name', J.Info.Name);
+    //J := Joysticks[I];
+    {WriteLnLog('Joystick Name', J.Info.Name);
     WriteLnLog('Joystick Buttons', IntToStr(J.Info.Count.Buttons));
     WriteLnLog('Joystick Axes', IntToStr(J.Info.Count.Axes));
     WriteLnLog('Joystick Caps', IntToStr(J.Info.Caps));
-    WriteLnLog('--------------------');
-  end;
+    WriteLnLog('--------------------'); }
+  end;}
 end;
 
 begin
