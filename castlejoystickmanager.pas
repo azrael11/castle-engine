@@ -2,14 +2,32 @@ unit CastleJoystickManager;
 
 {TODO:
 
- * TJoyState has max 8 axes [0..7], however, database has as much as 14 axes \
- * I have no idea what "~" means in the database for axes, simply removing the symbol
- * Data[0] is GUID and we can't use it at the moment, however, maybe we can get it from backend?
-   it seems like this is a joystick driver-specific value
  * [CRITICAL] Note that in Windows we get a wrong reported joystick name as Microsoft PC-joystick driver
    while the joystick name reported by SDL2 is G-Shark GS-GP702 and the true name is Esperanza EG102
- * Defatul X-Box like gamepad layout
+ * TJoyState has max 8 axes [0..7], however, database has as much as 14 axes \
+ * Windows and Linux backends handle axes in an ambiguous way,
+   AxesMap tries to mimic something that this database should do,
+   but eventually it does so only for one type of axes layout.
+   Overall, currently this makes this database pretty useless.
+   However, I'm not sure if our current backends return valid axes indexes,
+   as we're using legacy backends both on Linux and Windows and
+   axes layouts theoretically can be different from those provided by
+   newer backends.
+ * Data[0] is GUID and we can't use it at the moment, however, maybe we can get it from backend?
+   In SDL it is used to detect the joystick
+ * I have no idea what "~" means in the database for axes, simply removing the symbol
+ * [TODO] Defatul X-Box like gamepad layout.
+   Note, that currently we have Right stick flipped X and Y axes for X-Box gamepad,
+   possibly due to AxesMap messing with original axes order,
+   or original axes order reported wrong.
+   (it is also possible, thou very unlikely, that it's fault of the
+   database, as it does contain errors; however, not a single gamepad
+   reports Y axis before X axis - Y axis always follows X axis, never preceeds,
+   like we have now on X-Box layout)
  * What is the difference between ButtonPress and ButtonDown events?
+   Looks like there is none on Linux, however, on Windows event ButtonDown
+   fires constantly while the button is hold pressed, but ButtonPress
+   only once, when the button is pressed.
  * Button press/release based on Value for axis-driven buttons
 
 }
