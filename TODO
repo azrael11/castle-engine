@@ -1,0 +1,42 @@
+ * We have a lot of duplicate joystick names
+   Also duplicate GUIDs are found for "different OSes"
+   TODO: rework storage and searching for joystick records.
+   Note: duplicate records seem to have identical layouts, only different GUIDs
+   This way current "overwriting" of the equally named joysticks isn't a critical
+   problem, however, it most certainly has to be fixed in the future
+ * [CRITICAL] Note that in Windows we get a wrong reported joystick name as Microsoft PC-joystick driver
+   while the joystick name reported by SDL2 is G-Shark GS-GP702 and the true name is Esperanza EG102
+ * TJoyState has max 8 axes [0..7], however, database has as much as 14 axes \
+ * Windows and Linux backends handle axes in an ambiguous way,
+   AxesMap tries to mimic something that this database should do,
+   but eventually it does so only for one type of axes layout.
+   Overall, currently this makes this database pretty useless.
+   However, I'm not sure if our current backends return valid axes indexes,
+   as we're using legacy backends both on Linux and Windows and
+   axes layouts theoretically can be different from those provided by
+   newer backends.
+ * Data[0] is GUID and we can't use it at the moment, however, maybe we can get it from backend?
+   In SDL it is used to detect the joystick
+ * [TODO] I have no idea what "~" means in the database for axes, simply removing the symbol
+   UPD: https://github.com/spurious/SDL-mirror/blob/master/src/joystick/SDL_gamecontroller.c#L585
+   It means "inverted input" on the axis
+ * [TODO] Defatul X-Box like gamepad layout.
+   Note, that currently we have Right stick flipped X and Y axes for X-Box gamepad,
+   possibly due to AxesMap messing with original axes order,
+   or original axes order reported wrong.
+   (it is also possible, thou very unlikely, that it's fault of the
+   database, as it does contain errors; however, not a single gamepad
+   reports Y axis before X axis - Y axis always follows X axis, never preceeds,
+   like we have now on X-Box layout)
+ * What is the difference between ButtonPress and ButtonDown events?
+   Looks like there is none on Linux, however, on Windows event ButtonDown
+   fires constantly while the button is hold pressed, but ButtonPress
+   only once, when the button is pressed.
+ * Button press/release based on Value for axis-driven buttons
+ * TODO: see https://github.com/spurious/SDL-mirror/blob/master/src/joystick/SDL_gamecontrollerdb.h
+   they have a "default,Standard Gamepad" something we should use too.
+ * Note (TODO): Some GUIDS are not actual GUIDS, but notification, such as XInput
+ * Merge 2 git repositories preserving history:
+   https://stackoverflow.com/questions/1425892/how-do-you-merge-two-git-repositories 
+ * See also https://github.com/spurious/SDL-mirror/blob/master/src/joystick/SDL_gamecontroller.c
+   (same thing done in SDL)
