@@ -11,17 +11,6 @@ var
 procedure ApplicationInitialize;
 begin
   JoysticksNew.Initialize;
-
-  {WriteLnLog('===================');
-  for I := 0 to Pred(Joysticks.Count) do
-  begin
-    //J := Joysticks[I];
-    {WriteLnLog('Joystick Name', J.Info.Name);
-    WriteLnLog('Joystick Buttons', IntToStr(J.Info.Count.Buttons));
-    WriteLnLog('Joystick Axes', IntToStr(J.Info.Count.Axes));
-    WriteLnLog('Joystick Caps', IntToStr(J.Info.Caps));
-    WriteLnLog('--------------------'); }
-  end;}
 end;
 
 begin

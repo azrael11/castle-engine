@@ -35,17 +35,19 @@ unit CastleJoystickManager;
 interface
 
 uses
-  SysUtils, Classes,
+  SysUtils, Classes, Generics.Collections,
   CastleJoysticks, CastleInternalJoystickRecord;
+
+type
+  TJoystickDictionary = specialize TObjectDictionary<TJoystick, TJoystickRecord>;
 
 type
   TCastleJoysticks = class
   strict private
+    JoysticksRecords: TJoystickDictionary;
     FDefaultJoystickRecord: TJoystickRecord;
 
-    function GetJoystickRecord(const Joy: TJoystick): TJoystickRecord; inline;
     procedure SayJoystickEvent(const Joy: TJoystick; const Prefix: String; const JE: TJoystickEvent; const Value: Single = 0);
-    function DefaultJoystickRecord: TJoystickRecord;
 
     procedure DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
     //procedure DoButtonDown(const Joy: TJoystick; const Button: Byte);
@@ -53,6 +55,7 @@ type
     procedure DoButtonPress(const Joy: TJoystick; const Button: Byte);
   public
     procedure Initialize;
+    destructor Destroy; override;
   end;
 
 function JoysticksNew: TCastleJoysticks;
@@ -64,12 +67,6 @@ uses
   CastleLog;
 
 { TJoystickManager ---------------------------------------------------------}
-
-function TCastleJoysticks.GetJoystickRecord(const Joy: TJoystick): TJoystickRecord; inline;
-begin
-  //if not Database.TryGetValue(Joy, Result) then
-  Result := DefaultJoystickRecord;
-end;
 
 procedure TCastleJoysticks.SayJoystickEvent(const Joy: TJoystick; const Prefix: String; const JE: TJoystickEvent; const Value: Single = 0);
 begin
@@ -84,7 +81,7 @@ var
   R: TJoystickRecord;
   JE: TJoystickEvent;
 begin
-  R := GetJoystickRecord(Joy);
+  R := JoysticksRecords.Items[Joy];
   JE := R.AxisEvent(Axis, Value);
   SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE, Value);
 end;
@@ -93,7 +90,7 @@ var
   R: TJoystickRecord;
   JE: TJoystickEvent;
 begin
-  R := GetJoystickRecord(Joy);
+  R := JoysticksRecords.Items[Joy];
   JE := R.ButtonEvent(Button);
   SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE);
 end;}
@@ -102,7 +99,7 @@ var
   R: TJoystickRecord;
   JE: TJoystickEvent;
 begin
-  R := GetJoystickRecord(Joy);
+  R := JoysticksRecords.Items[Joy];
   JE := R.ButtonEvent(Button);
   SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE);
 end;
@@ -111,28 +108,68 @@ var
   R: TJoystickRecord;
   JE: TJoystickEvent;
 begin
-  R := GetJoystickRecord(Joy);
+  R := JoysticksRecords.Items[Joy];
   JE := R.ButtonEvent(Button);
   SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE);
 end;
 
-function TCastleJoysticks.DefaultJoystickRecord: TJoystickRecord;
-begin
-  if FDefaultJoystickRecord = nil then
-  begin
-    FDefaultJoystickRecord := JoystickDatabase['Microntek USB Joystick'];
-    WriteLnLog(FDefaultJoystickRecord.LogJoystickFeatures);
-  end;
-  Result := FDefaultJoystickRecord;
-end;
-
 procedure TCastleJoysticks.Initialize;
+
+  function TrimJoystickName(const AJoystickName: String): String;
+  begin
+    Result := Trim(AJoystickName);
+    while Pos('  ', Result) > 0 do
+      Result := StringReplace(Result, '  ', ' ', [rfReplaceAll]);
+    WriteLnLog(Result);
+  end;
+
+var
+  I: Integer;
+  J: TJoystick;
+  R: TJoystickRecord;
+  JoyName: String;
 begin
+  if JoysticksRecords = nil then
+    JoysticksRecords := TJoystickDictionary.Create //owns nothing
+  else
+    JoysticksRecords.Clear;
+
   Joysticks.Initialize;
   Joysticks.OnAxisMove := @DoAxisMove;
   //Joysticks.OnButtonDown := @DoButtonDown;
   Joysticks.OnButtonUp := @DoButtonUp;
   Joysticks.OnButtonPress := @DoButtonPress;
+
+  for I := 0 to Pred(Joysticks.Count) do
+  begin
+    J := Joysticks[I];
+    WriteLnLog('Joystick Name', J.Info.Name);
+    WriteLnLog('Joystick Buttons', IntToStr(J.Info.Count.Buttons));
+    WriteLnLog('Joystick Axes', IntToStr(J.Info.Count.Axes));
+    WriteLnLog('Joystick Caps', IntToStr(J.Info.Caps));
+    //try autodetect the joystick
+    JoyName := TrimJoystickName(J.Info.Name);
+    if JoystickDatabase.ContainsKey(JoyName) then
+    begin
+      R := JoystickDatabase[JoyName];
+      WriteLnLog('Joystick autodetected by name successfully!');
+    end else
+    begin
+      JoyName := 'Microntek USB Joystick';
+      R := JoystickDatabase[JoyName];
+      WriteLnLog('Joystick failed to autodetect. Usind default record for ' + JoyName + '.');
+    end;
+    WriteLnLog(R.LogJoystickFeatures);
+    JoysticksRecords.Add(J, R);
+
+    WriteLnLog('--------------------');
+  end;
+end;
+
+destructor TCastleJoysticks.Destroy;
+begin
+  FreeAndNil(JoysticksRecords);
+  inherited;
 end;
 
 {------------------------------------------------------------------------}
