@@ -216,6 +216,7 @@ begin
       begin
         Rec := TJoystickParser.Create;
         Rec.Parse(Strings[I]);
+        //[CRITICAL] we have a lot of duplicates here!
         Database.AddOrSetValue(Rec.JoystickName, Rec)
       end;
     FreeAndNil(Strings);
@@ -225,6 +226,8 @@ begin
 end;
 
 procedure WriteDatabase(const Platform: String);
+var
+  RecCount: Integer;
 
   function DatabaseToString: String;
 
@@ -243,6 +246,7 @@ procedure WriteDatabase(const Platform: String);
       end;
 
     begin
+      Inc(RecCount);
       Result := NL +
         '  JoyData := TJoystickRecord.Create;' + NL +
         '  JoyData.JoystickName := ''' + StringReplace(Rec.JoystickName, '''', '''''', [rfReplaceAll]) + ''';' + NL +
@@ -281,6 +285,7 @@ var
   OutputUnit: TTextWriter;
   UnitName: String;
 begin
+  RecCount := 0;
   UnitName := 'CastleInternalJoystickDatabase' + Platform;
   OutputUnit := TTextWriter.Create(UnitName + '.pas');
   OutputUnit.Write(
@@ -311,6 +316,7 @@ begin
     '  FreeAndNil(JoystickDatabase);' + NL +
     'end.');
   FreeAndNil(OutputUnit);
+  WriteLnLog('Written ' + IntToStr(RecCount) + ' records for platform', Platform);
 end;
 
 begin

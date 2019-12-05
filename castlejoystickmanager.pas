@@ -2,6 +2,12 @@ unit CastleJoystickManager;
 
 {TODO:
 
+ * [CRITICAL] we have a lot of duplicate joystick names
+   Also duplicate GUIDs are found for "different OSes"
+   TODO: rework storage and searching for joystick records.
+   Note: duplicate records seem to have identical layouts, only different GUIDs
+   This way current "overwriting" of the equally named joysticks isn't a critical
+   problem, however, it most certainly has to be fixed in the future
  * [CRITICAL] Note that in Windows we get a wrong reported joystick name as Microsoft PC-joystick driver
    while the joystick name reported by SDL2 is G-Shark GS-GP702 and the true name is Esperanza EG102
  * TJoyState has max 8 axes [0..7], however, database has as much as 14 axes \
