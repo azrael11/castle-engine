@@ -13,7 +13,6 @@ type
   TCastleJoysticks = class
   strict private
     JoysticksRecords: TJoystickDictionary;
-    FDefaultJoystickRecord: TJoystickRecord;
 
     procedure SayJoystickEvent(const Joy: TJoystick; const Prefix: String; const JE: TJoystickEvent; const Value: Single = 0);
 
@@ -102,6 +101,8 @@ begin
   else
     JoysticksRecords.Clear;
 
+  InitJoysticksDatabase;
+
   Joysticks.Initialize;
   Joysticks.OnAxisMove := @DoAxisMove;
   //Joysticks.OnButtonDown := @DoButtonDown;
@@ -132,6 +133,9 @@ begin
 
     WriteLnLog('--------------------');
   end;
+
+  { we shouould free databases here, however, they own joystick records,
+    i.e. first we should make copies }
 end;
 
 destructor TCastleJoysticks.Destroy;

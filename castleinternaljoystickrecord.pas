@@ -94,12 +94,11 @@ type
 
   TJoystickDatabase = specialize TObjectDictionary<String, TJoystickRecord>;
 
-  { Database of joysticks by name,
+  { Database of joysticks by name/GUID,
     A database corresponding to the current OS will be loaded
-    As different OS report different GUIDs and names for the same joystick
-    (note, that you can have only one database loaded simultaneously)}
-function JoystickRecordsByName: TJoystickDatabase;
-function JoystickRecordsByGuid: TJoystickDatabase;
+    As different OS report different GUIDs and names for the same joystick }
+var
+  JoystickRecordsByName, JoystickRecordsByGuid: TJoystickDatabase;
 
 implementation
 uses
@@ -236,34 +235,6 @@ begin
     if not (J in [unknownEvent, unknownAxisEvent, unknownButtonEvent]) then
       Result += JoystickEventToStr(J) + ': ' + (J in JoystickHasEvents).ToString(TUseBoolStrs.True) + NL;
 end;
-
-var
-  FJoystickRecordsByName, FJoystickRecordsByGuid: TJoystickDatabase;
-
-function JoystickRecordsByName: TJoystickDatabase;
-begin
-  if FJoystickRecordsByName = nil then
-  begin
-    FJoystickRecordsByName := TJoystickDatabase.Create();
-    FJoystickRecordsByGuid := TJoystickDatabase.Create([doOwnsValues]);
-  end;
-  Result := FJoystickRecordsByName;
-end;
-
-function JoystickRecordsByGuid: TJoystickDatabase;
-begin
-  if FJoystickRecordsByGuid = nil then
-  begin
-    FJoystickRecordsByName := TJoystickDatabase.Create();
-    FJoystickRecordsByGuid := TJoystickDatabase.Create([doOwnsValues]);
-  end;
-  Result := FJoystickRecordsByGuid;
-end;
-
-
-finalization
-FreeAndNil(FJoystickRecordsByName);
-FreeAndNil(FJoystickRecordsByGuid);
 
 end.
 

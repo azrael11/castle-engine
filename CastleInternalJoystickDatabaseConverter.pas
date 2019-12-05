@@ -275,10 +275,14 @@ var
     S: String;
   begin
     Result := NL +
-      'procedure InitDatabase;' + NL +
+      'procedure InitJoysticksDatabase;' + NL +
       'var' + NL +
       '  JoyData: TJoystickRecord;' + NL +
-      'begin' + NL;
+      'begin' + NL +
+      '  FreeAndNil(JoystickRecordsByName);' + NL +
+      '  FreeAndNil(JoystickRecordsByGuid);' + NL +
+      '  JoystickRecordsByName := TJoystickDatabase.Create;' + NL + //owns nothing as contains duplicates
+      '  JoystickRecordsByGuid := TJoystickDatabase.Create([doOwnsValues]);' + NL;
     for S in Database.Keys do
       if (Database[S] as TJoystickParser).Platform = Platform then
         Result := Result + DatabaseRecordToString((Database[S] as TJoystickParser));
@@ -306,16 +310,17 @@ begin
     NL);
 
   OutputUnit.Write(
+    'procedure InitJoysticksDatabase;' + NL +
     'implementation' + NL +
     NL +
     'uses SysUtils, Generics.Collections;' + NL + NL);
 
   OutputUnit.Write(DatabaseToString);
 
-  OutputUnit.Write(
-    NL +
-    'initialization' + NL +
-    '  InitDatabase;' + NL +
+  OutputUnit.Write(NL +
+    'finalization' + NL +
+    '  FreeAndNil(JoystickRecordsByName);' + NL +
+    '  FreeAndNil(JoystickRecordsByGuid);' + NL +
     'end.');
   FreeAndNil(OutputUnit);
   WriteLnLog('Written ' + IntToStr(RecCount) + ' records for platform', Platform);
