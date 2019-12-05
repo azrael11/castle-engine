@@ -14,7 +14,7 @@ type
   strict private
     JoysticksRecords: TJoystickDictionary;
 
-    procedure SayJoystickEvent(const Joy: TJoystick; const Prefix: String; const JE: TJoystickEvent; const Value: Single = 0);
+    procedure SayJoystickEvent(const JoyName: String; const Prefix: String; const JE: TJoystickEvent; const Value: Single = 0);
 
     procedure DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
     //procedure DoButtonDown(const Joy: TJoystick; const Button: Byte);
@@ -35,12 +35,12 @@ uses
 
 { TJoystickManager ---------------------------------------------------------}
 
-procedure TCastleJoysticks.SayJoystickEvent(const Joy: TJoystick; const Prefix: String; const JE: TJoystickEvent; const Value: Single = 0);
+procedure TCastleJoysticks.SayJoystickEvent(const JoyName: String; const Prefix: String; const JE: TJoystickEvent; const Value: Single = 0);
 begin
   if JE in AxisEvents then
-    WriteLnLog(Joy.Info.Name, Prefix + ':' + FloatToStr(Value))
+    WriteLnLog(JoyName, Prefix + ':' + FloatToStr(Value))
   else
-    WriteLnLog(Joy.Info.Name, Prefix);
+    WriteLnLog(JoyName, Prefix);
 end;
 
 procedure TCastleJoysticks.DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
@@ -50,7 +50,7 @@ var
 begin
   R := JoysticksRecords.Items[Joy];
   JE := R.AxisEvent(Axis, Value);
-  SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE, Value);
+  SayJoystickEvent(Joy.Info.Name, R.JoystickEventToStr(JE), JE, Value);
 end;
 {procedure TCastleJoysticks.DoButtonDown(const Joy: TJoystick; const Button: Byte);
 var
@@ -68,7 +68,7 @@ var
 begin
   R := JoysticksRecords.Items[Joy];
   JE := R.ButtonEvent(Button);
-  SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE);
+  SayJoystickEvent(Joy.Info.Name, R.JoystickEventToStr(JE), JE);
 end;
 procedure TCastleJoysticks.DoButtonPress(const Joy: TJoystick; const Button: Byte);
 var
@@ -77,7 +77,7 @@ var
 begin
   R := JoysticksRecords.Items[Joy];
   JE := R.ButtonEvent(Button);
-  SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE);
+  SayJoystickEvent(Joy.Info.Name, R.JoystickEventToStr(JE), JE);
 end;
 
 procedure TCastleJoysticks.Initialize;
