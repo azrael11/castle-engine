@@ -1,3 +1,6 @@
+{ See also https://github.com/spurious/SDL-mirror/blob/master/src/joystick/SDL_gamecontroller.c
+  (same thing done in SDL) }
+
 unit CastleJoystickManager;
 
 {TODO:
@@ -21,7 +24,9 @@ unit CastleJoystickManager;
    newer backends.
  * Data[0] is GUID and we can't use it at the moment, however, maybe we can get it from backend?
    In SDL it is used to detect the joystick
- * I have no idea what "~" means in the database for axes, simply removing the symbol
+ * [TODO] I have no idea what "~" means in the database for axes, simply removing the symbol
+   UPD: https://github.com/spurious/SDL-mirror/blob/master/src/joystick/SDL_gamecontroller.c#L585
+   It means "inverted input" on the axis
  * [TODO] Defatul X-Box like gamepad layout.
    Note, that currently we have Right stick flipped X and Y axes for X-Box gamepad,
    possibly due to AxesMap messing with original axes order,
@@ -35,6 +40,9 @@ unit CastleJoystickManager;
    fires constantly while the button is hold pressed, but ButtonPress
    only once, when the button is pressed.
  * Button press/release based on Value for axis-driven buttons
+ * TODO: see https://github.com/spurious/SDL-mirror/blob/master/src/joystick/SDL_gamecontrollerdb.h
+   they have a "default,Standard Gamepad" something we should use too.
+ * Note (TODO): Some GUIDS are not actual GUIDS, but notification, such as XInput
 
 }
 
