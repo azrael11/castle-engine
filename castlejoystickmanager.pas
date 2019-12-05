@@ -5,7 +5,7 @@ unit CastleJoystickManager;
 
 {TODO:
 
- * [CRITICAL] we have a lot of duplicate joystick names
+ * We have a lot of duplicate joystick names
    Also duplicate GUIDs are found for "different OSes"
    TODO: rework storage and searching for joystick records.
    Note: duplicate records seem to have identical layouts, only different GUIDs
@@ -163,14 +163,14 @@ begin
     WriteLnLog('Joystick Caps', IntToStr(J.Info.Caps));
     //try autodetect the joystick
     JoyName := TrimJoystickName(J.Info.Name);
-    if JoystickDatabase.ContainsKey(JoyName) then
+    if JoystickRecordsByName.ContainsKey(JoyName) then
     begin
-      R := JoystickDatabase[JoyName];
+      R := JoystickRecordsByName[JoyName];
       WriteLnLog('Joystick autodetected by name successfully!');
     end else
     begin
       JoyName := 'Microntek USB Joystick';
-      R := JoystickDatabase[JoyName];
+      R := JoystickRecordsByName[JoyName];
       WriteLnLog('Joystick failed to autodetect. Usind default record for ' + JoyName + '.');
     end;
     WriteLnLog(R.LogJoystickFeatures);

@@ -94,19 +94,12 @@ type
 
   TJoystickDatabase = specialize TObjectDictionary<String, TJoystickRecord>;
 
-var
   { Database of joysticks by name,
     A database corresponding to the current OS will be loaded
     As different OS report different GUIDs and names for the same joystick
     (note, that you can have only one database loaded simultaneously)}
-  JoystickDatabase: TJoystickDatabase;
-  { todo: When we have the autodetection pipeline, we'll have to use
-  JoystickGUIDDatabase: TJoystickDatabase;
-    and detect the joystick by its GUID.
-    Note that some joysticks use the same GUID, but have different axis/buttons layout.
-    Here we can also try to "surpass" the available database
-    and allow joysticks be detected not only by GUID but also by name
-    or at least leave a warning for the user in log about ambiguous joystick GUID }
+function JoystickRecordsByName: TJoystickDatabase;
+function JoystickRecordsByGuid: TJoystickDatabase;
 
 implementation
 uses
@@ -244,6 +237,33 @@ begin
       Result += JoystickEventToStr(J) + ': ' + (J in JoystickHasEvents).ToString(TUseBoolStrs.True) + NL;
 end;
 
+var
+  FJoystickRecordsByName, FJoystickRecordsByGuid: TJoystickDatabase;
+
+function JoystickRecordsByName: TJoystickDatabase;
+begin
+  if FJoystickRecordsByName = nil then
+  begin
+    FJoystickRecordsByName := TJoystickDatabase.Create();
+    FJoystickRecordsByGuid := TJoystickDatabase.Create([doOwnsValues]);
+  end;
+  Result := FJoystickRecordsByName;
+end;
+
+function JoystickRecordsByGuid: TJoystickDatabase;
+begin
+  if FJoystickRecordsByGuid = nil then
+  begin
+    FJoystickRecordsByName := TJoystickDatabase.Create();
+    FJoystickRecordsByGuid := TJoystickDatabase.Create([doOwnsValues]);
+  end;
+  Result := FJoystickRecordsByGuid;
+end;
+
+
+finalization
+FreeAndNil(FJoystickRecordsByName);
+FreeAndNil(FJoystickRecordsByGuid);
 
 end.
 

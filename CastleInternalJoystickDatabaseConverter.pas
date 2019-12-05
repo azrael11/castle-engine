@@ -217,7 +217,8 @@ begin
         Rec := TJoystickParser.Create;
         Rec.Parse(Strings[I]);
         //[CRITICAL] we have a lot of duplicates here!
-        Database.AddOrSetValue(Rec.JoystickName, Rec)
+        //Database.AddOrSetValue(Rec.JoystickName, Rec);
+        Database.Add(Rec.Guid + Rec.Platform, Rec);
       end;
     FreeAndNil(Strings);
   finally
@@ -263,8 +264,12 @@ var
       Result += JoyDictionaryToString('DPad', Rec.DPad);
       Result +=
         '  JoyData.CacheJoystickEvents;' + NL;
+      //duplicates allowed in names
       Result +=
-        '  JoystickDatabase.Add(JoyData.JoystickName, JoyData);' + NL;
+        '  JoystickRecordsByName.AddOrSetValue(JoyData.JoystickName, JoyData);' + NL;
+      //duplicates not allowed in GUID
+      Result +=
+        '  JoystickRecordsByGuid.Add(JoyData.Guid, JoyData);' + NL;
     end;
   var
     S: String;
@@ -273,8 +278,7 @@ var
       'procedure InitDatabase;' + NL +
       'var' + NL +
       '  JoyData: TJoystickRecord;' + NL +
-      'begin' + NL +
-      '  JoystickDatabase := TJoystickDatabase.Create([doOwnsValues]);' + NL;
+      'begin' + NL;
     for S in Database.Keys do
       if (Database[S] as TJoystickParser).Platform = Platform then
         Result := Result + DatabaseRecordToString((Database[S] as TJoystickParser));
@@ -312,8 +316,6 @@ begin
     NL +
     'initialization' + NL +
     '  InitDatabase;' + NL +
-    'finalization' + NL +
-    '  FreeAndNil(JoystickDatabase);' + NL +
     'end.');
   FreeAndNil(OutputUnit);
   WriteLnLog('Written ' + IntToStr(RecCount) + ' records for platform', Platform);
