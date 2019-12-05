@@ -43,6 +43,8 @@ unit CastleJoystickManager;
  * TODO: see https://github.com/spurious/SDL-mirror/blob/master/src/joystick/SDL_gamecontrollerdb.h
    they have a "default,Standard Gamepad" something we should use too.
  * Note (TODO): Some GUIDS are not actual GUIDS, but notification, such as XInput
+ * Merge 2 git repositories preserving history:
+   https://stackoverflow.com/questions/1425892/how-do-you-merge-two-git-repositories
 
 }
 
