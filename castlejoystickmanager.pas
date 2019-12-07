@@ -129,7 +129,6 @@ begin
     dpadUp: JoystickKey(joyUp, Value);
     dpadDown: JoystickKey(joyDown, Value);
 
-
     axisLeftX, axisLeftY,
     axisRightX, axisRightY,
     axisLeftXPlus, axisLeftXMinus, axisLeftYPlus, axisLeftYMinus,
@@ -237,22 +236,26 @@ begin
     WriteLnLog('Joystick Axes', IntToStr(J.Info.Count.Axes));
     WriteLnLog('Joystick Caps', IntToStr(J.Info.Caps));
     //try autodetect the joystick
-    JoyName := TrimJoystickName(J.Info.Name);
+    JoyName := TrimJoystickName(J.Info.Name) + 'aaaa';
     if JoystickRecordsByName.ContainsKey(JoyName) then
     begin
       R := JoystickRecordsByName[JoyName];
       WriteLnLog('Joystick autodetected by name successfully!');
     end else
     begin
-      JoyName := 'Microntek USB Joystick';
-      R := JoystickRecordsByName[JoyName];
-      WriteLnLog('Joystick failed to autodetect. Usind default record for ' + JoyName + '.');
+      {WARNING: this is my buggy Esperanza EG102, replace by X-Box in release}
+      {$ifdef Windows}
+      R := JoystickRecordsByGuid['03000000790000000600000000000000'];
+      {$else}
+      R := JoystickRecordsByGuid['03000000780000000600000010010000'];
+      {$endif}
+      WriteLnLog('Joystick failed to autodetect. Using default record for ' + R.JoystickName + '.');
     end;
     WriteLnLog(R.LogJoystickFeatures);
     JoysticksRecords.Add(J, R);
 
     D := TJoystickAdditionalData.Create;
-    D.TrimmedName := JoyName;;
+    D.TrimmedName := JoyName;
     JoysticksAdditionalData.Add(J, D);
 
     WriteLnLog('--------------------');
