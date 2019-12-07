@@ -42,6 +42,12 @@ type
   end;
 
 type
+  { Temporary: additional routines required for TJoysticks }
+  TJoysticksHelper = class helper for TJoysticks
+    function IndexOf(const Joy: TJoystick): Integer;
+  end;
+
+type
   TJoystickDictionary = specialize TObjectDictionary<TJoystick, TJoystickRecord>;
   TJoystickAdditionalDataDictionary = specialize TObjectDictionary<TJoystick, TJoystickAdditionalData>;
 
@@ -75,6 +81,17 @@ uses
   {$ifdef Windows}CastleInternalJoystickDatabaseWindows{$endif}
   CastleLog, CastleUtils;
 
+function TJoysticksHelper.IndexOf(const Joy: TJoystick): Integer;
+var
+  I: Integer;
+begin
+  //Result := FList.IndexOf(Joy); //invisible private field
+  Result := -1;
+  for I := 0 to Pred(Count) do
+    if Items[I] = Joy then
+      Exit(I);
+end;
+
 { TJoystickManager ---------------------------------------------------------}
 
 procedure TCastleJoysticks.SayJoystickEvent(const JoyName: String; const Prefix: String; const JE: TJoystickEvent; const Value: Single);
@@ -95,18 +112,47 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JE: TJo
   procedure JoystickKey(const AKey: TKey; const AValue: Single);
   var
     UnusedStringVariable: String;
+    ButtonEvent: TInputPressRelease;
   begin
+    ButtonEvent := InputKey(TVector2.Zero, AKey, '');
+    ButtonEvent.FingerIndex := Joysticks.IndexOf(Joy);
     if AValue > JoystickEpsilon then
     begin
-      Container.EventPress(InputKey(TVector2.Zero, AKey, ''));
-      Container.Pressed.KeyDown(AKey, '');
-      WriteLnLog('Pressed', KeyToStr(AKey));
+      Container.EventPress(ButtonEvent);
+      Container.Pressed.KeyDown(ButtonEvent.Key, ButtonEvent.KeyString);
+      WriteLnLog('Pressed', KeyToStr(ButtonEvent.Key));
     end else
     begin
-      Container.EventRelease(InputKey(TVector2.Zero, AKey, ''));
-      Container.Pressed.KeyUp(AKey, UnusedStringVariable);
-      WriteLnLog('Released', KeyToStr(AKey));
+      Container.EventRelease(ButtonEvent);
+      Container.Pressed.KeyUp(ButtonEvent.Key, UnusedStringVariable);
+      WriteLnLog('Released', KeyToStr(ButtonEvent.Key));
     end;
+  end;
+
+  //todo: optimize?
+  procedure JoystickLeftXAxis(const AValue: Single);
+  begin
+    JoysticksAdditionalData.Items[Joy].LeftAxis :=
+      Vector2(AValue, JoysticksAdditionalData.Items[Joy].LeftAxis.Y);
+    WriteLnLog('LeftAxis:', JoysticksAdditionalData.Items[Joy].LeftAxis.ToString);
+  end;
+  procedure JoystickLeftYAxis(const AValue: Single);
+  begin
+    JoysticksAdditionalData.Items[Joy].LeftAxis :=
+      Vector2(JoysticksAdditionalData.Items[Joy].LeftAxis.X, AValue);
+    WriteLnLog('LeftAxis:', JoysticksAdditionalData.Items[Joy].LeftAxis.ToString);
+  end;
+  procedure JoystickRightXAxis(const AValue: Single);
+  begin
+    JoysticksAdditionalData.Items[Joy].RightAxis :=
+      Vector2(AValue, JoysticksAdditionalData.Items[Joy].RightAxis.Y);
+    WriteLnLog('RightAxis:', JoysticksAdditionalData.Items[Joy].RightAxis.ToString);
+  end;
+  procedure JoystickRightYAxis(const AValue: Single);
+  begin
+    JoysticksAdditionalData.Items[Joy].RightAxis :=
+      Vector2(JoysticksAdditionalData.Items[Joy].RightAxis.X, AValue);
+    WriteLnLog('RightAxis:', JoysticksAdditionalData.Items[Joy].RightAxis.ToString);
   end;
 
 begin
@@ -124,15 +170,20 @@ begin
     buttonLeftStick: JoystickKey(joyLeftStick, Value);
     buttonRightStick: JoystickKey(joyRightStick, Value);
     buttonGuide: JoystickKey(joyGuide, Value);
+
     dpadLeft: JoystickKey(joyLeft, Value);
     dpadRight: JoystickKey(joyRight, Value);
     dpadUp: JoystickKey(joyUp, Value);
     dpadDown: JoystickKey(joyDown, Value);
 
-    axisLeftX, axisLeftY,
-    axisRightX, axisRightY,
-    axisLeftXPlus, axisLeftXMinus, axisLeftYPlus, axisLeftYMinus,
-    axisRightYPlus, axisRightYMinus: ;
+    axisLeftX, axisLeftXPlus: JoystickLeftXAxis(Value);
+    axisLeftXMinus: JoystickLeftXAxis(-Value); //WARNING: I don't really know if it works this way as I don't have a joystick with this feature to test if the value should be inverted
+    axisLeftY, axisLeftYPlus: JoystickLeftYAxis(Value);
+    axisLeftYMinus: JoystickLeftYAxis(-Value);
+
+    axisRightX: JoystickRightXAxis(Value);
+    axisRightY, axisRightYPlus: JoystickRightYAxis(Value);
+    axisRightYMinus: JoystickRightYAxis(-Value);
 
     else
       raise EInternalError.CreateFmt('Unknown joystick event received by SendJoystickEvent: %s.',
