@@ -47,6 +47,7 @@ type
 
 type
   TJoystickDictionary = specialize TDictionary<Byte, TJoystickEvent>;
+  TInvertAxes = specialize TList<Byte>;
 
 type
   TJoystickRecord = class
@@ -62,6 +63,8 @@ type
       Note that some joysticks are tricky and have buttons assigned to axes
       or D-Pad to buttons }
     Buttons, AxesPlus, AxesMinus, DPad: TJoystickDictionary;
+    {}
+    InvertAxes: TInvertAxes;
     { Reported name of the joystick. Note, that currently our backend reports
       different joystick names, especially on Windows, where it often simply
       reports 'Microsoft PC-joystick driver' }
@@ -75,6 +78,7 @@ type
     BuggyDuplicateEvents: Boolean;
     function MakeCopy: TJoystickRecord;
     { Translate axis, D-Pads and button events reported by Backend to TJoystickEvent }
+    function InvertAxis(const AxisID: Byte): Boolean;
     function AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
     function ButtonEvent(const ButtonID: Byte): TJoystickEvent;
     //function DPadEvent(const DPadParameters): TJoystickEvent;
@@ -126,6 +130,7 @@ begin
   FreeAndNil(AxesPlus);
   FreeAndNil(AxesMinus);
   FreeAndNil(DPad);
+  FreeAndNil(InvertAxes);
   inherited;
 end;
 
@@ -144,7 +149,21 @@ begin
     Result.AxesMinus.Add(B, AxesMinus[B]);
   for B in DPad.Keys do
     Result.DPad.Add(B, DPad[B]);
+  if InvertAxes <> nil then
+  begin
+    Result.InvertAxes := TInvertAxes.Create;
+    for B in InvertAxes do
+      Result.InvertAxes.Add(B);
+  end;
   Result.CacheJoystickEvents;
+end;
+
+function TJoystickRecord.InvertAxis(const AxisID: Byte): Boolean;
+begin
+  if (InvertAxes <> nil) and (InvertAxes.Contains(AxisID)) then
+    Result := true
+  else
+    Result := false;
 end;
 
 function TJoystickRecord.AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;

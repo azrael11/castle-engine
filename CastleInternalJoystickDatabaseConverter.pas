@@ -86,6 +86,7 @@ procedure TJoystickParser.Parse(const AString: String);
     TParsedValue = record
       ValueType: TValueType;
       Value: Integer;
+      Invert: Boolean;
     end;
 
   function ParseValueType(const AString: String): TParsedValue;
@@ -121,7 +122,11 @@ procedure TJoystickParser.Parse(const AString: String);
     end;
     Value := Copy(AString, Length(Prefix) + 1, Length(AString));
     if Pos('~', Value) > 0 then
+    begin
+      Result.Invert := true;
       Value := Copy(Value, 1, Pos('~', Value) - 1);
+    end else
+      Result.Invert := false;
     Result.Value := StrToInt(Value);
   end;
 
@@ -159,12 +164,22 @@ begin
         else
         begin
           VT := ParseValueType(Pair.Value);
+
+          if VT.Invert and (VT.ValueType <> vtBothAxes) then
+            WriteLnLog('Error: A non-both-axis event is inverted!');
+
           case VT.ValueType of
             vtButton: AddDictionaryEntry(Buttons, VT.Value, StrToJoystickEvent(Pair.Caption));
             vtDPad: AddDictionaryEntry(DPad, VT.Value, StrToJoystickEvent(Pair.Caption));
             vtBothAxes: begin
                           AddDictionaryEntry(AxesPlus, VT.Value, StrToJoystickEvent(Pair.Caption));
                           AddDictionaryEntry(AxesMinus, VT.Value, StrToJoystickEvent(Pair.Caption));
+                          if VT.Invert then
+                          begin
+                            if InvertAxes = nil then
+                              InvertAxes := TInvertAxes.Create;
+                            InvertAxes.Add(VT.Value);
+                          end;
                         end;
             vtAxisPlus: AddDictionaryEntry(AxesPlus, VT.Value, StrToJoystickEvent(Pair.Caption));
             vtAxisMinus: AddDictionaryEntry(AxesMinus, VT.Value, StrToJoystickEvent(Pair.Caption));
@@ -246,6 +261,16 @@ var
             NL;
       end;
 
+      function InvertedAxesToString(const AInvertAxes: TInvertAxes): String;
+      var
+        B: Byte;
+      begin
+        Result := '  JoyData.InvertAxes := TInvertAxes.Create;' + NL;
+        for B in AInvertAxes do
+          Result +=
+            '  JoyData.InvertAxes.Add(' + IntToStr(B) + ');' + NL;
+      end;
+
     begin
       Inc(RecCount);
       Result := NL +
@@ -262,6 +287,8 @@ var
       Result += JoyDictionaryToString('AxesPlus', Rec.AxesPlus);
       Result += JoyDictionaryToString('AxesMinus', Rec.AxesMinus);
       Result += JoyDictionaryToString('DPad', Rec.DPad);
+      if Rec.InvertAxes <> nil then
+        Result += InvertedAxesToString(Rec.InvertAxes);
       Result +=
         '  JoyData.CacheJoystickEvents;' + NL;
       //duplicates allowed in names
