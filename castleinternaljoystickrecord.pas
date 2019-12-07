@@ -87,7 +87,6 @@ type
     procedure CacheJoystickEvents;
     function LogJoystickFeatures: String;
 
-    function JoystickEventToStr(const Event: TJoystickEvent): String; {todo: move to JoystickParser?}
     constructor Create; //override;
     destructor Destroy; override;
   end;
@@ -100,6 +99,8 @@ type
 var
   JoystickRecordsByName, JoystickRecordsByGuid: TJoystickDatabase;
 
+
+function JoystickEventToStr(const Event: TJoystickEvent): String; {todo: move to JoystickParser?}
 implementation
 uses
   Classes, SysUtils,
@@ -163,11 +164,6 @@ function TJoystickRecord.ButtonEvent(const ButtonID: Byte): TJoystickEvent;
 begin
   if not Buttons.TryGetValue(ButtonID, Result) then
     Result := unknownButtonEvent;
-end;
-
-function TJoystickRecord.JoystickEventToStr(const Event: TJoystickEvent): String;
-begin
-  WriteStr(Result, Event);
 end;
 
 procedure TJoystickRecord.CacheJoystickEvents;
@@ -234,6 +230,11 @@ begin
   for J in TJoystickEvent do
     if not (J in [unknownEvent, unknownAxisEvent, unknownButtonEvent]) then
       Result += JoystickEventToStr(J) + ': ' + (J in JoystickHasEvents).ToString(TUseBoolStrs.True) + NL;
+end;
+
+function JoystickEventToStr(const Event: TJoystickEvent): String;
+begin
+  WriteStr(Result, Event);
 end;
 
 end.

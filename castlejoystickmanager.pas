@@ -4,23 +4,34 @@ interface
 
 uses
   SysUtils, Classes, Generics.Collections,
-  CastleJoysticks, CastleInternalJoystickRecord;
+  CastleWindow, CastleVectors, CastleJoysticks,
+  CastleInternalJoystickRecord;
+
+type
+  { Temporary: these are the routines that need to go into new TJoystick }
+  TJoystickAdditionalData = class
+    LeftAxis, RightAxis, DPad: TVector2;
+  end;
 
 type
   TJoystickDictionary = specialize TObjectDictionary<TJoystick, TJoystickRecord>;
+  TJoystickAdditionalDataDictionary = specialize TObjectDictionary<TJoystick, TJoystickAdditionalData>;
 
 type
   TCastleJoysticks = class
   strict private
     JoysticksRecords: TJoystickDictionary;
+    JoysticksAdditionalData: TJoystickAdditionalDataDictionary;
 
-    procedure SayJoystickEvent(const JoyName: String; const Prefix: String; const JE: TJoystickEvent; const Value: Single = 0);
+    procedure SayJoystickEvent(const JoyName: String; const Prefix: String; const JE: TJoystickEvent; const Value: Single);
+    procedure SendJoystickEvent(const Joy: TJoystick; const JE: TJoystickEvent; const Value: Single);
 
     procedure DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
     //procedure DoButtonDown(const Joy: TJoystick; const Button: Byte);
     procedure DoButtonUp(const Joy: TJoystick; const Button: Byte);
     procedure DoButtonPress(const Joy: TJoystick; const Button: Byte);
   public
+    Container: TWindowContainer;
     procedure Initialize;
     destructor Destroy; override;
   end;
@@ -35,7 +46,7 @@ uses
 
 { TJoystickManager ---------------------------------------------------------}
 
-procedure TCastleJoysticks.SayJoystickEvent(const JoyName: String; const Prefix: String; const JE: TJoystickEvent; const Value: Single = 0);
+procedure TCastleJoysticks.SayJoystickEvent(const JoyName: String; const Prefix: String; const JE: TJoystickEvent; const Value: Single);
 begin
   if JE in AxisEvents then
     WriteLnLog(JoyName, Prefix + ':' + FloatToStr(Value))
@@ -43,41 +54,31 @@ begin
     WriteLnLog(JoyName, Prefix);
 end;
 
-procedure TCastleJoysticks.DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
-var
-  R: TJoystickRecord;
-  JE: TJoystickEvent;
+procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JE: TJoystickEvent; const Value: Single);
 begin
-  R := JoysticksRecords.Items[Joy];
-  JE := R.AxisEvent(Axis, Value);
-  SayJoystickEvent(Joy.Info.Name, R.JoystickEventToStr(JE), JE, Value);
+  {case JE of
+    else
+      ;
+  end;}
+  SayJoystickEvent(Joy.Info.Name, JoystickEventToStr(JE), JE, Value);
+end;
+
+procedure TCastleJoysticks.DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
+begin
+  //if not AxisInverted[Axis] then
+  SendJoystickEvent(Joy, JoysticksRecords.Items[Joy].AxisEvent(Axis, Value), Value);
 end;
 {procedure TCastleJoysticks.DoButtonDown(const Joy: TJoystick; const Button: Byte);
-var
-  R: TJoystickRecord;
-  JE: TJoystickEvent;
 begin
-  R := JoysticksRecords.Items[Joy];
-  JE := R.ButtonEvent(Button);
-  SayJoystickEvent(Joy, R.JoystickEventToStr(JE), JE);
+  SendJoystickEvent(Joy, JoysticksRecords.Items[Joy].ButtonEvent(Button), 1.0);
 end;}
-procedure TCastleJoysticks.DoButtonUp(const Joy: TJoystick; const Button: Byte);
-var
-  R: TJoystickRecord;
-  JE: TJoystickEvent;
-begin
-  R := JoysticksRecords.Items[Joy];
-  JE := R.ButtonEvent(Button);
-  SayJoystickEvent(Joy.Info.Name, R.JoystickEventToStr(JE), JE);
-end;
 procedure TCastleJoysticks.DoButtonPress(const Joy: TJoystick; const Button: Byte);
-var
-  R: TJoystickRecord;
-  JE: TJoystickEvent;
 begin
-  R := JoysticksRecords.Items[Joy];
-  JE := R.ButtonEvent(Button);
-  SayJoystickEvent(Joy.Info.Name, R.JoystickEventToStr(JE), JE);
+  SendJoystickEvent(Joy, JoysticksRecords.Items[Joy].ButtonEvent(Button), 1.0);
+end;
+procedure TCastleJoysticks.DoButtonUp(const Joy: TJoystick; const Button: Byte);
+begin
+  SendJoystickEvent(Joy, JoysticksRecords.Items[Joy].ButtonEvent(Button), 0.0);
 end;
 
 procedure TCastleJoysticks.Initialize;
@@ -94,12 +95,18 @@ var
   I: Integer;
   J: TJoystick;
   R: TJoystickRecord;
+  D: TJoystickAdditionalData;
   JoyName: String;
 begin
   if JoysticksRecords = nil then
-    JoysticksRecords := TJoystickDictionary.Create //owns nothing
-  else
+  begin
+    JoysticksRecords := TJoystickDictionary.Create; //owns nothing
+    JoysticksAdditionalData := TJoystickAdditionalDataDictionary.Create([doOwnsValues]);
+  end else
+  begin
     JoysticksRecords.Clear;
+    JoysticksAdditionalData.Clear;
+  end;
 
   InitJoysticksDatabase;
 
@@ -131,6 +138,9 @@ begin
     WriteLnLog(R.LogJoystickFeatures);
     JoysticksRecords.Add(J, R);
 
+    D := TJoystickAdditionalData.Create;
+    JoysticksAdditionalData.Add(J, D);
+
     WriteLnLog('--------------------');
   end;
 
@@ -141,6 +151,7 @@ end;
 destructor TCastleJoysticks.Destroy;
 begin
   FreeAndNil(JoysticksRecords);
+  FreeAndNil(JoysticksAdditionalData);
   inherited;
 end;
 

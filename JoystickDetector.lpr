@@ -10,6 +10,7 @@ var
 
 procedure ApplicationInitialize;
 begin
+  JoysticksNew.Container := Window.Container;
   JoysticksNew.Initialize;
 end;
 
