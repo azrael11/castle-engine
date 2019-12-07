@@ -56,6 +56,7 @@ type
   strict private
     const
       JoystickEpsilon = 0.3;
+      FreeJoysticksDatabaseAfterInitialization = true;
     var
       JoysticksRecords: TJoystickDictionary;
       JoysticksAdditionalData: TJoystickAdditionalDataDictionary;
@@ -263,7 +264,7 @@ var
 begin
   if JoysticksRecords = nil then
   begin
-    JoysticksRecords := TJoystickDictionary.Create; //owns nothing
+    JoysticksRecords := TJoystickDictionary.Create([doOwnsValues]);
     JoysticksAdditionalData := TJoystickAdditionalDataDictionary.Create([doOwnsValues]);
   end else
   begin
@@ -287,10 +288,10 @@ begin
     WriteLnLog('Joystick Axes', IntToStr(J.Info.Count.Axes));
     WriteLnLog('Joystick Caps', IntToStr(J.Info.Caps));
     //try autodetect the joystick
-    JoyName := TrimJoystickName(J.Info.Name) + 'aaaa';
+    JoyName := TrimJoystickName(J.Info.Name);
     if JoystickRecordsByName.ContainsKey(JoyName) then
     begin
-      R := JoystickRecordsByName[JoyName];
+      R := JoystickRecordsByName[JoyName].MakeCopy;
       WriteLnLog('Joystick autodetected by name successfully!');
     end else
     begin
@@ -298,7 +299,7 @@ begin
       {$ifdef Windows}
       R := JoystickRecordsByGuid['03000000790000000600000000000000'];
       {$else}
-      R := JoystickRecordsByGuid['03000000780000000600000010010000'];
+      R := JoystickRecordsByGuid['03000000780000000600000010010000'].MakeCopy;
       {$endif}
       WriteLnLog('Joystick failed to autodetect. Using default record for ' + R.JoystickName + '.');
     end;
@@ -312,8 +313,8 @@ begin
     WriteLnLog('--------------------');
   end;
 
-  { we shouould free databases here, however, they own joystick records,
-    i.e. first we should make copies }
+  if FreeJoysticksDatabaseAfterInitialization then
+    FreeJoysticksDatabase;
 end;
 
 destructor TCastleJoysticks.Destroy;
