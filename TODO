@@ -6,7 +6,7 @@
    problem, however, it most certainly has to be fixed in the future
  * [CRITICAL] Note that in Windows we get a wrong reported joystick name as Microsoft PC-joystick driver
    while the joystick name reported by SDL2 is G-Shark GS-GP702 and the true name is Esperanza EG102
- * TJoyState has max 8 axes [0..7], however, database has as much as 14 axes \
+ * TJoyState has max 8 axes [0..7], however, database has as much as 14 axes
  * Windows and Linux backends handle axes in an ambiguous way,
    AxesMap tries to mimic something that this database should do,
    but eventually it does so only for one type of axes layout.
@@ -39,3 +39,5 @@
  * Use JoystickEpsilon always, including for axes.
  * [Critical] D-Pad events (and possibly other events, especially Fake events) generate wrong Release event!!!
  * Report unknown joystick event only once?
+ * [TODO] Fake events
+
