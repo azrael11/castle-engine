@@ -135,25 +135,25 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JE: TJo
   begin
     JoysticksAdditionalData.Items[Joy].LeftAxis :=
       Vector2(AValue, JoysticksAdditionalData.Items[Joy].LeftAxis.Y);
-    WriteLnLog('LeftAxis:', JoysticksAdditionalData.Items[Joy].LeftAxis.ToString);
+    WriteLnLog('LeftAxis', JoysticksAdditionalData.Items[Joy].LeftAxis.ToString);
   end;
   procedure JoystickLeftYAxis(const AValue: Single);
   begin
     JoysticksAdditionalData.Items[Joy].LeftAxis :=
       Vector2(JoysticksAdditionalData.Items[Joy].LeftAxis.X, AValue);
-    WriteLnLog('LeftAxis:', JoysticksAdditionalData.Items[Joy].LeftAxis.ToString);
+    WriteLnLog('LeftAxis', JoysticksAdditionalData.Items[Joy].LeftAxis.ToString);
   end;
   procedure JoystickRightXAxis(const AValue: Single);
   begin
     JoysticksAdditionalData.Items[Joy].RightAxis :=
       Vector2(AValue, JoysticksAdditionalData.Items[Joy].RightAxis.Y);
-    WriteLnLog('RightAxis:', JoysticksAdditionalData.Items[Joy].RightAxis.ToString);
+    WriteLnLog('RightAxis', JoysticksAdditionalData.Items[Joy].RightAxis.ToString);
   end;
   procedure JoystickRightYAxis(const AValue: Single);
   begin
     JoysticksAdditionalData.Items[Joy].RightAxis :=
       Vector2(JoysticksAdditionalData.Items[Joy].RightAxis.X, AValue);
-    WriteLnLog('RightAxis:', JoysticksAdditionalData.Items[Joy].RightAxis.ToString);
+    WriteLnLog('RightAxis', JoysticksAdditionalData.Items[Joy].RightAxis.ToString);
   end;
 
 begin
@@ -195,14 +195,17 @@ end;
 
 procedure TCastleJoysticks.DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
 var
+  JR: TJoystickRecord;
   JE: TJoystickEvent;
 begin
-  JE := JoysticksRecords.Items[Joy].AxisEvent(Axis, Value);
+  JR := JoysticksRecords.Items[Joy];
+  JE := JR.AxisEvent(Axis, Value);
   if JE <> unknownAxisEvent then
   begin
-    //if not AxisInverted[Axis] then
-    SendJoystickEvent(Joy, JE, Value);
-    //else SendJoystickEvent(Joy, JE, -Value);
+    if not JR.InvertAxis(Axis) then
+      SendJoystickEvent(Joy, JE, Value)
+    else
+      SendJoystickEvent(Joy, JE, -Value);
   end else
     WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at axis [%s]',
       [JoysticksAdditionalData.Items[Joy].TrimmedName,
