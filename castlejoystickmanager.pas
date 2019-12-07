@@ -187,10 +187,10 @@ begin
     axisRightYMinus: JoystickRightYAxis(-Value);
 
     else
-      raise EInternalError.CreateFmt('Unknown joystick event received by SendJoystickEvent: %s.',
-        [JoystickEventToStr(JE)]);
+      raise EInternalError.CreateFmt('$s sent an unknown joystick event received by SendJoystickEvent: %s.',
+        [Joy.Info.Name, JoystickEventToStr(JE)]);
   end;
-  //SayJoystickEvent(Joy.Info.Name, JoystickEventToStr(JE), JE, Value);
+  //SayJoystickEvent();
 end;
 
 procedure TCastleJoysticks.DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
