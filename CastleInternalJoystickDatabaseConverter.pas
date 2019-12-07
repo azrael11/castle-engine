@@ -242,7 +242,7 @@ var
         for B in ADictionary.Keys do
           Result +=
             '  JoyData.' + AName + '.Add(' + IntToStr(B) + ', ' +
-            Rec.JoystickEventToStr(ADictionary.Items[B]) + ');' +
+            JoystickEventToStr(ADictionary.Items[B]) + ');' +
             NL;
       end;
 
@@ -275,12 +275,16 @@ var
     S: String;
   begin
     Result := NL +
+      'procedure FreeJoysticksDatabase;' + NL +
+      'begin' + NL +
+      '  FreeAndNil(JoystickRecordsByName);' + NL +
+      '  FreeAndNil(JoystickRecordsByGuid);' + NL +
+      'end;' + NL + NL +
+
       'procedure InitJoysticksDatabase;' + NL +
       'var' + NL +
       '  JoyData: TJoystickRecord;' + NL +
       'begin' + NL +
-      '  FreeAndNil(JoystickRecordsByName);' + NL +
-      '  FreeAndNil(JoystickRecordsByGuid);' + NL +
       '  JoystickRecordsByName := TJoystickDatabase.Create;' + NL + //owns nothing as contains duplicates
       '  JoystickRecordsByGuid := TJoystickDatabase.Create([doOwnsValues]);' + NL;
     for S in Database.Keys do
@@ -311,6 +315,7 @@ begin
 
   OutputUnit.Write(
     'procedure InitJoysticksDatabase;' + NL +
+    'procedure FreeJoysticksDatabase;' + NL +
     'implementation' + NL +
     NL +
     'uses SysUtils, Generics.Collections;' + NL + NL);
@@ -319,8 +324,7 @@ begin
 
   OutputUnit.Write(NL +
     'finalization' + NL +
-    '  FreeAndNil(JoystickRecordsByName);' + NL +
-    '  FreeAndNil(JoystickRecordsByGuid);' + NL +
+    '  FreeJoysticksDatabase;' + NL +
     'end.');
   FreeAndNil(OutputUnit);
   WriteLnLog('Written ' + IntToStr(RecCount) + ' records for platform', Platform);
