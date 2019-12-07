@@ -44,3 +44,5 @@
    axes. We have to reliably send Axis=0 events for all possible axes (D-Pad included) in all backends.
    Or otherwise we have to update TCastleJoysticks every frame pooling joysticks data.
  * Use JoystickEpsilon always, including for axes.
+ * [Critical] D-Pad events (and possibly other events, especially Fake events) generate wrong Release event!!!
+   
