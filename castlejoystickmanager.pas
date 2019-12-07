@@ -15,10 +15,10 @@ const
   joyX = keyPadY; {WARNING: inverting}
   joyBack = keyPadMinus;
   joyStart = keyPadPlus;
-  joyLeftShoulder = keyPadL;
-  joyRightShoulder = keyPadR;
-  joyLeftTrigger = keyPadZL;
-  joyRightTrigger = keyPadZR;
+  joyLeftShoulder = keyPadZL;
+  joyRightShoulder = keyPadZR;
+  joyLeftTrigger = keyPadL;
+  joyRightTrigger = keyPadR;
   joyLeftStick = keyPadL; {WARNING: duplicating}
   joyRightStick = keyPadR; {WARNING: duplicating}
   joyGuide = keyPadPlus; {WARNING: duplicating}
@@ -37,6 +37,7 @@ const
 type
   { Temporary: these are the routines that need to go into new TJoystick }
   TJoystickAdditionalData = class
+    TrimmedName: String;
     LeftAxis, RightAxis, DPad: TVector2;
   end;
 
@@ -72,7 +73,7 @@ implementation
 uses
   {$ifdef Linux}CastleInternalJoystickDatabaseLinux,{$endif}
   {$ifdef Windows}CastleInternalJoystickDatabaseWindows{$endif}
-  CastleLog;
+  CastleLog, CastleUtils;
 
 { TJoystickManager ---------------------------------------------------------}
 
@@ -128,34 +129,69 @@ begin
     dpadUp: JoystickKey(joyUp, Value);
     dpadDown: JoystickKey(joyDown, Value);
 
-    {{ Primary axes }
+
     axisLeftX, axisLeftY,
     axisRightX, axisRightY,
     axisLeftXPlus, axisLeftXMinus, axisLeftYPlus, axisLeftYMinus,
-    axisRightYPlus, axisRightYMinus, {note: there are no RightXPlus/minux events in the database }}
+    axisRightYPlus, axisRightYMinus: ;
 
     else
-      ;
+      raise EInternalError.CreateFmt('Unknown joystick event received by SendJoystickEvent: %s.',
+        [JoystickEventToStr(JE)]);
   end;
   //SayJoystickEvent(Joy.Info.Name, JoystickEventToStr(JE), JE, Value);
 end;
 
 procedure TCastleJoysticks.DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
+var
+  JE: TJoystickEvent;
 begin
-  //if not AxisInverted[Axis] then
-  SendJoystickEvent(Joy, JoysticksRecords.Items[Joy].AxisEvent(Axis, Value), Value);
+  JE := JoysticksRecords.Items[Joy].AxisEvent(Axis, Value);
+  if JE <> unknownAxisEvent then
+  begin
+    //if not AxisInverted[Axis] then
+    SendJoystickEvent(Joy, JE, Value);
+    //else SendJoystickEvent(Joy, JE, -Value);
+  end else
+    WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at axis [%s]',
+      [JoysticksAdditionalData.Items[Joy].TrimmedName,
+       JoysticksRecords.Items[Joy].JoystickName, IntToStr(Axis)]));
 end;
 {procedure TCastleJoysticks.DoButtonDown(const Joy: TJoystick; const Button: Byte);
+var
+  JE: TJoystickEvent;
 begin
-  SendJoystickEvent(Joy, JoysticksRecords.Items[Joy].ButtonEvent(Button), 1.0);
+  JE := JoysticksRecords.Items[Joy].ButtonEvent(Button);
+  if JE <> unknownButtonEvent then
+    SendJoystickEvent(Joy, JE, 1.0)
+  else
+    WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at button [%s]',
+      [JoysticksAdditionalData.Items[Joy].TrimmedName,
+       JoysticksRecords.Items[Joy].JoystickName, IntToStr(Button)]));
 end;}
 procedure TCastleJoysticks.DoButtonPress(const Joy: TJoystick; const Button: Byte);
+var
+  JE: TJoystickEvent;
 begin
-  SendJoystickEvent(Joy, JoysticksRecords.Items[Joy].ButtonEvent(Button), 1.0);
+  JE := JoysticksRecords.Items[Joy].ButtonEvent(Button);
+  if JE <> unknownButtonEvent then
+    SendJoystickEvent(Joy, JE, 1.0)
+  else
+    WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at button [%s]',
+      [JoysticksAdditionalData.Items[Joy].TrimmedName,
+       JoysticksRecords.Items[Joy].JoystickName, IntToStr(Button)]));
 end;
 procedure TCastleJoysticks.DoButtonUp(const Joy: TJoystick; const Button: Byte);
+var
+  JE: TJoystickEvent;
 begin
-  SendJoystickEvent(Joy, JoysticksRecords.Items[Joy].ButtonEvent(Button), 0.0);
+  JE := JoysticksRecords.Items[Joy].ButtonEvent(Button);
+  if JE <> unknownButtonEvent then
+    SendJoystickEvent(Joy, JE, 0.0)
+  else
+    WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at button [%s]',
+      [JoysticksAdditionalData.Items[Joy].TrimmedName,
+       JoysticksRecords.Items[Joy].JoystickName, IntToStr(Button)]));
 end;
 
 procedure TCastleJoysticks.Initialize;
@@ -216,6 +252,7 @@ begin
     JoysticksRecords.Add(J, R);
 
     D := TJoystickAdditionalData.Create;
+    D.TrimmedName := JoyName;;
     JoysticksAdditionalData.Add(J, D);
 
     WriteLnLog('--------------------');
