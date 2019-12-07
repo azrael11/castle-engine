@@ -73,6 +73,7 @@ type
       e.g. axis[0] is reported as both LeftX and RightX.
       This means the data for this joystick is unreliable }
     BuggyDuplicateEvents: Boolean;
+    function MakeCopy: TJoystickRecord;
     { Translate axis, D-Pads and button events reported by Backend to TJoystickEvent }
     function AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
     function ButtonEvent(const ButtonID: Byte): TJoystickEvent;
@@ -126,6 +127,24 @@ begin
   FreeAndNil(AxesMinus);
   FreeAndNil(DPad);
   inherited;
+end;
+
+function TJoystickRecord.MakeCopy: TJoystickRecord;
+var
+  B: Byte;
+begin
+  Result := TJoystickRecord.Create;
+  Result.JoystickName := JoystickName;
+  Result.Guid := Guid;
+  for B in Buttons.Keys do
+    Result.Buttons.Add(B, Buttons[B]);
+  for B in AxesPlus.Keys do
+    Result.AxesPlus.Add(B, AxesPlus[B]);
+  for B in AxesMinus.Keys do
+    Result.AxesMinus.Add(B, AxesMinus[B]);
+  for B in DPad.Keys do
+    Result.DPad.Add(B, DPad[B]);
+  Result.CacheJoystickEvents;
 end;
 
 function TJoystickRecord.AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
