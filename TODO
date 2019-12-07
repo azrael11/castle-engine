@@ -32,15 +32,11 @@
    Looks like there is none on Linux, however, on Windows event ButtonDown
    fires constantly while the button is hold pressed, but ButtonPress
    only once, when the button is pressed.
- * Button press/release based on Value for axis-driven buttons
- * TODO: see https://github.com/spurious/SDL-mirror/blob/master/src/joystick/SDL_gamecontrollerdb.h
-   they have a "default,Standard Gamepad" something we should use too.
- * Note (TODO): Some GUIDS are not actual GUIDS, but notification, such as XInput
  * Merge 2 git repositories preserving history:
    https://stackoverflow.com/questions/1425892/how-do-you-merge-two-git-repositories 
  * See also https://github.com/spurious/SDL-mirror/blob/master/src/joystick/SDL_gamecontroller.c
    (same thing done in SDL)
- * [BUG] Currently we do not send Axis=0 event, which is important for correct determination of joystick
+ * [BUG] Currently we do not send Axis=0 event (on Windows?), which is important for correct determination of joystick
    axes. We have to reliably send Axis=0 events for all possible axes (D-Pad included) in all backends.
    Or otherwise we have to update TCastleJoysticks every frame pooling joysticks data.
  * Use JoystickEpsilon always, including for axes.
