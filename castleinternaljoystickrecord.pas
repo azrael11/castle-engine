@@ -89,6 +89,9 @@ type
     { The database for this joystick has some events that affect the same joystick axis
       This should never happen, but kept here as a safeguard. }
     BuggyDuplicateAxes: Boolean;
+    { The database contains at least two joysticks with equal name but different layouts
+      this makes by-name detectio nor selection of this joystick layout unreliable }
+    BuggyDuplicateName: Boolean;
     { Copy this joystick layout record }
     function MakeCopy: TJoystickLayout;
     { List of axes that have to be inverted before further processing }
@@ -132,6 +135,7 @@ begin
   BuggyGuid := false;
   BuggyDuplicateEvents := false;
   BuggyDuplicateAxes := false;
+  BuggyDuplicateName := false;
   Buttons := TJoystickDictionary.Create;
   AxesPlus := TJoystickDictionary.Create;
   AxesMinus := TJoystickDictionary.Create;

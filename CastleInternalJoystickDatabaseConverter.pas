@@ -7,10 +7,6 @@ uses
 
 type
   TBuggyGuidDictionary = specialize TObjectDictionary<String, TStringList>;
-  TAllJoysticks = specialize TObjectDictionary<String, TJoystickLayout>;
-
-var
-  BuggyGuids: TBuggyGuidDictionary;
 
 type
   TJoystickParser = class(TJoystickLayout)
@@ -21,6 +17,9 @@ type
     Platform: String;
     procedure Parse(const AString: String);
   end;
+
+type
+  TAllJoysticks = specialize TObjectList<TJoystickParser>;
 
 function TJoystickParser.StrToJoystickEvent(const AString: String): TJoystickEvent;
 begin
@@ -206,6 +205,9 @@ begin
       ' has contradictive axes entry.');
 end;
 
+var
+  BuggyGuids: TBuggyGuidDictionary;
+
 procedure GetBuggyGuids;
 var
   SList: TStringList;
@@ -240,6 +242,7 @@ end;
 
 var
   Database: TAllJoysticks;
+  DatabaseByName: TAllJoysticks;
 
 procedure ParseJoysticksDatabase(const URL: String);
 var
@@ -257,7 +260,7 @@ begin
       begin
         Layout := TJoystickParser.Create;
         Layout.Parse(Strings[I]);
-        Database.Add(Layout.Guid + Layout.Platform, Layout);
+        Database.Add(Layout);
       end;
     FreeAndNil(Strings);
   finally
@@ -310,6 +313,9 @@ var
       if Layout.BuggyDuplicateAxes then
       Result +=
         '  JoyData.BuggyDuplicateAxes := true;' + NL;
+      if Layout.BuggyDuplicateName then
+      Result +=
+        '  JoyData.BuggyDuplicateName := true;' + NL;
       Result += JoyDictionaryToString('Buttons', Layout.Buttons);
       Result += JoyDictionaryToString('AxesPlus', Layout.AxesPlus);
       Result += JoyDictionaryToString('AxesMinus', Layout.AxesMinus);
@@ -326,7 +332,7 @@ var
         '  JoystickLayoutsByGuid.Add(JoyData.Guid, JoyData);' + NL;
     end;
   var
-    S: String;
+    JP: TJoystickParser;
   begin
     Result := NL +
       'procedure FreeJoysticksDatabase;' + NL +
@@ -342,9 +348,9 @@ var
       '  FreeJoysticksDatabase;' + NL +
       '  JoystickLayoutsByName := TJoystickDatabase.Create;' + NL + //owns nothing as contains duplicates
       '  JoystickLayoutsByGuid := TJoystickDatabase.Create([doOwnsValues]);' + NL;
-    for S in Database.Keys do
-      if (Database[S] as TJoystickParser).Platform = Platform then
-        Result := Result + DatabaseLayoutToString((Database[S] as TJoystickParser));
+    for JP in Database do
+      if JP.Platform = Platform then
+        Result := Result + DatabaseLayoutToString(JP);
     Result += 'end;' + NL;
   end;
 
@@ -403,7 +409,7 @@ end;
 begin
   InitializeLog;
   GetBuggyGuids;
-  Database := TAllJoysticks.Create([doOwnsValues]);
+  Database := TAllJoysticks.Create(true);
   ParseJoysticksDatabase('castle-data:/gamecontrollerdb.txt');
   ParseJoysticksDatabase('castle-data:/buggyjoysticks.txt');
   WriteDatabase('Windows');
