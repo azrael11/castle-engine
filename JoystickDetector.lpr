@@ -34,10 +34,10 @@ begin
     //ListJoysticks;
 
     {$ifdef Windows}
-    JoysticksNew.AssignJoystickLayoutByName(Joysticks[0], 'G-Shark GS-GP702);
+    JoysticksNew.AssignJoystickLayoutByName(Joysticks[0], 'Esperanza EG102');
     {$endif}
     {$ifdef Linux}
-    JoysticksNew.AssignJoystickLayoutByName(Joysticks[0], 'Microntek USB Joystick');
+    JoysticksNew.AssignJoystickLayoutByName(Joysticks[0], 'Esperanza EG102');
     {$endif}
   end;
   JoysticksNew.FreeDatabase;
