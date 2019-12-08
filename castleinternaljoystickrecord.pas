@@ -268,7 +268,7 @@ begin
   if BuggyDuplicateEvents then
     Result += 'The database for this joystick contains duplicate events, which makes mapping unreliable.' + NL;
   if BuggyDuplicateAxes then
-    Result += 'The database for this joystick contains duplicate axes, which makes mapping unreliable.' + NL;
+    Result += 'The database for this joystick contains contradictive axes records, which makes mapping unreliable.' + NL;
   for J in TJoystickEvent do
     begin
       case J of
