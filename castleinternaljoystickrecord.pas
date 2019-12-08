@@ -104,7 +104,6 @@ type
 var
   JoystickRecordsByName, JoystickRecordsByGuid: TJoystickDatabase;
 
-
 function JoystickEventToStr(const Event: TJoystickEvent): String; {todo: move to JoystickParser?}
 implementation
 uses

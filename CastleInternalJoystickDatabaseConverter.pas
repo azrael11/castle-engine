@@ -7,6 +7,7 @@ uses
 
 type
   TBuggyGuidDictionary = specialize TDictionary<String, TGuid>;
+  TAllJoysticks = specialize TObjectDictionary<String, TJoystickRecord>;
 
 var
   BuggyGuids: TBuggyGuidDictionary;
@@ -208,7 +209,7 @@ begin
 end;
 
 var
-  Database: TJoystickDatabase;
+  Database: TAllJoysticks;
 
 procedure ParseJoysticksDatabase(const URL: String);
 var
@@ -218,7 +219,7 @@ var
   Rec: TJoystickParser;
 begin
   if Database = nil then
-    Database := TJoystickDatabase.Create([doOwnsValues])
+    Database := TAllJoysticks.Create([doOwnsValues])
   else
     Database.Clear;
 
@@ -306,12 +307,13 @@ var
       'begin' + NL +
       '  FreeAndNil(JoystickRecordsByName);' + NL +
       '  FreeAndNil(JoystickRecordsByGuid);' + NL +
-      'end;' + NL + NL +
-
+      'end;' + NL +
+      NL +
       'procedure InitJoysticksDatabase;' + NL +
       'var' + NL +
       '  JoyData: TJoystickRecord;' + NL +
       'begin' + NL +
+      '  FreeJoysticksDatabase;' + NL +
       '  JoystickRecordsByName := TJoystickDatabase.Create;' + NL + //owns nothing as contains duplicates
       '  JoystickRecordsByGuid := TJoystickDatabase.Create([doOwnsValues]);' + NL;
     for S in Database.Keys do
@@ -337,15 +339,24 @@ begin
     NL +
     'interface' + NL +
     NL +
-    'uses CastleInternalJoystickRecord;' + NL +
+    'uses Generics.Collections, CastleInternalJoystickRecord;' + NL +
     NL);
 
   OutputUnit.Write(
+    'type' + NL +
+    '  TJoystickDatabase = specialize TObjectDictionary<String, TJoystickRecord>;' + NL +
+    NL +
+    'var' + NL +
+    '  { Database of joysticks by name/GUID,' + NL +
+    '    A database corresponding to the current OS will be loaded' + NL +
+    '    As different OS report different GUIDs and names for the same joystick }' + NL +
+    '  JoystickRecordsByName, JoystickRecordsByGuid: TJoystickDatabase;' + NL +
+    NL +
     'procedure InitJoysticksDatabase;' + NL +
     'procedure FreeJoysticksDatabase;' + NL +
     'implementation' + NL +
     NL +
-    'uses SysUtils, Generics.Collections;' + NL + NL);
+    'uses SysUtils;' + NL);
 
   OutputUnit.Write(DatabaseToString);
 

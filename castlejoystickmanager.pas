@@ -56,7 +56,6 @@ type
   strict private
     const
       JoystickEpsilon = 0.3;
-      FreeJoysticksDatabaseAfterInitialization = true;
     var
       JoysticksRecords: TJoystickDictionary;
       JoysticksAdditionalData: TJoystickAdditionalDataDictionary;
@@ -71,8 +70,26 @@ type
     procedure DoButtonUp(const Joy: TJoystick; const Button: Byte);
     procedure DoButtonPress(const Joy: TJoystick; const Button: Byte);
   public
+    { Window container that will receive joystick buttons press events }
     Container: TWindowContainer;
+    { Determines if the joystick records database freed immediately
+      after the joysticks have been autodetected.
+      If you need to propose the player to choose a joystick manually
+      this value should be set to false
+      Default: true }
+    FreeJoysticksDatabaseAfterInitialization: Boolean;
+    { Initialize the joysticks connected to the system
+      and tries to autodetect joysticks layouts }
     procedure Initialize;
+    { Initializes/frees joysticks database to save up memory
+      Use in case you want to manually manage the joystick database
+      (e.g. in case you want the player to be able to select
+      joystick model manually in the game menu)
+      @groupbegin }
+    procedure InitializeDatabase;
+    procedure FreeDatabase;
+    { @groupend }
+    constructor Create; //override;
     destructor Destroy; override;
   end;
 
@@ -287,7 +304,7 @@ begin
     JoysticksAdditionalData.Clear;
   end;
 
-  InitJoysticksDatabase;
+  InitializeDatabase;
 
   Joysticks.Initialize;
   Joysticks.OnAxisMove := @DoAxisMove;
@@ -326,7 +343,23 @@ begin
   end;
 
   if FreeJoysticksDatabaseAfterInitialization then
-    FreeJoysticksDatabase;
+    FreeDatabase;
+end;
+
+procedure TCastleJoysticks.InitializeDatabase;
+begin
+  InitJoysticksDatabase;
+end;
+
+procedure TCastleJoysticks.FreeDatabase;
+begin
+  FreeJoysticksDatabase;
+end;
+
+constructor TCastleJoysticks.Create;
+begin
+  inherited; //parent is empty
+  FreeJoysticksDatabaseAfterInitialization := true;
 end;
 
 destructor TCastleJoysticks.Destroy;
