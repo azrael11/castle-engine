@@ -66,7 +66,7 @@ type
       Linux: 030000006f0e00001304000000010000, Generic X-Box pad }
     function DefaultJoystickGuid: String;
 
-    procedure SendJoystickEvent(const Joy: TJoystick; const JE: TJoystickEvent; const Value: Single);
+    procedure SendJoystickEvent(const Joy: TJoystick; const JEP: TJoystickEventPair; const Value: Single);
 
     procedure DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
     //procedure DoButtonDown(const Joy: TJoystick; const Button: Byte);
@@ -132,30 +132,72 @@ begin
     WriteLnLog(JoyName, Prefix);
 end;
 
-procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JE: TJoystickEvent; const Value: Single);
+procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJoystickEventPair; const Value: Single);
 
   function KeyToStr(const AKey: TKey): String;
   begin
     WriteStr(Result, AKey);
   end;
 
-  procedure JoystickKey(const AKey: TKey; const AValue: Single);
+  function JoystickEventToKey(const AJoystickEvent: TJoystickEvent): TKey;
+  begin
+    case AJoystickEvent of
+      padA: Result := joyA;
+      padB: Result := joyB;
+      padY: Result := joyY;
+      padX: Result := joyX;
+      buttonBack: Result := joyBack;
+      buttonStart: Result := joyStart;
+      buttonLeftShoulder: Result := joyLeftShoulder;
+      buttonRightShoulder: Result := joyRightShoulder;
+      buttonLeftTrigger: Result := joyLeftTrigger;
+      buttonRightTrigger: Result := joyRightTrigger;
+      buttonLeftStick: Result := joyLeftStick;
+      buttonRightStick: Result := joyRightStick;
+      buttonGuide: Result := joyGuide;
+
+      dpadLeft: Result := joyLeft;
+      dpadRight: Result := joyRight;
+      dpadUp: Result := joyUp;
+      dpadDown: Result := joyDown;
+      else
+        raise EInternalError.Create('Error: Received an unexpected joystick event ' + JoystickEventToStr(AJoystickEvent) + ' in TCastleJoysticks.SendJoystickEvent.JoystickEventToKey.');
+    end;
+  end;
+
+  procedure JoystickKey(const AValue: Single);
   var
     UnusedStringVariable: String;
     ButtonEvent: TInputPressRelease;
+    AKey: TKey;
   begin
-    ButtonEvent := InputKey(TVector2.Zero, AKey, '');
+    ButtonEvent := InputKey(TVector2.Zero, JoystickEventToKey(JEP.Primary), '');
     ButtonEvent.FingerIndex := Joysticks.IndexOf(Joy);
-    if AValue > JoystickEpsilon then
+    if Abs(AValue) > JoystickEpsilon then
     begin
       Container.EventPress(ButtonEvent);
       Container.Pressed.KeyDown(ButtonEvent.Key, ButtonEvent.KeyString);
       WriteLnLog('Pressed', KeyToStr(ButtonEvent.Key));
     end else
     begin
-      Container.EventRelease(ButtonEvent);
-      Container.Pressed.KeyUp(ButtonEvent.Key, UnusedStringVariable);
-      WriteLnLog('Released', KeyToStr(ButtonEvent.Key));
+      if Container.Pressed[ButtonEvent.Key] then
+      begin
+        Container.EventRelease(ButtonEvent);
+        Container.Pressed.KeyUp(ButtonEvent.Key, UnusedStringVariable);
+        WriteLnLog('Released', KeyToStr(ButtonEvent.Key));
+      end else
+      begin
+        ButtonEvent := InputKey(TVector2.Zero, JoystickEventToKey(JEP.Inverse), '');
+        ButtonEvent.FingerIndex := Joysticks.IndexOf(Joy);
+        if Container.Pressed[ButtonEvent.Key] then
+        begin
+          Container.EventRelease(ButtonEvent);
+          Container.Pressed.KeyUp(ButtonEvent.Key, UnusedStringVariable);
+          WriteLnLog('Released', KeyToStr(ButtonEvent.Key));
+        end else
+          WriteLnLog('Warning', Format('Received a releasing event, however neither %s nor %s have been pressed',
+            [JoystickEventToStr(JEP.Primary), JoystickEventToStr(JEP.Inverse)]));
+      end;
     end;
   end;
 
@@ -168,8 +210,11 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JE: TJo
   end;
   procedure JoystickLeftYAxis(const AValue: Single);
   begin
+    { Y axes should be 1 when pointing up, -1 when pointing down.
+      This is consistent with CGE 2D coordinate system
+      (and standard math 2D coordinate system). }
     JoysticksAdditionalData.Items[Joy].LeftAxis :=
-      Vector2(JoysticksAdditionalData.Items[Joy].LeftAxis.X, AValue);
+      Vector2(JoysticksAdditionalData.Items[Joy].LeftAxis.X, -AValue);
     WriteLnLog('LeftAxis', JoysticksAdditionalData.Items[Joy].LeftAxis.ToString);
   end;
   procedure JoystickRightXAxis(const AValue: Single);
@@ -180,31 +225,23 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JE: TJo
   end;
   procedure JoystickRightYAxis(const AValue: Single);
   begin
+    { Y axes should be 1 when pointing up, -1 when pointing down.
+      This is consistent with CGE 2D coordinate system
+      (and standard math 2D coordinate system). }
     JoysticksAdditionalData.Items[Joy].RightAxis :=
-      Vector2(JoysticksAdditionalData.Items[Joy].RightAxis.X, AValue);
+      Vector2(JoysticksAdditionalData.Items[Joy].RightAxis.X, -AValue);
     WriteLnLog('RightAxis', JoysticksAdditionalData.Items[Joy].RightAxis.ToString);
   end;
 
 begin
-  case JE of
-    padA: JoystickKey(joyA, Value);
-    padB: JoystickKey(joyB, Value);
-    padY: JoystickKey(joyY, Value);
-    padX: JoystickKey(joyX, Value);
-    buttonBack: JoystickKey(joyBack, Value);
-    buttonStart: JoystickKey(joyStart, Value);
-    buttonLeftShoulder: JoystickKey(joyLeftShoulder, Value);
-    buttonRightShoulder: JoystickKey(joyRightShoulder, Value);
-    buttonLeftTrigger: JoystickKey(joyLeftTrigger, Value);
-    buttonRightTrigger: JoystickKey(joyRightTrigger, Value);
-    buttonLeftStick: JoystickKey(joyLeftStick, Value);
-    buttonRightStick: JoystickKey(joyRightStick, Value);
-    buttonGuide: JoystickKey(joyGuide, Value);
-
-    dpadLeft: JoystickKey(joyLeft, Value);
-    dpadRight: JoystickKey(joyRight, Value);
-    dpadUp: JoystickKey(joyUp, Value);
-    dpadDown: JoystickKey(joyDown, Value);
+  case JEP.Primary of
+    padA, padB, padY, padX,
+    buttonBack, buttonStart,
+    buttonLeftShoulder, buttonRightShoulder,
+    buttonLeftTrigger, buttonRightTrigger,
+    buttonLeftStick, buttonRightStick,
+    buttonGuide,
+    dpadLeft, dpadRight, dpadUp, dpadDown: JoystickKey(Value);
 
     axisLeftX, axisLeftXPlus: JoystickLeftXAxis(Value);
     axisLeftXMinus: JoystickLeftXAxis(-Value); //WARNING: I don't really know if it works this way as I don't have a joystick with this feature to test if the value should be inverted
@@ -217,7 +254,7 @@ begin
 
     else
       raise EInternalError.CreateFmt('%s sent an unknown joystick event received by SendJoystickEvent: %s.',
-        [Joy.Info.Name, JoystickEventToStr(JE)]);
+        [Joy.Info.Name, JoystickEventToStr(JEP.Primary)]);
   end;
   //SayJoystickEvent();
 end;
@@ -225,20 +262,32 @@ end;
 procedure TCastleJoysticks.DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
 var
   JL: TJoystickLayout;
-  JE: TJoystickEvent;
+  JEP: TJoystickEventPair;
 begin
   JL := JoysticksLayouts.Items[Joy];
-  JE := JL.AxisEvent(Axis, Value);
-  if JE <> unknownAxisEvent then
+  if (Axis <> 6) and (Axis <> 7) then //if event is not D-Pad
   begin
-    if not JL.InvertAxis(Axis) then
-      SendJoystickEvent(Joy, JE, Value)
-    else
-      SendJoystickEvent(Joy, JE, -Value);
+    JEP := JL.AxisEvent(Axis, Value);
+    if JEP.Primary <> unknownAxisEvent then
+    begin
+      if (JL.InvertAxis(Axis)) {temp} xor (Axis = JOY_AXIS_Y) {/temp} then //temporary: counteract the backend inverting JOY_AXIS_Y
+        SendJoystickEvent(Joy, JEP, -Value)
+      else
+        SendJoystickEvent(Joy, JEP, Value);
+    end else
+      WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at axis [%s]',
+        [JoysticksAdditionalData.Items[Joy].TrimmedName,
+         JoysticksLayouts.Items[Joy].JoystickName, IntToStr(Axis)]));
   end else
-    WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at axis [%s]',
-      [JoysticksAdditionalData.Items[Joy].TrimmedName,
-       JoysticksLayouts.Items[Joy].JoystickName, IntToStr(Axis)]));
+  begin
+    JEP := JL.DPadEvent(Axis, Value);
+    if JEP.Primary <> unknownAxisEvent then
+      SendJoystickEvent(Joy, JEP, Value)
+    else
+      WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at D-Pad axis [%s]',
+        [JoysticksAdditionalData.Items[Joy].TrimmedName,
+         JoysticksLayouts.Items[Joy].JoystickName, IntToStr(Axis)]));
+  end;
 end;
 {procedure TCastleJoysticks.DoButtonDown(const Joy: TJoystick; const Button: Byte);
 var
@@ -254,11 +303,12 @@ begin
 end;}
 procedure TCastleJoysticks.DoButtonPress(const Joy: TJoystick; const Button: Byte);
 var
-  JE: TJoystickEvent;
+  JEP: TJoystickEventPair;
 begin
-  JE := JoysticksLayouts.Items[Joy].ButtonEvent(Button);
-  if JE <> unknownButtonEvent then
-    SendJoystickEvent(Joy, JE, 1.0)
+  JEP.Primary := JoysticksLayouts.Items[Joy].ButtonEvent(Button);
+  JEP.Inverse := JEP.Primary;
+  if JEP.Primary <> unknownButtonEvent then
+    SendJoystickEvent(Joy, JEP, 1.0)
   else
     WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at button [%s]',
       [JoysticksAdditionalData.Items[Joy].TrimmedName,
@@ -266,11 +316,12 @@ begin
 end;
 procedure TCastleJoysticks.DoButtonUp(const Joy: TJoystick; const Button: Byte);
 var
-  JE: TJoystickEvent;
+  JEP: TJoystickEventPair;
 begin
-  JE := JoysticksLayouts.Items[Joy].ButtonEvent(Button);
-  if JE <> unknownButtonEvent then
-    SendJoystickEvent(Joy, JE, 0.0)
+  JEP.Primary := JoysticksLayouts.Items[Joy].ButtonEvent(Button);
+  JEP.Inverse := JEP.Primary;
+  if JEP.Primary <> unknownButtonEvent then
+    SendJoystickEvent(Joy, JEP, 0.0)
   else
     WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at button [%s]',
       [JoysticksAdditionalData.Items[Joy].TrimmedName,

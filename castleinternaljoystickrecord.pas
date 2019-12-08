@@ -37,6 +37,16 @@ type
 
     );
 
+type
+  { Represents "Primary" event that had been pressed and
+    "Inverse" event that possibly had been released
+    In other words, if we have an axis assigned to two events -
+    EventA (Axis.Value > 0) and EventB (Axis.Value < 0)
+    then we have to release both EventA and EventB in case Axis.Value = 0 }
+  TJoystickEventPair = record
+    Primary, Inverse: TJoystickEvent;
+  end;
+
 const
   AxisEvents = [axisLeftX, axisLeftY, axisRightX, axisRightY,
     axisLeftXPlus, axisLeftXMinus, axisLeftYPlus, axisLeftYMinus,
@@ -77,9 +87,9 @@ type
     function MakeCopy: TJoystickLayout;
     { Translate axis, D-Pads and button events reported by Backend to TJoystickEvent }
     function InvertAxis(const AxisID: Byte): Boolean;
-    function AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
     function ButtonEvent(const ButtonID: Byte): TJoystickEvent;
-    //function DPadEvent(const DPadParameters): TJoystickEvent;
+    function AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEventPair;
+    function DPadEvent(const DPadAxis: Byte; const AxisValue: Single): TJoystickEventPair;
 
     { Report if the joystick has a specific feature }
     property JoystickHasEvents: TSetOfJoystickEvents read FJoystickHasEvents;
@@ -167,36 +177,59 @@ begin
     Result := false;
 end;
 
-function TJoystickLayout.AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
+function TJoystickLayout.AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEventPair;
+var
+  PositiveEvent, NegativeEvent: TJoystickEvent;
 begin
+  if not AxesPlus.TryGetValue(AxisID, PositiveEvent) then
+    PositiveEvent := unknownAxisEvent;
+  if not AxesMinus.TryGetValue(AxisID, NegativeEvent) then
+    NegativeEvent := unknownAxisEvent;
+
   if AxisValue >= 0 then
   begin
-    if not AxesPlus.TryGetValue(AxisID, Result) then
-      Result := unknownAxisEvent;
+    Result.Primary := PositiveEvent;
+    Result.Inverse := NegativeEvent;
   end else
-    if not AxesMinus.TryGetValue(AxisID, Result) then
-      Result := unknownAxisEvent;
-
-  //todo
-  if Result = unknownAxisEvent then
   begin
-    //try interpret the event as D-Pad - see bugs section above
-    if AxisID = 6 then
-    begin
-      if AxisValue >= 0 then
-        Result := dpadLeft
-      else
-        Result := dpadRight;
-    end else
-    if AxisID = 7 then
-    begin
-      if AxisValue >= 0 then
-        Result := dpadUp
-      else
-        Result := dpadDown;
-    end;
-    //DPad.TryGetValue()
+    Result.Primary := NegativeEvent;
+    Result.Inverse := PositiveEvent;
   end;
+end;
+
+function TJoystickLayout.DPadEvent(const DPadAxis: Byte; const AxisValue: Single): TJoystickEventPair;
+begin
+  if DPadAxis = 6 then
+  begin
+    //D-Pad X axis
+    if AxisValue >= 0 then
+    begin
+      Result.Primary := dpadRight;
+      Result.Inverse := dpadLeft;
+    end else
+    begin
+      Result.Primary := dpadLeft;
+      Result.Inverse := dpadRight;
+    end;
+  end else
+  if DPadAxis = 7 then
+  begin
+    //D-Pad Y axis
+    if AxisValue >= 0 then
+    begin
+      Result.Primary := dpadDown;
+      Result.Inverse := dpadUp;
+    end else
+    begin
+      Result.Primary := dpadUp;
+      Result.Inverse := dpadDown;
+    end;
+  end else
+    raise Exception.Create('Error: TJoystickLayout.DPadEvent received an unexpected axis = ' + IntToStr(DPadAxis));
+
+  {begin
+    DPad.TryGetValue()
+  end;}
 end;
 
 function TJoystickLayout.ButtonEvent(const ButtonID: Byte): TJoystickEvent;
