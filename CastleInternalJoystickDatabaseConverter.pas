@@ -210,6 +210,8 @@ procedure GetBuggyGuids;
 var
   SList: TStringList;
 begin
+  { for now - hardcoded, if we meet any other buggy GUIDs then we may consider
+    storing those as an external file and read them here. }
   BuggyGuids := TBuggyGuidDictionary.Create([doOwnsValues]);
   SList := TStringList.Create;
   SList.Add('03000000790000000600000000000000');
