@@ -1,11 +1,16 @@
- * Duplicate joystick names: duplicate records often have identical layouts, only different GUIDs
-   however, it is not guaranteed, e.g. compare two joysticks named "Xbox One Wireless Controller"
-   with GUIDs 050000005e040000e002000003090000 and 050000005e040000fd02000003090000
-   They have different layout of buttons, but equal names.
-   However, in by-name database the first joystick is overwritten
- * [CRITICAL] Note that in Windows we get a wrong reported joystick name as "Microsoft PC-joystick driver"
-   while the joystick name reported by SDL2 is G-Shark GS-GP702 and the true name is Esperanza EG102
- * TJoyState has max 8 axes [0..7], however, database has as much as 14 axes
+Phase - 1
+
+ * Report unknown joystick event only once?
+ * [TODO] Fake events
+ * [TODO] No database for OS other than Windows, Linux will most likely result in compilation error or crash.
+ * [TODO] Rename castleinternaljoystickrecord to castleinternaljoysticklayout
+
+Phase - 2
+
+ * [TODO] Merge 2 git repositories preserving history:
+   https://stackoverflow.com/questions/1425892/how-do-you-merge-two-git-repositories 
+ * [TODO] Integrate into Castle Game Engine (rewrite TJoysticks, TJoystick)
+ * [TODO] Improve current backends
  * [CRITICAL] Windows and Linux backends handle axes in an ambiguous way,
    AxesMap tries to mimic something that this database should do,
    but eventually it does so only for one type of axes layout.
@@ -14,31 +19,18 @@
    as we're using legacy backends both on Linux and Windows and
    axes layouts theoretically can be different from those provided by
    newer backends.
- * Data[0] is GUID and we can't use it at the moment, however, maybe we can get it from backend?
-   In SDL it is used to detect the joystick
- * [TODO] Done: Defatul X-Box like gamepad layout.
-   TODO: Note, that currently we have Right stick flipped X and Y axes for X-Box gamepad,
-   possibly due to AxesMap messing with original axes order,
-   or original axes order reported wrong.
-   (it is also possible, thou very unlikely, that it's fault of the
-   database, as it does contain errors; however, not a single gamepad
-   reports Y axis before X axis - Y axis always follows X axis, never preceeds,
-   like we have now on X-Box layout)
- * What is the difference between ButtonPress and ButtonDown events?
-   Looks like there is none on Linux, however, on Windows event ButtonDown
-   fires constantly while the button is hold pressed, but ButtonPress
-   only once, when the button is pressed.
- * [TODO] Merge 2 git repositories preserving history:
-   https://stackoverflow.com/questions/1425892/how-do-you-merge-two-git-repositories 
- * See also https://github.com/spurious/SDL-mirror/blob/master/src/joystick/SDL_gamecontroller.c
-   (same thing done in SDL)
+ * TJoyState has max 8 axes [0..7], however, database has as much as 14 axes
+ * [TODO] Test X-Box controller
+
+Phase - 3
+
+ * [TODO] Rework backend
+ * [TODO] DirectInput headers for FreePascal: http://www.clootie.ru/fpc/index.html
+   Unfortunately they have MPL1.1 license, which is incompatible
+ * [CRITICAL] Note that in Windows we get a wrong reported joystick name as "Microsoft PC-joystick driver"
+   while the joystick name reported by SDL2 is G-Shark GS-GP702 and the true name is Esperanza EG102
  * [BUG?] Currently we do not send Axis=0 event (on Windows?), which is important for correct determination of joystick
    axes. We have to reliably send Axis=0 events for all possible axes (D-Pad included) in all backends.
    Or otherwise we have to update TCastleJoysticks every frame pooling joysticks data.
- * Report unknown joystick event only once?
- * [TODO] Fake events
- * [TODO] No database for OS other than Windows, Linux will most likely result in compilation error or crash.
- * [TODO] Rename castleinternaljoystickrecord to castleinternaljoysticklayout
-
- * [TODO] DirectInput headers for FreePascal: http://www.clootie.ru/fpc/index.html
-   Unfortunately they have MPL1.1 license, which is incompatible
+ * See also https://github.com/spurious/SDL-mirror/blob/master/src/joystick/SDL_gamecontroller.c
+   (same thing done in SDL)
