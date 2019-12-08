@@ -242,9 +242,60 @@ end;
 
 var
   Database: TAllJoysticks;
-  DatabaseByName: TAllJoysticks;
 
 procedure ParseJoysticksDatabase(const URL: String);
+
+  procedure TestAndRegisterDuplicates(const ALayout: TJoystickParser);
+
+    function DictionariesNotEqual(const DictA, DictB: TJoystickDictionary): Boolean;
+    var
+      B: Byte;
+    begin
+      Result := false;
+      for B in DictA.Keys do
+        if (not DictB.ContainsKey(B)) or (DictA[B] <> DictB[B]) then
+          Exit(true);
+      for B in DictB.Keys do
+        if (not DictA.ContainsKey(B)) or (DictA[B] <> DictB[B]) then
+          Exit(true);
+    end;
+
+  var
+    JP: TJoystickParser;
+
+    procedure MarkAsBuggyDuplicateName;
+    begin
+      JP.BuggyDuplicateName := true;
+      ALayout.BuggyDuplicateName := true;
+    end;
+
+  begin
+    for JP in Database do
+      if (JP.JoystickName = ALayout.JoystickName) and (JP.Platform = ALayout.Platform) then
+      begin
+        if DictionariesNotEqual(JP.Buttons, ALayout.Buttons) then
+        begin
+          MarkAsBuggyDuplicateName;
+          Continue;
+        end;
+        if DictionariesNotEqual(JP.AxesPlus, ALayout.AxesPlus) then
+        begin
+          MarkAsBuggyDuplicateName;
+          Continue;
+        end;
+        if DictionariesNotEqual(JP.AxesMinus, ALayout.AxesMinus) then
+        begin
+          MarkAsBuggyDuplicateName;
+          Continue;
+        end;
+        if DictionariesNotEqual(JP.DPad, ALayout.DPad) then
+        begin
+          MarkAsBuggyDuplicateName;
+          Continue;
+        end;
+      end;
+  end;
+
 var
   Stream: TStream;
   Strings: TStringList;
@@ -260,6 +311,7 @@ begin
       begin
         Layout := TJoystickParser.Create;
         Layout.Parse(Strings[I]);
+        TestAndRegisterDuplicates(Layout);
         Database.Add(Layout);
       end;
     FreeAndNil(Strings);
