@@ -24,7 +24,7 @@ type
     axisLeftX, axisLeftY,
     axisRightX, axisRightY,
     axisLeftXPlus, axisLeftXMinus, axisLeftYPlus, axisLeftYMinus,
-    axisRightYPlus, axisRightYMinus, {note: there are no RightXPlus/minux events in the database }
+    axisRightYPlus, axisRightYMinus, {note: there are no axisRightXPlus/axisRightXMinus events in the database }
 
     { Pressing on the sticks }
     buttonLeftStick, buttonRightStick,
