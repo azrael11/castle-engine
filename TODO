@@ -1,13 +1,10 @@
- * We have a lot of duplicate joystick names
-   Also duplicate GUIDs are found for "different OSes"
-   TODO: rework storage and searching for joystick records.
-   Note: duplicate records seem to have identical layouts, only different GUIDs
+ * Duplicate joystick names: duplicate records *seem* to have identical layouts, only different GUIDs
    This way current "overwriting" of the equally named joysticks isn't a critical
    problem, however, it most certainly has to be fixed in the future
  * [CRITICAL] Note that in Windows we get a wrong reported joystick name as "Microsoft PC-joystick driver"
    while the joystick name reported by SDL2 is G-Shark GS-GP702 and the true name is Esperanza EG102
  * TJoyState has max 8 axes [0..7], however, database has as much as 14 axes
- * Windows and Linux backends handle axes in an ambiguous way,
+ * [CRITICAL] Windows and Linux backends handle axes in an ambiguous way,
    AxesMap tries to mimic something that this database should do,
    but eventually it does so only for one type of axes layout.
    Overall, currently this makes this database pretty useless.
@@ -17,8 +14,8 @@
    newer backends.
  * Data[0] is GUID and we can't use it at the moment, however, maybe we can get it from backend?
    In SDL it is used to detect the joystick
- * [TODO] Defatul X-Box like gamepad layout.
-   Note, that currently we have Right stick flipped X and Y axes for X-Box gamepad,
+ * [TODO] Done: Defatul X-Box like gamepad layout.
+   TODO: Note, that currently we have Right stick flipped X and Y axes for X-Box gamepad,
    possibly due to AxesMap messing with original axes order,
    or original axes order reported wrong.
    (it is also possible, thou very unlikely, that it's fault of the
@@ -40,4 +37,7 @@
  * [Critical] D-Pad events (and possibly other events, especially Fake events) generate wrong Release event!!!
  * Report unknown joystick event only once?
  * [TODO] Fake events
+
+ * [TODO] DirectInput headers for FreePascal: http://www.clootie.ru/fpc/index.html
+   Unfortunately they have MPL1.1 license, which is incompatible
 
