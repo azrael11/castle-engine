@@ -1,6 +1,8 @@
- * Duplicate joystick names: duplicate records *seem* to have identical layouts, only different GUIDs
-   This way current "overwriting" of the equally named joysticks isn't a critical problem,
-   however, maybe it has to be fixed in the future
+ * Duplicate joystick names: duplicate records often have identical layouts, only different GUIDs
+   however, it is not guaranteed, e.g. compare two joysticks named "Xbox One Wireless Controller"
+   with GUIDs 050000005e040000e002000003090000 and 050000005e040000fd02000003090000
+   They have different layout of buttons, but equal names.
+   However, in by-name database the first joystick is overwritten
  * [CRITICAL] Note that in Windows we get a wrong reported joystick name as "Microsoft PC-joystick driver"
    while the joystick name reported by SDL2 is G-Shark GS-GP702 and the true name is Esperanza EG102
  * TJoyState has max 8 axes [0..7], however, database has as much as 14 axes
@@ -40,4 +42,3 @@
 
  * [TODO] DirectInput headers for FreePascal: http://www.clootie.ru/fpc/index.html
    Unfortunately they have MPL1.1 license, which is incompatible
-
