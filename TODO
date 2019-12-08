@@ -1,6 +1,6 @@
  * Duplicate joystick names: duplicate records *seem* to have identical layouts, only different GUIDs
-   This way current "overwriting" of the equally named joysticks isn't a critical
-   problem, however, it most certainly has to be fixed in the future
+   This way current "overwriting" of the equally named joysticks isn't a critical problem,
+   however, maybe it has to be fixed in the future
  * [CRITICAL] Note that in Windows we get a wrong reported joystick name as "Microsoft PC-joystick driver"
    while the joystick name reported by SDL2 is G-Shark GS-GP702 and the true name is Esperanza EG102
  * TJoyState has max 8 axes [0..7], however, database has as much as 14 axes
@@ -30,11 +30,9 @@
    https://stackoverflow.com/questions/1425892/how-do-you-merge-two-git-repositories 
  * See also https://github.com/spurious/SDL-mirror/blob/master/src/joystick/SDL_gamecontroller.c
    (same thing done in SDL)
- * [BUG] Currently we do not send Axis=0 event (on Windows?), which is important for correct determination of joystick
+ * [BUG?] Currently we do not send Axis=0 event (on Windows?), which is important for correct determination of joystick
    axes. We have to reliably send Axis=0 events for all possible axes (D-Pad included) in all backends.
    Or otherwise we have to update TCastleJoysticks every frame pooling joysticks data.
- * Use JoystickEpsilon always, including for axes.
- * [Critical] D-Pad events (and possibly other events, especially Fake events) generate wrong Release event!!!
  * Report unknown joystick event only once?
  * [TODO] Fake events
  * [TODO] No database for OS other than Windows, Linux will most likely result in compilation error or crash.
