@@ -290,18 +290,59 @@ begin
 end;
 
 function TJoystickLayout.LogJoystickFeatures: String;
+
+  { Current backend supports no more than 6 axes [0..5]
+    + [6, 7] used for D-Pad
+      this limitation can be fixed in Linux and Windows backend
+      We can extend the amount of available axes to 8 on Windows (now: 6)
+      and to 16 on Linux (now: 6)
+      without rewriting the current backend
+    however PS3 Controller has 14 axes
+    by axes we understand not quantity of physical axes/sticks,
+    but their backend number }
+  function AxesExceedBackendCapabilities: Boolean;
+  var
+    B: Byte;
+  begin
+    Result := false;
+    for B in AxesPlus.Keys do
+      if B > 5 then
+        Exit(true);
+    for B in AxesMinus.Keys do
+      if B > 5 then
+        Exit(true);
+  end;
+
+  { Current backend supports no more than 32 buttons [0..31]
+    however Mayflash WiiU Pro Game Controller Adapter (DInput) has 44 buttons
+    by buttons we understand not quantity of physical buttons,
+    but their backend number }
+  function ButtonsExceedBackendCapabilities: Boolean;
+  var
+    B: Byte;
+  begin
+    Result := false;
+    for B in Buttons.Keys do
+      if B > 31 then
+        Exit(true);
+  end;
+
 var
   J: TJoystickEvent;
   LogFeature: Boolean;
 begin
   Result := 'Joystick "' + JoystickName + '" has the following features:' + NL;
+  if AxesExceedBackendCapabilities then
+    Result += 'Warning: this joystick layout suggests more axes than our current backend can handle (8).' + NL;
+  if ButtonsExceedBackendCapabilities then
+    Result += 'Warning: this joystick layout suggests more buttons than our current backend can handle (32).' + NL;
   Result += 'GUID: ' + Guid + NL;
   if BuggyGuid then
-    Result += 'This joystick GUID is known to be shared by different joyticks with different layouts' + NL;
+    Result += 'Warning: This joystick GUID is known to be shared by different joyticks with different layouts' + NL;
   if BuggyDuplicateEvents then
-    Result += 'The database for this joystick contains duplicate events, which makes mapping unreliable.' + NL;
+    Result += 'Warning: The database for this joystick contains duplicate events, which makes mapping unreliable.' + NL;
   if BuggyDuplicateAxes then
-    Result += 'The database for this joystick contains contradictive axes records, which makes mapping unreliable.' + NL;
+    Result += 'Warning: The database for this joystick contains contradictive axes records, which makes mapping unreliable.' + NL;
   for J in TJoystickEvent do
     begin
       case J of

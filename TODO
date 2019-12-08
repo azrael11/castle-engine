@@ -37,7 +37,6 @@
  * [TODO] Fake events
  * [TODO] No database for OS other than Windows, Linux will most likely result in compilation error or crash.
  * [TODO] Rename castleinternaljoystickrecord to castleinternaljoysticklayout
- * [TODO] Log warning, internal axes only 8(6) on Windows
 
  * [TODO] DirectInput headers for FreePascal: http://www.clootie.ru/fpc/index.html
    Unfortunately they have MPL1.1 license, which is incompatible
