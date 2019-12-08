@@ -189,6 +189,21 @@ begin
       end;
   end;
   FreeAndNil(Data);
+
+  //detect buggy duplicate axes
+  CacheJoystickEvents;
+  if (axisLeftX in JoystickHasEvents) and
+    (axisLeftXPlus in JoystickHasEvents) or ((axisLeftXMinus in JoystickHasEvents)) then
+      BuggyDuplicateAxes := true;
+  if (axisLeftY in JoystickHasEvents) and
+    (axisLeftYPlus in JoystickHasEvents) or ((axisLeftYMinus in JoystickHasEvents)) then
+      BuggyDuplicateAxes := true;
+  if (axisRightY in JoystickHasEvents) and
+    (axisRightYPlus in JoystickHasEvents) or ((axisRightYMinus in JoystickHasEvents)) then
+      BuggyDuplicateAxes := true;
+  if BuggyDuplicateAxes then
+    WriteLnLog('Warning', 'Joystick "' + JoystickName + '"' +
+      ' has contradictive axes entry.');
 end;
 
 procedure GetBuggyGuids;
@@ -281,6 +296,9 @@ var
       if Layout.BuggyDuplicateEvents then
       Result +=
         '  JoyData.BuggyDuplicateEvents := true;' + NL;
+      if Layout.BuggyDuplicateAxes then
+      Result +=
+        '  JoyData.BuggyDuplicateAxes := true;' + NL;
       Result += JoyDictionaryToString('Buttons', Layout.Buttons);
       Result += JoyDictionaryToString('AxesPlus', Layout.AxesPlus);
       Result += JoyDictionaryToString('AxesMinus', Layout.AxesMinus);

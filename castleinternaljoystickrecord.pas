@@ -76,6 +76,7 @@ type
       e.g. axis[0] is reported as both LeftX and RightX.
       This means the data for this joystick is unreliable }
     BuggyDuplicateEvents: Boolean;
+    BuggyDuplicateAxes: Boolean;
     function MakeCopy: TJoystickLayout;
     { Translate axis, D-Pads and button events reported by Backend to TJoystickEvent }
     function InvertAxis(const AxisID: Byte): Boolean;
@@ -117,6 +118,7 @@ begin
   inherited; //parent is empty
   BuggyGuid := false;
   BuggyDuplicateEvents := false;
+  BuggyDuplicateAxes := false;
   Buttons := TJoystickDictionary.Create;
   AxesPlus := TJoystickDictionary.Create;
   AxesMinus := TJoystickDictionary.Create;
@@ -142,6 +144,7 @@ begin
   Result.Guid := Guid;
   Result.BuggyGuid := BuggyGuid;
   Result.BuggyDuplicateEvents := BuggyDuplicateEvents;
+  Result.BuggyDuplicateAxes := BuggyDuplicateAxes;
   for B in Buttons.Keys do
     Result.Buttons.Add(B, Buttons[B]);
   for B in AxesPlus.Keys do
@@ -267,6 +270,8 @@ begin
     Result += 'This joystick GUID is known to be shared by different joyticks with different layouts' + NL;
   if BuggyDuplicateEvents then
     Result += 'The database for this joystick contains duplicate events, which makes mapping unreliable.' + NL;
+  if BuggyDuplicateAxes then
+    Result += 'The database for this joystick contains duplicate axes, which makes mapping unreliable.' + NL;
   for J in TJoystickEvent do
     if not (J in [unknownEvent, unknownAxisEvent, unknownButtonEvent]) then
     begin
