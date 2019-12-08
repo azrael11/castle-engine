@@ -62,6 +62,8 @@ type
       JoysticksAdditionalData: TJoystickAdditionalDataDictionary;
 
     procedure SayJoystickEvent(const JoyName: String; const Prefix: String; const JE: TJoystickEvent; const Value: Single);
+    function DefaultJoystickGuid: String;
+
     procedure SendJoystickEvent(const Joy: TJoystick; const JE: TJoystickEvent; const Value: Single);
 
     procedure DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
@@ -248,6 +250,16 @@ begin
        JoysticksRecords.Items[Joy].JoystickName, IntToStr(Button)]));
 end;
 
+function TCastleJoysticks.DefaultJoystickGuid: String;
+begin
+  {WARNING: this is my buggy Esperanza EG102, replace by X-Box in release}
+  {$ifdef Windows}
+  Result := '03000000790000000600000000000000';
+  {$else}
+  Result := '03000000780000000600000010010000';
+  {$endif}
+end;
+
 procedure TCastleJoysticks.Initialize;
 
   function TrimJoystickName(const AJoystickName: String): String;
@@ -290,6 +302,7 @@ begin
     WriteLnLog('Joystick Buttons', IntToStr(J.Info.Count.Buttons));
     WriteLnLog('Joystick Axes', IntToStr(J.Info.Count.Axes));
     WriteLnLog('Joystick Caps', IntToStr(J.Info.Caps));
+
     //try autodetect the joystick
     JoyName := TrimJoystickName(J.Info.Name);
     if JoystickRecordsByName.ContainsKey(JoyName) then
@@ -298,14 +311,10 @@ begin
       WriteLnLog('Joystick autodetected by name successfully!');
     end else
     begin
-      {WARNING: this is my buggy Esperanza EG102, replace by X-Box in release}
-      {$ifdef Windows}
-      R := JoystickRecordsByGuid['03000000790000000600000000000000'];
-      {$else}
-      R := JoystickRecordsByGuid['03000000780000000600000010010000'].MakeCopy;
-      {$endif}
+      R := JoystickRecordsByGuid[DefaultJoystickGuid].MakeCopy;
       WriteLnLog('Joystick failed to autodetect. Using default record for ' + R.JoystickName + '.');
     end;
+
     WriteLnLog(R.LogJoystickFeatures);
     JoysticksRecords.Add(J, R);
 
