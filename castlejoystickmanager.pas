@@ -15,10 +15,10 @@ const
   joyX = keyPadY; {WARNING: inverting}
   joyBack = keyPadMinus;
   joyStart = keyPadPlus;
-  joyLeftShoulder = keyPadZL;
-  joyRightShoulder = keyPadZR;
-  joyLeftTrigger = keyPadL;
-  joyRightTrigger = keyPadR;
+  joyLeftShoulder = keyPadL;
+  joyRightShoulder = keyPadR;
+  joyLeftTrigger = keyPadZL;
+  joyRightTrigger = keyPadZR;
   joyLeftStick = keyPadL; {WARNING: duplicating}
   joyRightStick = keyPadR; {WARNING: duplicating}
   joyGuide = keyPadPlus; {WARNING: duplicating}
@@ -106,8 +106,9 @@ function JoysticksNew: TCastleJoysticks;
 
 implementation
 uses
-  {$ifdef Linux}CastleInternalJoystickDatabaseLinux,{$endif}
-  {$ifdef Windows}CastleInternalJoystickDatabaseWindows{$endif}
+  {$ifdef Linux}CastleInternalJoystickDatabaseLinux, {$endif}
+  {$ifdef Windows}CastleInternalJoystickDatabaseWindows, {$endif}
+  {$ifdef MSWINDOWS} CastleInternalJoysticksWindows, {$endif}
   CastleLog, CastleUtils;
 
 function TJoysticksHelper.IndexOf(const Joy: TJoystick): Integer;
@@ -215,7 +216,7 @@ begin
     axisRightYMinus: JoystickRightYAxis(-Value);
 
     else
-      raise EInternalError.CreateFmt('$s sent an unknown joystick event received by SendJoystickEvent: %s.',
+      raise EInternalError.CreateFmt('%s sent an unknown joystick event received by SendJoystickEvent: %s.',
         [Joy.Info.Name, JoystickEventToStr(JE)]);
   end;
   //SayJoystickEvent();
@@ -335,7 +336,7 @@ begin
     JoyName := TrimJoystickName(J.Info.Name);
     {$ifdef Windows}
     if JoyName = 'Microsoft PC-joystick driver' then
-      WriteLnLog(Format('$s reported a generic joystick name. Unfortunately autodetect will fail.', [WINMMLIB]));
+      WriteLnLog(Format('%s reported a generic joystick name. Unfortunately autodetect will fail.', [WINMMLIB]));
     {$endif}
     if JoystickLayoutsByName.ContainsKey(JoyName) then
     begin
