@@ -48,7 +48,7 @@ type
   end;
 
 type
-  TJoystickDictionary = specialize TObjectDictionary<TJoystick, TJoystickRecord>;
+  TJoystickDictionary = specialize TObjectDictionary<TJoystick, TJoystickLayout>;
   TJoystickAdditionalDataDictionary = specialize TObjectDictionary<TJoystick, TJoystickAdditionalData>;
 
 type
@@ -57,7 +57,7 @@ type
     const
       JoystickEpsilon = 0.3;
     var
-      JoysticksRecords: TJoystickDictionary;
+      JoysticksLayouts: TJoystickDictionary;
       JoysticksAdditionalData: TJoystickAdditionalDataDictionary;
 
     procedure SayJoystickEvent(const JoyName: String; const Prefix: String; const JE: TJoystickEvent; const Value: Single);
@@ -72,7 +72,7 @@ type
   public
     { Window container that will receive joystick buttons press events }
     Container: TWindowContainer;
-    { Determines if the joystick records database freed immediately
+    { Determines if the joystick layouts database freed immediately
       after the joysticks have been autodetected.
       If you need to propose the player to choose a joystick manually
       this value should be set to false
@@ -214,57 +214,57 @@ end;
 
 procedure TCastleJoysticks.DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
 var
-  JR: TJoystickRecord;
+  JL: TJoystickLayout;
   JE: TJoystickEvent;
 begin
-  JR := JoysticksRecords.Items[Joy];
-  JE := JR.AxisEvent(Axis, Value);
+  JL := JoysticksLayouts.Items[Joy];
+  JE := JL.AxisEvent(Axis, Value);
   if JE <> unknownAxisEvent then
   begin
-    if not JR.InvertAxis(Axis) then
+    if not JL.InvertAxis(Axis) then
       SendJoystickEvent(Joy, JE, Value)
     else
       SendJoystickEvent(Joy, JE, -Value);
   end else
     WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at axis [%s]',
       [JoysticksAdditionalData.Items[Joy].TrimmedName,
-       JoysticksRecords.Items[Joy].JoystickName, IntToStr(Axis)]));
+       JoysticksLayouts.Items[Joy].JoystickName, IntToStr(Axis)]));
 end;
 {procedure TCastleJoysticks.DoButtonDown(const Joy: TJoystick; const Button: Byte);
 var
   JE: TJoystickEvent;
 begin
-  JE := JoysticksRecords.Items[Joy].ButtonEvent(Button);
+  JE := JoysticksLayouts.Items[Joy].ButtonEvent(Button);
   if JE <> unknownButtonEvent then
     SendJoystickEvent(Joy, JE, 1.0)
   else
     WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at button [%s]',
       [JoysticksAdditionalData.Items[Joy].TrimmedName,
-       JoysticksRecords.Items[Joy].JoystickName, IntToStr(Button)]));
+       JoysticksLayouts.Items[Joy].JoystickName, IntToStr(Button)]));
 end;}
 procedure TCastleJoysticks.DoButtonPress(const Joy: TJoystick; const Button: Byte);
 var
   JE: TJoystickEvent;
 begin
-  JE := JoysticksRecords.Items[Joy].ButtonEvent(Button);
+  JE := JoysticksLayouts.Items[Joy].ButtonEvent(Button);
   if JE <> unknownButtonEvent then
     SendJoystickEvent(Joy, JE, 1.0)
   else
     WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at button [%s]',
       [JoysticksAdditionalData.Items[Joy].TrimmedName,
-       JoysticksRecords.Items[Joy].JoystickName, IntToStr(Button)]));
+       JoysticksLayouts.Items[Joy].JoystickName, IntToStr(Button)]));
 end;
 procedure TCastleJoysticks.DoButtonUp(const Joy: TJoystick; const Button: Byte);
 var
   JE: TJoystickEvent;
 begin
-  JE := JoysticksRecords.Items[Joy].ButtonEvent(Button);
+  JE := JoysticksLayouts.Items[Joy].ButtonEvent(Button);
   if JE <> unknownButtonEvent then
     SendJoystickEvent(Joy, JE, 0.0)
   else
     WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at button [%s]',
       [JoysticksAdditionalData.Items[Joy].TrimmedName,
-       JoysticksRecords.Items[Joy].JoystickName, IntToStr(Button)]));
+       JoysticksLayouts.Items[Joy].JoystickName, IntToStr(Button)]));
 end;
 
 function TCastleJoysticks.DefaultJoystickGuid: String;
@@ -290,17 +290,17 @@ procedure TCastleJoysticks.Initialize;
 var
   I: Integer;
   J: TJoystick;
-  R: TJoystickRecord;
-  D: TJoystickAdditionalData;
+  JL: TJoystickLayout;
+  JAD: TJoystickAdditionalData;
   JoyName: String;
 begin
-  if JoysticksRecords = nil then
+  if JoysticksLayouts = nil then
   begin
-    JoysticksRecords := TJoystickDictionary.Create([doOwnsValues]);
+    JoysticksLayouts := TJoystickDictionary.Create([doOwnsValues]);
     JoysticksAdditionalData := TJoystickAdditionalDataDictionary.Create([doOwnsValues]);
   end else
   begin
-    JoysticksRecords.Clear;
+    JoysticksLayouts.Clear;
     JoysticksAdditionalData.Clear;
   end;
 
@@ -320,24 +320,26 @@ begin
     WriteLnLog('Joystick Axes', IntToStr(J.Info.Count.Axes));
     WriteLnLog('Joystick Caps', IntToStr(J.Info.Caps));
 
-    //try autodetect the joystick
+    //try autodetect the joystick by GUID
+    //if autodetect by GUID failed then try
     JoyName := TrimJoystickName(J.Info.Name);
-    if JoystickRecordsByName.ContainsKey(JoyName) then
+    if JoystickLayoutsByName.ContainsKey(JoyName) then
     begin
-      R := JoystickRecordsByName[JoyName].MakeCopy;
+      JL := JoystickLayoutsByName[JoyName].MakeCopy;
       WriteLnLog('Joystick autodetected by name successfully!');
     end else
+    //if autodetect by name failed then
     begin
-      R := JoystickRecordsByGuid[DefaultJoystickGuid].MakeCopy;
-      WriteLnLog('Joystick failed to autodetect. Using default record for ' + R.JoystickName + '.');
+      JL := JoystickLayoutsByGuid[DefaultJoystickGuid].MakeCopy;
+      WriteLnLog('Joystick failed to autodetect. Using default layout for ' + JL.JoystickName + '.');
     end;
 
-    WriteLnLog(R.LogJoystickFeatures);
-    JoysticksRecords.Add(J, R);
+    WriteLnLog(JL.LogJoystickFeatures);
+    JoysticksLayouts.Add(J, JL);
 
-    D := TJoystickAdditionalData.Create;
-    D.TrimmedName := JoyName;
-    JoysticksAdditionalData.Add(J, D);
+    JAD := TJoystickAdditionalData.Create;
+    JAD.TrimmedName := JoyName;
+    JoysticksAdditionalData.Add(J, JAD);
 
     WriteLnLog('--------------------');
   end;
@@ -364,7 +366,7 @@ end;
 
 destructor TCastleJoysticks.Destroy;
 begin
-  FreeAndNil(JoysticksRecords);
+  FreeAndNil(JoysticksLayouts);
   FreeAndNil(JoysticksAdditionalData);
   inherited;
 end;

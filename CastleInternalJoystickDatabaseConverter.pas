@@ -7,13 +7,13 @@ uses
 
 type
   TBuggyGuidDictionary = specialize TDictionary<String, TGuid>;
-  TAllJoysticks = specialize TObjectDictionary<String, TJoystickRecord>;
+  TAllJoysticks = specialize TObjectDictionary<String, TJoystickLayout>;
 
 var
   BuggyGuids: TBuggyGuidDictionary;
 
 type
-  TJoystickParser = class(TJoystickRecord)
+  TJoystickParser = class(TJoystickLayout)
   protected
     function StrToJoystickEvent(const AString: String): TJoystickEvent;
   public
@@ -198,13 +198,13 @@ begin
   BuggyGuids.Add('Linux', '03000000780000000600000010010000');
 end;
 
-function IsBuggyGuid(const ARec: TJoystickParser): Boolean;
+function IsBuggyGuid(const ALayout: TJoystickParser): Boolean;
 var
   OS: String;
 begin
   Result := false;
   for OS in BuggyGuids.Keys do
-    if (OS = ARec.Platform) and (BuggyGuids.Items[OS] = ARec.Guid) then
+    if (OS = ALayout.Platform) and (BuggyGuids.Items[OS] = ALayout.Guid) then
       Result := true;
 end;
 
@@ -216,7 +216,7 @@ var
   Stream: TStream;
   Strings: TStringList;
   I: Integer;
-  Rec: TJoystickParser;
+  Layout: TJoystickParser;
 begin
   if Database = nil then
     Database := TAllJoysticks.Create([doOwnsValues])
@@ -230,11 +230,11 @@ begin
     for I := 0 to Pred(Strings.Count) do
       if (Strings[I] <> '') and (Copy(Strings[I], 0, 1) <> '#') then
       begin
-        Rec := TJoystickParser.Create;
-        Rec.Parse(Strings[I]);
+        Layout := TJoystickParser.Create;
+        Layout.Parse(Strings[I]);
         //[CRITICAL] we have a lot of duplicates here!
-        //Database.AddOrSetValue(Rec.JoystickName, Rec);
-        Database.Add(Rec.Guid + Rec.Platform, Rec);
+        //Database.AddOrSetValue(Layout.JoystickName, Layout);
+        Database.Add(Layout.Guid + Layout.Platform, Layout);
       end;
     FreeAndNil(Strings);
   finally
@@ -248,7 +248,7 @@ var
 
   function DatabaseToString: String;
 
-    function DatabaseRecordToString(const Rec: TJoystickParser): String;
+    function DatabaseLayoutToString(const Layout: TJoystickParser): String;
 
       function JoyDictionaryToString(const AName: String; const ADictionary: TJoystickDictionary): String;
       var
@@ -275,29 +275,29 @@ var
     begin
       Inc(RecCount);
       Result := NL +
-        '  JoyData := TJoystickRecord.Create;' + NL +
-        '  JoyData.JoystickName := ''' + StringReplace(Rec.JoystickName, '''', '''''', [rfReplaceAll]) + ''';' + NL +
-        '  JoyData.Guid := ''' + Rec.Guid + ''';' + NL;
-      if IsBuggyGuid(Rec) then
+        '  JoyData := TJoystickLayout.Create;' + NL +
+        '  JoyData.JoystickName := ''' + StringReplace(Layout.JoystickName, '''', '''''', [rfReplaceAll]) + ''';' + NL +
+        '  JoyData.Guid := ''' + Layout.Guid + ''';' + NL;
+      if IsBuggyGuid(Layout) then
         Result +=
         '  JoyData.BuggyGuid := true;' + NL;
-      if Rec.BuggyDuplicateEvents then
+      if Layout.BuggyDuplicateEvents then
       Result +=
         '  JoyData.BuggyDuplicateEvents := true;' + NL;
-      Result += JoyDictionaryToString('Buttons', Rec.Buttons);
-      Result += JoyDictionaryToString('AxesPlus', Rec.AxesPlus);
-      Result += JoyDictionaryToString('AxesMinus', Rec.AxesMinus);
-      Result += JoyDictionaryToString('DPad', Rec.DPad);
-      if Rec.InvertAxes <> nil then
-        Result += InvertedAxesToString(Rec.InvertAxes);
+      Result += JoyDictionaryToString('Buttons', Layout.Buttons);
+      Result += JoyDictionaryToString('AxesPlus', Layout.AxesPlus);
+      Result += JoyDictionaryToString('AxesMinus', Layout.AxesMinus);
+      Result += JoyDictionaryToString('DPad', Layout.DPad);
+      if Layout.InvertAxes <> nil then
+        Result += InvertedAxesToString(Layout.InvertAxes);
       Result +=
         '  JoyData.CacheJoystickEvents;' + NL;
       //duplicates allowed in names
       Result +=
-        '  JoystickRecordsByName.AddOrSetValue(JoyData.JoystickName, JoyData);' + NL;
+        '  JoystickLayoutsByName.AddOrSetValue(JoyData.JoystickName, JoyData);' + NL;
       //duplicates not allowed in GUID
       Result +=
-        '  JoystickRecordsByGuid.Add(JoyData.Guid, JoyData);' + NL;
+        '  JoystickLayoutsByGuid.Add(JoyData.Guid, JoyData);' + NL;
     end;
   var
     S: String;
@@ -305,20 +305,20 @@ var
     Result := NL +
       'procedure FreeJoysticksDatabase;' + NL +
       'begin' + NL +
-      '  FreeAndNil(JoystickRecordsByName);' + NL +
-      '  FreeAndNil(JoystickRecordsByGuid);' + NL +
+      '  FreeAndNil(JoystickLayoutsByName);' + NL +
+      '  FreeAndNil(JoystickLayoutsByGuid);' + NL +
       'end;' + NL +
       NL +
       'procedure InitJoysticksDatabase;' + NL +
       'var' + NL +
-      '  JoyData: TJoystickRecord;' + NL +
+      '  JoyData: TJoystickLayout;' + NL +
       'begin' + NL +
       '  FreeJoysticksDatabase;' + NL +
-      '  JoystickRecordsByName := TJoystickDatabase.Create;' + NL + //owns nothing as contains duplicates
-      '  JoystickRecordsByGuid := TJoystickDatabase.Create([doOwnsValues]);' + NL;
+      '  JoystickLayoutsByName := TJoystickDatabase.Create;' + NL + //owns nothing as contains duplicates
+      '  JoystickLayoutsByGuid := TJoystickDatabase.Create([doOwnsValues]);' + NL;
     for S in Database.Keys do
       if (Database[S] as TJoystickParser).Platform = Platform then
-        Result := Result + DatabaseRecordToString((Database[S] as TJoystickParser));
+        Result := Result + DatabaseLayoutToString((Database[S] as TJoystickParser));
     Result += 'end;' + NL;
   end;
 
@@ -344,13 +344,13 @@ begin
 
   OutputUnit.Write(
     'type' + NL +
-    '  TJoystickDatabase = specialize TObjectDictionary<String, TJoystickRecord>;' + NL +
+    '  TJoystickDatabase = specialize TObjectDictionary<String, TJoystickLayout>;' + NL +
     NL +
     'var' + NL +
     '  { Database of joysticks by name/GUID,' + NL +
     '    A database corresponding to the current OS will be loaded' + NL +
     '    As different OS report different GUIDs and names for the same joystick }' + NL +
-    '  JoystickRecordsByName, JoystickRecordsByGuid: TJoystickDatabase;' + NL +
+    '  JoystickLayoutsByName, JoystickLayoutsByGuid: TJoystickDatabase;' + NL +
     NL +
     'procedure InitJoysticksDatabase;' + NL +
     'procedure FreeJoysticksDatabase;' + NL +

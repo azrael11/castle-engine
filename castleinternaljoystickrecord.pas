@@ -50,7 +50,7 @@ type
   TInvertAxes = specialize TList<Byte>;
 
 type
-  TJoystickRecord = class
+  TJoystickLayout = class
   strict private
     type
       TSetOfJoystickEvents = set of TJoystickEvent;
@@ -76,7 +76,7 @@ type
       e.g. axis[0] is reported as both LeftX and RightX.
       This means the data for this joystick is unreliable }
     BuggyDuplicateEvents: Boolean;
-    function MakeCopy: TJoystickRecord;
+    function MakeCopy: TJoystickLayout;
     { Translate axis, D-Pads and button events reported by Backend to TJoystickEvent }
     function InvertAxis(const AxisID: Byte): Boolean;
     function AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
@@ -96,7 +96,7 @@ type
     destructor Destroy; override;
   end;
 
-  TJoystickDatabase = specialize TObjectDictionary<String, TJoystickRecord>;
+  TJoystickDatabase = specialize TObjectDictionary<String, TJoystickLayout>;
 
   { Database of joysticks by name/GUID,
     A database corresponding to the current OS will be loaded
@@ -110,9 +110,9 @@ uses
   Classes, SysUtils,
   CastleLog, CastleUtils;
 
-{ TJoystickRecord ---------------------------------------------------------}
+{ TJoystickLayout ---------------------------------------------------------}
 
-constructor TJoystickRecord.Create;
+constructor TJoystickLayout.Create;
 begin
   inherited; //parent is empty
   BuggyGuid := false;
@@ -123,7 +123,7 @@ begin
   DPad := TJoystickDictionary.Create;
 end;
 
-destructor TJoystickRecord.Destroy;
+destructor TJoystickLayout.Destroy;
 begin
   FreeAndNil(Buttons);
   FreeAndNil(AxesPlus);
@@ -133,11 +133,11 @@ begin
   inherited;
 end;
 
-function TJoystickRecord.MakeCopy: TJoystickRecord;
+function TJoystickLayout.MakeCopy: TJoystickLayout;
 var
   B: Byte;
 begin
-  Result := TJoystickRecord.Create;
+  Result := TJoystickLayout.Create;
   Result.JoystickName := JoystickName;
   Result.Guid := Guid;
   for B in Buttons.Keys do
@@ -157,7 +157,7 @@ begin
   Result.CacheJoystickEvents;
 end;
 
-function TJoystickRecord.InvertAxis(const AxisID: Byte): Boolean;
+function TJoystickLayout.InvertAxis(const AxisID: Byte): Boolean;
 begin
   if (InvertAxes <> nil) and (InvertAxes.Contains(AxisID)) then
     Result := true
@@ -165,7 +165,7 @@ begin
     Result := false;
 end;
 
-function TJoystickRecord.AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
+function TJoystickLayout.AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEvent;
 begin
   if AxisValue >= 0 then
   begin
@@ -197,13 +197,13 @@ begin
   end;
 end;
 
-function TJoystickRecord.ButtonEvent(const ButtonID: Byte): TJoystickEvent;
+function TJoystickLayout.ButtonEvent(const ButtonID: Byte): TJoystickEvent;
 begin
   if not Buttons.TryGetValue(ButtonID, Result) then
     Result := unknownButtonEvent;
 end;
 
-procedure TJoystickRecord.CacheJoystickEvents;
+procedure TJoystickLayout.CacheJoystickEvents;
   procedure ScanDictionary(const ADictionary: TJoystickDictionary);
   var
     B: Byte;
@@ -219,7 +219,7 @@ begin
   ScanDictionary(DPad);
 end;
 
-function TJoystickRecord.HasLeftStick: Boolean;
+function TJoystickLayout.HasLeftStick: Boolean;
 begin
   Result :=
     ((axisLeftX in JoystickHasEvents) or
@@ -228,7 +228,7 @@ begin
     ((axisLeftYPlus in JoystickHasEvents) and (axisLeftYMinus in JoystickHasEvents)));
 end;
 
-function TJoystickRecord.HasRightStick: Boolean;
+function TJoystickLayout.HasRightStick: Boolean;
 begin
   Result :=
     (axisRightX  in JoystickHasEvents) and
@@ -236,7 +236,7 @@ begin
     ((axisRightYPlus in JoystickHasEvents) and (axisRightYMinus in JoystickHasEvents)));
 end;
 
-function TJoystickRecord.HasDPad: Boolean;
+function TJoystickLayout.HasDPad: Boolean;
 begin
   Result :=
     (dpadLeft in JoystickHasEvents) and
@@ -245,7 +245,7 @@ begin
     (dpadDown in JoystickHasEvents);
 end;
 
-function TJoystickRecord.HasAbyx: Boolean;
+function TJoystickLayout.HasAbyx: Boolean;
 begin
   Result :=
     (padX in JoystickHasEvents) and
@@ -254,7 +254,7 @@ begin
     (padB in JoystickHasEvents);
 end;
 
-function TJoystickRecord.LogJoystickFeatures: String;
+function TJoystickLayout.LogJoystickFeatures: String;
 var
   J: TJoystickEvent;
 begin
