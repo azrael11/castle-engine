@@ -114,7 +114,7 @@ function TJoysticksHelper.IndexOf(const Joy: TJoystick): Integer;
 var
   I: Integer;
 begin
-  //Result := FList.IndexOf(Joy); //invisible private field
+  //Result := FList.IndexOf(Joy); //unaccessible private field
   Result := -1;
   for I := 0 to Pred(Count) do
     if Items[I] = Joy then
@@ -333,6 +333,10 @@ begin
     //try autodetect the joystick by GUID
     //if autodetect by GUID failed then try
     JoyName := TrimJoystickName(J.Info.Name);
+    {$ifdef Windows}
+    if JoyName = 'Microsoft PC-joystick driver' then
+      WriteLnLog(Format('$s reported a generic joystick name. Unfortunately autodetect will fail.', [WINMMLIB]));
+    {$endif}
     if JoystickLayoutsByName.ContainsKey(JoyName) then
     begin
       JL := JoystickLayoutsByName[JoyName].MakeCopy;
