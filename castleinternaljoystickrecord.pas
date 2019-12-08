@@ -259,6 +259,7 @@ end;
 function TJoystickLayout.LogJoystickFeatures: String;
 var
   J: TJoystickEvent;
+  LogFeature: Boolean;
 begin
   Result := 'Joystick "' + JoystickName + '" has the following features:' + NL;
   Result += 'GUID: ' + Guid + NL;
@@ -268,7 +269,17 @@ begin
     Result += 'The database for this joystick contains duplicate events, which makes mapping unreliable.' + NL;
   for J in TJoystickEvent do
     if not (J in [unknownEvent, unknownAxisEvent, unknownButtonEvent]) then
-      Result += JoystickEventToStr(J) + ': ' + (J in JoystickHasEvents).ToString(TUseBoolStrs.True) + NL;
+    begin
+      case J of
+        axisLeftXPlus, axisLeftXMinus: LogFeature := not (axisLeftX in JoystickHasEvents) or (J in JoystickHasEvents);
+        axisLeftYPlus, axisLeftYMinus: LogFeature := not (axisLeftY in JoystickHasEvents) or (J in JoystickHasEvents);
+        axisRightYPlus, axisRightYMinus: LogFeature := not (axisRightY in JoystickHasEvents) or (J in JoystickHasEvents);
+        else
+          LogFeature := true;
+      end;
+      if LogFeature then
+        Result += JoystickEventToStr(J) + ': ' + (J in JoystickHasEvents).ToString(TUseBoolStrs.True) + NL;
+    end;
 end;
 
 function JoystickEventToStr(const Event: TJoystickEvent): String;
