@@ -3,7 +3,7 @@ program CastleInternalJoystickDatabaseConverter;
 uses
   Classes, SysUtils, Generics.Collections,
   CastleDownload, CastleLog, CastleStringUtils, CastleUtils,
-  CastleInternalJoystickRecord;
+  CastleInternalJoystickLayout;
 
 type
   TBuggyGuidDictionary = specialize TObjectDictionary<String, TStringList>;
@@ -424,7 +424,7 @@ begin
     NL +
     'interface' + NL +
     NL +
-    'uses Generics.Collections, CastleInternalJoystickRecord;' + NL +
+    'uses Generics.Collections, CastleInternalJoystickLayout;' + NL +
     NL);
 
   OutputUnit.Write(

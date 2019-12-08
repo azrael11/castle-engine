@@ -92,9 +92,9 @@
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
-        <Filename Value="castleinternaljoystickrecord.pas"/>
+        <Filename Value="castleinternaljoysticklayout.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="CastleInternalJoystickRecord"/>
+        <UnitName Value="CastleInternalJoystickLayout"/>
       </Unit>
     </Units>
   </ProjectOptions>

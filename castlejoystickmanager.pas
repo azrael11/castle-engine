@@ -5,7 +5,7 @@ interface
 uses
   SysUtils, Classes, Generics.Collections,
   CastleWindow, CastleKeysMouse, CastleVectors, CastleJoysticks,
-  CastleInternalJoystickRecord;
+  CastleInternalJoystickLayout;
 
 const
   { Joystick buttons }

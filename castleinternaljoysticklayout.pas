@@ -1,4 +1,4 @@
-unit CastleInternalJoystickRecord;
+unit CastleInternalJoystickLayout;
 
 interface
 
