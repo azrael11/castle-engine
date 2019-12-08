@@ -43,9 +43,6 @@ const
     axisRightYPlus, axisRightYMinus];
 
 type
-  TGuid = String[32];
-
-type
   TJoystickDictionary = specialize TDictionary<Byte, TJoystickEvent>;
   TInvertAxes = specialize TList<Byte>;
 
@@ -58,7 +55,7 @@ type
       FJoystickHasEvents: TSetOfJoystickEvents;
   public
     { GUID of the joystick in the database, unused for now }
-    Guid: TGuid;
+    Guid: String;
     { Which number of event (button/axis/pad) corresponds to which joystick event
       Note that some joysticks are tricky and have buttons assigned to axes
       or D-Pad to buttons }

@@ -6,7 +6,7 @@ uses
   CastleInternalJoystickRecord;
 
 type
-  TBuggyGuidDictionary = specialize TDictionary<String, TGuid>;
+  TBuggyGuidDictionary = specialize TObjectDictionary<String, TStringList>;
   TAllJoysticks = specialize TObjectDictionary<String, TJoystickLayout>;
 
 var
@@ -207,10 +207,16 @@ begin
 end;
 
 procedure GetBuggyGuids;
+var
+  SList: TStringList;
 begin
-  BuggyGuids := TBuggyGuidDictionary.Create;
-  BuggyGuids.Add('Windows', '03000000790000000600000000000000');
-  BuggyGuids.Add('Linux', '03000000780000000600000010010000');
+  BuggyGuids := TBuggyGuidDictionary.Create([doOwnsValues]);
+  SList := TStringList.Create;
+  SList.Add('03000000790000000600000000000000');
+  BuggyGuids.Add('Windows', SList);
+  SList := TStringList.Create;
+  SList.Add('03000000780000000600000010010000');
+  BuggyGuids.Add('Linux', SList);
 end;
 
 function IsBuggyGuid(const ALayout: TJoystickParser): Boolean;
@@ -218,13 +224,16 @@ const
   BuggyGuidMarker = 'buggy';
 var
   OS: String;
+  G: String;
 begin
   Result := false;
   if Copy(ALayout.Guid, 0, Length(BuggyGuidMarker)) = BuggyGuidMarker then
     Exit(true);
   for OS in BuggyGuids.Keys do
-    if (OS = ALayout.Platform) and (BuggyGuids.Items[OS] = ALayout.Guid) then
-      Exit(true);
+    if (OS = ALayout.Platform) then
+      for G in BuggyGuids.Items[OS] do
+        if (G = ALayout.Guid) then
+          Exit(true);
 end;
 
 var
