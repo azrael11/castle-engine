@@ -214,7 +214,7 @@ procedure TJoystickLayout.CacheJoystickEvents;
     B: Byte;
   begin
     for B in ADictionary.Keys do
-      FJoystickHasEvents := FJoystickHasEvents + [ADictionary.Items[B]];
+      Include(FJoystickHasEvents, ADictionary.Items[B]);
   end;
 begin
   FJoystickHasEvents := [];
@@ -276,9 +276,9 @@ begin
     if not (J in [unknownEvent, unknownAxisEvent, unknownButtonEvent]) then
     begin
       case J of
-        axisLeftXPlus, axisLeftXMinus: LogFeature := not (axisLeftX in JoystickHasEvents) or (J in JoystickHasEvents);
-        axisLeftYPlus, axisLeftYMinus: LogFeature := not (axisLeftY in JoystickHasEvents) or (J in JoystickHasEvents);
-        axisRightYPlus, axisRightYMinus: LogFeature := not (axisRightY in JoystickHasEvents) or (J in JoystickHasEvents);
+        axisLeftXPlus, axisLeftXMinus: LogFeature := (not (axisLeftX in JoystickHasEvents)) or (J in JoystickHasEvents);
+        axisLeftYPlus, axisLeftYMinus: LogFeature := (not (axisLeftY in JoystickHasEvents)) or (J in JoystickHasEvents);
+        axisRightYPlus, axisRightYMinus: LogFeature := (not (axisRightY in JoystickHasEvents)) or (J in JoystickHasEvents);
         else
           LogFeature := true;
       end;

@@ -193,13 +193,13 @@ begin
   //detect buggy duplicate axes
   CacheJoystickEvents;
   if (axisLeftX in JoystickHasEvents) and
-    (axisLeftXPlus in JoystickHasEvents) or ((axisLeftXMinus in JoystickHasEvents)) then
+    ((axisLeftXPlus in JoystickHasEvents) or (axisLeftXMinus in JoystickHasEvents)) then
       BuggyDuplicateAxes := true;
   if (axisLeftY in JoystickHasEvents) and
-    (axisLeftYPlus in JoystickHasEvents) or ((axisLeftYMinus in JoystickHasEvents)) then
+    ((axisLeftYPlus in JoystickHasEvents) or (axisLeftYMinus in JoystickHasEvents)) then
       BuggyDuplicateAxes := true;
   if (axisRightY in JoystickHasEvents) and
-    (axisRightYPlus in JoystickHasEvents) or ((axisRightYMinus in JoystickHasEvents)) then
+    ((axisRightYPlus in JoystickHasEvents) or (axisRightYMinus in JoystickHasEvents)) then
       BuggyDuplicateAxes := true;
   if BuggyDuplicateAxes then
     WriteLnLog('Warning', 'Joystick "' + JoystickName + '"' +

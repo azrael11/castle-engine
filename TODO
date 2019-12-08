@@ -40,7 +40,6 @@
  * [TODO] No database for OS other than Windows, Linux will most likely result in compilation error or crash.
  * [TODO] Rename castleinternaljoystickrecord to castleinternaljoysticklayout
  * [BUG] BuggyGuids works wrong, need to dictionary of TStringList.
- * [BUG] +righty:+a5,-righty:-a4 are read wrong from the database (result in BuggyDuplicateAxes)
 
  * [TODO] DirectInput headers for FreePascal: http://www.clootie.ru/fpc/index.html
    Unfortunately they have MPL1.1 license, which is incompatible
