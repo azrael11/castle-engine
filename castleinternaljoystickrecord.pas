@@ -140,6 +140,8 @@ begin
   Result := TJoystickLayout.Create;
   Result.JoystickName := JoystickName;
   Result.Guid := Guid;
+  Result.BuggyGuid := BuggyGuid;
+  Result.BuggyDuplicateEvents := BuggyDuplicateEvents;
   for B in Buttons.Keys do
     Result.Buttons.Add(B, Buttons[B]);
   for B in AxesPlus.Keys do
