@@ -270,15 +270,24 @@ begin
   if BuggyDuplicateAxes then
     Result += 'The database for this joystick contains duplicate axes, which makes mapping unreliable.' + NL;
   for J in TJoystickEvent do
-    if not (J in [unknownEvent, unknownAxisEvent, unknownButtonEvent]) then
     begin
       case J of
-        axisLeftXPlus, axisLeftXMinus: LogFeature := (not (axisLeftX in JoystickHasEvents)) or (J in JoystickHasEvents);
-        axisLeftYPlus, axisLeftYMinus: LogFeature := (not (axisLeftY in JoystickHasEvents)) or (J in JoystickHasEvents);
-        axisRightYPlus, axisRightYMinus: LogFeature := (not (axisRightY in JoystickHasEvents)) or (J in JoystickHasEvents);
+        unknownEvent, unknownAxisEvent, unknownButtonEvent: LogFeature := false;
+        axisLeftXPlus, axisLeftXMinus: LogFeature := (not (axisLeftX in JoystickHasEvents));
+        axisLeftYPlus, axisLeftYMinus: LogFeature := (not (axisLeftY in JoystickHasEvents));
+        axisRightYPlus, axisRightYMinus: LogFeature := (not (axisRightY in JoystickHasEvents));
         else
           LogFeature := true;
       end;
+
+      { Normally this should never ever happen, however, if we still encounter
+        such a record, we shall try to mark it as "BUGGY" in the log }
+      if (not LogFeature) and (J in JoystickHasEvents) then
+      begin
+        LogFeature := true;
+        Result += '[BUGGY] ';
+      end;
+
       if LogFeature then
         Result += JoystickEventToStr(J) + ': ' + (J in JoystickHasEvents).ToString(TUseBoolStrs.True) + NL;
     end;
