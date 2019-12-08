@@ -199,13 +199,17 @@ begin
 end;
 
 function IsBuggyGuid(const ALayout: TJoystickParser): Boolean;
+const
+  BuggyGuidMarker = 'buggy';
 var
   OS: String;
 begin
   Result := false;
+  if Copy(ALayout.Guid, 0, Length(BuggyGuidMarker)) = BuggyGuidMarker then
+    Exit(true);
   for OS in BuggyGuids.Keys do
     if (OS = ALayout.Platform) and (BuggyGuids.Items[OS] = ALayout.Guid) then
-      Result := true;
+      Exit(true);
 end;
 
 var
@@ -218,11 +222,6 @@ var
   I: Integer;
   Layout: TJoystickParser;
 begin
-  if Database = nil then
-    Database := TAllJoysticks.Create([doOwnsValues])
-  else
-    Database.Clear;
-
   try
     Stream := Download(URL);
     Strings := TStringList.Create;
@@ -375,7 +374,9 @@ end;
 begin
   InitializeLog;
   GetBuggyGuids;
+  Database := TAllJoysticks.Create([doOwnsValues]);
   ParseJoysticksDatabase('castle-data:/gamecontrollerdb.txt');
+  ParseJoysticksDatabase('castle-data:/buggyjoysticks.txt');
   WriteDatabase('Windows');
   WriteDatabase('Linux');
   FreeAndNil(BuggyGuids);
