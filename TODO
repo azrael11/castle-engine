@@ -26,7 +26,7 @@
    Looks like there is none on Linux, however, on Windows event ButtonDown
    fires constantly while the button is hold pressed, but ButtonPress
    only once, when the button is pressed.
- * Merge 2 git repositories preserving history:
+ * [TODO] Merge 2 git repositories preserving history:
    https://stackoverflow.com/questions/1425892/how-do-you-merge-two-git-repositories 
  * See also https://github.com/spurious/SDL-mirror/blob/master/src/joystick/SDL_gamecontroller.c
    (same thing done in SDL)
@@ -38,6 +38,7 @@
  * Report unknown joystick event only once?
  * [TODO] Fake events
  * [TODO] No database for OS other than Windows, Linux will most likely result in compilation error or crash.
+ * [TODO] Rename castleinternaljoystickrecord to castleinternaljoysticklayout
 
  * [TODO] DirectInput headers for FreePascal: http://www.clootie.ru/fpc/index.html
    Unfortunately they have MPL1.1 license, which is incompatible
