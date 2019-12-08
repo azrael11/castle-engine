@@ -171,6 +171,7 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJ
   var
     UnusedStringVariable: String;
     ButtonEvent: TInputPressRelease;
+    EventReleased: Boolean;
   begin
     ButtonEvent := InputKey(TVector2.Zero, JoystickEventToKey(JEP.Primary), '');
     ButtonEvent.FingerIndex := Joysticks.IndexOf(Joy);
@@ -181,12 +182,15 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJ
       WriteLnLog('Pressed', KeyToStr(ButtonEvent.Key));
     end else
     begin
+      EventReleased := false;
       if Container.Pressed[ButtonEvent.Key] then
       begin
         Container.EventRelease(ButtonEvent);
         Container.Pressed.KeyUp(ButtonEvent.Key, UnusedStringVariable);
         WriteLnLog('Released', KeyToStr(ButtonEvent.Key));
-      end else
+        EventReleased := true;
+      end;
+      if JEP.Inverse <> JEP.Primary then
       begin
         ButtonEvent := InputKey(TVector2.Zero, JoystickEventToKey(JEP.Inverse), '');
         ButtonEvent.FingerIndex := Joysticks.IndexOf(Joy);
@@ -195,10 +199,12 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJ
           Container.EventRelease(ButtonEvent);
           Container.Pressed.KeyUp(ButtonEvent.Key, UnusedStringVariable);
           WriteLnLog('Released', KeyToStr(ButtonEvent.Key));
-        end else
-          WriteLnLog('Warning', Format('Received a releasing event, however neither %s nor %s have been pressed',
-            [JoystickEventToStr(JEP.Primary), JoystickEventToStr(JEP.Inverse)]));
+          EventReleased := true;
+        end;
       end;
+      if not EventReleased then
+        WriteLnLog('Warning', Format('Received a releasing event, however neither %s nor %s have been pressed',
+          [JoystickEventToStr(JEP.Primary), JoystickEventToStr(JEP.Inverse)]));
     end;
   end;
 
