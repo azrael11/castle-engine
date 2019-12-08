@@ -90,7 +90,7 @@ type
       This should never happen, but kept here as a safeguard. }
     BuggyDuplicateAxes: Boolean;
     { The database contains at least two joysticks with equal name but different layouts
-      this makes by-name detectio nor selection of this joystick layout unreliable }
+      this makes by-name detection or selection of this joystick layout unreliable }
     BuggyDuplicateName: Boolean;
     { Copy this joystick layout record }
     function MakeCopy: TJoystickLayout;
@@ -162,6 +162,7 @@ begin
   Result.BuggyGuid := BuggyGuid;
   Result.BuggyDuplicateEvents := BuggyDuplicateEvents;
   Result.BuggyDuplicateAxes := BuggyDuplicateAxes;
+  Result.BuggyDuplicateName := BuggyDuplicateName;
   for B in Buttons.Keys do
     Result.Buttons.Add(B, Buttons[B]);
   for B in AxesPlus.Keys do

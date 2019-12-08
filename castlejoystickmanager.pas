@@ -392,7 +392,10 @@ begin
     if JoystickLayoutsByName.ContainsKey(JoyName) then
     begin
       JL := JoystickLayoutsByName[JoyName].MakeCopy;
-      WriteLnLog('Joystick autodetected by name successfully!');
+      if not JL.BuggyDuplicateName then
+        WriteLnLog('Joystick autodetected by name successfully!')
+      else
+        WriteLnLog('Warning: Joystick was autodetected by name, however, there are several different layouts available for this joystick name.');
     end else
     //if autodetect by name failed then
     begin
@@ -462,10 +465,13 @@ begin
       begin
         NewJoystickLayout := JoystickLayoutsByName[JoystickName].MakeCopy;
         JoysticksLayouts.AddOrSetValue(Joy, NewJoystickLayout);
-        WriteLnLog(Format('Joystick "%s" layout has been successfully changed to "%s".', [JoysticksAdditionalData[Joy].TrimmedName, NewJoystickLayout.JoystickName]));
+        if not NewJoystickLayout.BuggyDuplicateName then
+          WriteLnLog(Format('Joystick "%s" layout has been successfully changed to "%s".', [JoysticksAdditionalData[Joy].TrimmedName, NewJoystickLayout.JoystickName]))
+        else
+          WriteLnLog(Format('Warning: Joystick "%s" layout has been successfully changed to "%s". However, there are several different layouts for this joystick name in the databse.', [JoysticksAdditionalData[Joy].TrimmedName, NewJoystickLayout.JoystickName]));
         WriteLnLog(NewJoystickLayout.LogJoystickFeatures);
       end else
-        WriteLnLog('Warning', Format('Joystick name "%s" not found in the database. No changes made.', [JoystickName]));
+        WriteLnLog('Warning', Format('Joystick name "%s" not found in the database. No changes were made.', [JoystickName]));
     end;
   end;
 end;
@@ -489,7 +495,7 @@ begin
         WriteLnLog(Format('Joystick "%s" layout has been successfully changed to "%s".', [JoysticksAdditionalData[Joy].TrimmedName, NewJoystickLayout.JoystickName]));
         WriteLnLog(NewJoystickLayout.LogJoystickFeatures);
       end else
-        WriteLnLog('Warning', Format('Joystick GUID "%s" not found in the database. No changes made.', [JoystickGuid]));
+        WriteLnLog('Warning', Format('Joystick GUID "%s" not found in the database. No changes were made.', [JoystickGuid]));
     end;
   end;
 end;
