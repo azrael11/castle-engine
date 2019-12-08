@@ -61,6 +61,9 @@ type
       JoysticksAdditionalData: TJoystickAdditionalDataDictionary;
 
     procedure SayJoystickEvent(const JoyName: String; const Prefix: String; const JE: TJoystickEvent; const Value: Single);
+    { Current defaults are:
+      Windows: 030000005e0400000a0b000000000000, Xbox Adaptive Controller
+      Linux: 030000006f0e00001304000000010000, Generic X-Box pad }
     function DefaultJoystickGuid: String;
 
     procedure SendJoystickEvent(const Joy: TJoystick; const JE: TJoystickEvent; const Value: Single);
@@ -89,6 +92,12 @@ type
     procedure InitializeDatabase;
     procedure FreeDatabase;
     { @groupend }
+
+    function JoysticksLayoutsNames: TStringList;
+    function JoysticksLayoutsGuids: TStringList;
+    procedure AssignJoystickLayoutByName(const Joy: TJoystick; const JoystickName: String);
+    procedure AssignJoystickLayoutByGuid(const Joy: TJoystick; const JoystickGuid: String);
+
     constructor Create; //override;
     destructor Destroy; override;
   end;
@@ -269,11 +278,12 @@ end;
 
 function TCastleJoysticks.DefaultJoystickGuid: String;
 begin
-  {WARNING: this is my buggy Esperanza EG102, replace by X-Box in release}
   {$ifdef Windows}
-  Result := '03000000790000000600000000000000';
+  Result := '030000005e0400000a0b000000000000';
   {$else}
-  Result := '03000000780000000600000010010000';
+  {$ifdef Linux}
+  Result := '030000006f0e00001304000000010000';
+  {$endif}
   {$endif}
 end;
 
@@ -346,6 +356,86 @@ begin
 
   if FreeJoysticksDatabaseAfterInitialization then
     FreeDatabase;
+end;
+
+function TCastleJoysticks.JoysticksLayoutsNames: TStringList;
+var
+  S: String;
+begin
+  if JoystickLayoutsByName = nil then
+  begin
+    Result := nil;
+    WriteLnLog('Warning', 'Joysticks layouts database not initialized, use FreeJoysticksDatabaseAfterInitialization = false to avoid freeing joysticks layouts database or initialize it manually through InitializeDatabase. Unable to JoysticksLayoutsNames.')
+  end else
+  begin
+    Result := TStringList.Create;
+    for S in JoystickLayoutsByName.Keys do
+      Result.Add(S);
+  end;
+end;
+
+function TCastleJoysticks.JoysticksLayoutsGuids: TStringList;
+var
+  S: String;
+begin
+  if JoystickLayoutsByGuid = nil then
+  begin
+    Result := nil;
+    WriteLnLog('Warning', 'Joysticks layouts database not initialized, use FreeJoysticksDatabaseAfterInitialization = false to avoid freeing joysticks layouts database or initialize it manually through InitializeDatabase. Unable to JoysticksLayoutsGuids.')
+  end else
+  begin
+    Result := TStringList.Create;
+    for S in JoystickLayoutsByGuid.Keys do
+      Result.Add(S);
+  end;
+end;
+
+procedure TCastleJoysticks.AssignJoystickLayoutByName(const Joy: TJoystick; const JoystickName: String);
+var
+  NewJoystickLayout: TJoystickLayout;
+begin
+  if JoysticksLayouts = nil then
+    WriteLnLog('Warning', 'Joysticks not initialized. Unable to AssignJoystickLayoutByName.')
+  else
+  begin
+    if JoystickLayoutsByName = nil then
+      WriteLnLog('Warning', 'Joysticks layouts database not initialized, use FreeJoysticksDatabaseAfterInitialization = false to avoid freeing joysticks layouts database or initialize it manually through InitializeDatabase. Unable to AssignJoystickLayoutByName.')
+    else
+    begin
+      if JoystickLayoutsByName.ContainsKey(JoystickName) then
+      begin
+        NewJoystickLayout := JoystickLayoutsByName[JoystickName].MakeCopy;
+        JoysticksLayouts.AddOrSetValue(Joy, NewJoystickLayout);
+        WriteLnLog(Format('Joystick "%s" layout has been successfully changed to "%s".', [JoysticksAdditionalData[Joy].TrimmedName, NewJoystickLayout.JoystickName]));
+        WriteLnLog(NewJoystickLayout.LogJoystickFeatures);
+      end else
+        WriteLnLog('Warning', Format('Joystick name "%s" not found in the database. No changes made.', [JoystickName]));
+    end;
+  end;
+end;
+
+procedure TCastleJoysticks.AssignJoystickLayoutByGuid(const Joy: TJoystick; const JoystickGuid: String);
+var
+  NewJoystickLayout: TJoystickLayout;
+begin
+  if JoysticksLayouts = nil then
+    WriteLnLog('Warning', 'Joysticks not initialized. Unable to AssignJoystickLayoutByGuid.')
+  else
+  begin
+    if JoystickLayoutsByGuid = nil then
+      WriteLnLog('Warning', 'Joysticks layouts database not initialized, use FreeJoysticksDatabaseAfterInitialization = false to avoid freeing joysticks layouts database or initialize it manually through InitializeDatabase. Unable to AssignJoystickLayoutByGuid.')
+    else
+    begin
+      if JoystickLayoutsByGuid.ContainsKey(JoystickGuid) then
+      begin
+        NewJoystickLayout := JoystickLayoutsByGuid[JoystickGuid].MakeCopy;
+        JoysticksLayouts.AddOrSetValue(Joy, NewJoystickLayout);
+        WriteLnLog(Format('Joystick "%s" layout has been successfully changed to "%s".', [JoysticksAdditionalData[Joy].TrimmedName, NewJoystickLayout.JoystickName]));
+        WriteLnLog(NewJoystickLayout.LogJoystickFeatures);
+      end else
+        WriteLnLog('Warning', Format('Joystick GUID "%s" not found in the database. No changes made.', [JoystickGuid]));
+    end;
+  end;
 end;
 
 procedure TCastleJoysticks.InitializeDatabase;

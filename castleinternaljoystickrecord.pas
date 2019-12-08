@@ -104,7 +104,7 @@ type
 var
   JoystickRecordsByName, JoystickRecordsByGuid: TJoystickDatabase;
 
-function JoystickEventToStr(const Event: TJoystickEvent): String; {todo: move to JoystickParser?}
+function JoystickEventToStr(const Event: TJoystickEvent): String;
 implementation
 uses
   Classes, SysUtils,
@@ -258,7 +258,7 @@ function TJoystickLayout.LogJoystickFeatures: String;
 var
   J: TJoystickEvent;
 begin
-  Result := 'Joystick ' + JoystickName + ' has the following features:' + NL;
+  Result := 'Joystick "' + JoystickName + '" has the following features:' + NL;
   Result += 'GUID: ' + Guid + NL;
   if BuggyGuid then
     Result += 'This joystick GUID is known to be shared by different joyticks with different layouts' + NL;
