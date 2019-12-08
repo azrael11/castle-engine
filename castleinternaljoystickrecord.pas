@@ -68,9 +68,12 @@ type
     Guid: String;
     { Which number of event (button/axis/pad) corresponds to which joystick event
       Note that some joysticks are tricky and have buttons assigned to axes
-      or D-Pad to buttons }
+      or D-Pad to buttons
+      @exclude }
     Buttons, AxesPlus, AxesMinus, DPad: TJoystickDictionary;
-    {}
+    { List of axes that have to be inverted before further processing
+      nil if no axes are inverted for this joystick layout (most frequent case)
+      @exclude}
     InvertAxes: TInvertAxes;
     { Reported name of the joystick. Note, that currently our backend reports
       different joystick names, especially on Windows, where it often simply
@@ -83,42 +86,45 @@ type
       e.g. axis[0] is reported as both LeftX and RightX.
       This means the data for this joystick is unreliable }
     BuggyDuplicateEvents: Boolean;
+    { The database for this joystick has some events that affect the same joystick axis
+      This should never happen, but kept here as a safeguard. }
     BuggyDuplicateAxes: Boolean;
+    { Copy this joystick layout record }
     function MakeCopy: TJoystickLayout;
-    { Translate axis, D-Pads and button events reported by Backend to TJoystickEvent }
+    { List of axes that have to be inverted before further processing }
     function InvertAxis(const AxisID: Byte): Boolean;
+    { Translate axis, button and D-Pad events reported by Backend to TJoystickEvent
+      @groupBegin }
     function ButtonEvent(const ButtonID: Byte): TJoystickEvent;
     function AxisEvent(const AxisID: Byte; const AxisValue: Single): TJoystickEventPair;
     function DPadEvent(const DPadAxis: Byte; const AxisValue: Single): TJoystickEventPair;
+    { @groupEnd }
 
-    { Report if the joystick has a specific feature }
+    { Contains a set of JoystickEvents this layout is capable of }
     property JoystickHasEvents: TSetOfJoystickEvents read FJoystickHasEvents;
+    { Meta-definitions of some frequently-used joystick events groups
+      @groupBegin }
     function HasLeftStick: Boolean;
     function HasRightStick: Boolean;
     function HasDPad: Boolean;
     function HasAbyx: Boolean;
+    { @groupEnd }
+    { Detect JoystickEvents this joystick layout is capable of
+      @exclude }
     procedure CacheJoystickEvents;
+    { Report which features (and problems) this joystick layout has }
     function LogJoystickFeatures: String;
 
     constructor Create; //override;
     destructor Destroy; override;
   end;
 
-  TJoystickDatabase = specialize TObjectDictionary<String, TJoystickLayout>;
-
-  { Database of joysticks by name/GUID,
-    A database corresponding to the current OS will be loaded
-    As different OS report different GUIDs and names for the same joystick }
-var
-  JoystickRecordsByName, JoystickRecordsByGuid: TJoystickDatabase;
-
+{ Convert TJoystickEvent to String }
 function JoystickEventToStr(const Event: TJoystickEvent): String;
 implementation
 uses
   Classes, SysUtils,
   CastleLog, CastleUtils;
-
-{ TJoystickLayout ---------------------------------------------------------}
 
 constructor TJoystickLayout.Create;
 begin

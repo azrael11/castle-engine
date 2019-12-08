@@ -60,12 +60,12 @@ type
       JoysticksLayouts: TJoystickDictionary;
       JoysticksAdditionalData: TJoystickAdditionalDataDictionary;
 
-    procedure SayJoystickEvent(const JoyName: String; const Prefix: String; const JE: TJoystickEvent; const Value: Single);
     { Current defaults are:
       Windows: 030000005e0400000a0b000000000000, Xbox Adaptive Controller
       Linux: 030000006f0e00001304000000010000, Generic X-Box pad }
     function DefaultJoystickGuid: String;
-
+    { Correctly send this joystick event to Container.Pressed or
+      TJoystick.LeftAxis, TJoystick.RightAxis }
     procedure SendJoystickEvent(const Joy: TJoystick; const JEP: TJoystickEventPair; const Value: Single);
 
     procedure DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
@@ -88,14 +88,24 @@ type
       Use in case you want to manually manage the joystick database
       (e.g. in case you want the player to be able to select
       joystick model manually in the game menu)
-      @groupbegin }
+      @groupBegin }
     procedure InitializeDatabase;
     procedure FreeDatabase;
-    { @groupend }
+    { @groupEnd }
 
+    { Return a list of names of joystick layouts available in currently loaded database
+      nil if no database had been loaded }
     function JoysticksLayoutsNames: TStringList;
+    { Return a list of GUIDs of joystick layouts available in currently loaded database
+      nil if no database had been loaded }
     function JoysticksLayoutsGuids: TStringList;
+    { Assign Joy to use layout named JoystickName
+      The joystick database has to be loaded and record named JoystickName must be available
+      Note, that different OSes report the same physical gamepad by different names }
     procedure AssignJoystickLayoutByName(const Joy: TJoystick; const JoystickName: String);
+    { Assign Joy to use layout with GUID=JoystickGuid
+      The joystick database has to be loaded and record with GUID=JoystickGuid must be available
+      Note, that different OSes report the same physical gamepad by different GUIDs }
     procedure AssignJoystickLayoutByGuid(const Joy: TJoystick; const JoystickGuid: String);
 
     constructor Create; //override;
@@ -123,14 +133,6 @@ begin
 end;
 
 { TJoystickManager ---------------------------------------------------------}
-
-procedure TCastleJoysticks.SayJoystickEvent(const JoyName: String; const Prefix: String; const JE: TJoystickEvent; const Value: Single);
-begin
-  if JE in AxisEvents then
-    WriteLnLog(JoyName, Prefix + ':' + FloatToStr(Value))
-  else
-    WriteLnLog(JoyName, Prefix);
-end;
 
 procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJoystickEventPair; const Value: Single);
 
@@ -169,7 +171,6 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJ
   var
     UnusedStringVariable: String;
     ButtonEvent: TInputPressRelease;
-    AKey: TKey;
   begin
     ButtonEvent := InputKey(TVector2.Zero, JoystickEventToKey(JEP.Primary), '');
     ButtonEvent.FingerIndex := Joysticks.IndexOf(Joy);
@@ -256,7 +257,6 @@ begin
       raise EInternalError.CreateFmt('%s sent an unknown joystick event received by SendJoystickEvent: %s.',
         [Joy.Info.Name, JoystickEventToStr(JEP.Primary)]);
   end;
-  //SayJoystickEvent();
 end;
 
 procedure TCastleJoysticks.DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
