@@ -46,12 +46,10 @@ const
   joyUp = keyPadUp;
   joyDown = keyPadDown;
 
-  {
   joyFakeLeft = joyLeft;
   joyFakeRight = joyRight;
   joyFakeUp = joyUp;
   joyFakeDown = joyDown;
-  }
 
 type
   { Temporary: these are the routines that need to go into new TJoystick }
@@ -73,10 +71,30 @@ type
 type
   { Temporary: to be merged with TJoysticks }
   TCastleJoysticks = class
-  strict private
+  private //we need to access some of these properties in TFakeJoysitckEventHandler
     const
+      { "Dead zone" of the joystick axes, that do not trigger button events }
       JoystickEpsilon = 0.3;
+    type
+      { Converts joystick axis events into "fake" buttons events
+        Note, due to the specific way the joystick axes events are handled,
+        Update needs to be called every frame.
+        If FakeJoystickEventsHandler is not going to be used for a long time
+        ReleaseAllFakeEvents should be called to avoid Press-related bugs.
+        Note, that this class is designed to handle only simple cases,
+        such as menu navigation. }
+      TFakeJoystickEventsHandler = class
+      strict private
+
+      public
+        IsActive: Boolean;
+        procedure Update;
+        procedure ReleaseAllFakeEvents;
+        constructor Create; //override;
+        destructor Destroy; override;
+      end;
     var
+      FakeEventsHandler: TFakeJoystickEventsHandler;
       JoysticksLayouts: TJoystickDictionary;
       JoysticksAdditionalData: TJoystickAdditionalDataDictionary;
 
@@ -92,6 +110,9 @@ type
     //procedure DoButtonDown(const Joy: TJoystick; const Button: Byte);
     procedure DoButtonUp(const Joy: TJoystick; const Button: Byte);
     procedure DoButtonPress(const Joy: TJoystick; const Button: Byte);
+
+    function GetGenerateFakeEvents: Boolean;
+    procedure SetGenerateFakeEvents(const AValue: Boolean);
   public
     { Window container that will receive joystick buttons press events }
     Container: TWindowContainer;
@@ -128,6 +149,9 @@ type
       Note, that different OSes report the same physical gamepad by different GUIDs }
     procedure AssignJoystickLayoutByGuid(const Joy: TJoystick; const JoystickGuid: String);
 
+    procedure UpdateFakeEvents;
+    property GenerateFakeEvents: Boolean read GetGenerateFakeEvents write SetGenerateFakeEvents;
+
     constructor Create; //override;
     destructor Destroy; override;
   end;
@@ -138,7 +162,7 @@ implementation
 uses
   {$ifdef Linux}CastleInternalJoystickDatabaseLinux, {$endif}
   {$ifdef Windows}CastleInternalJoystickDatabaseWindows, {$endif}
-  {$ifdef MSWINDOWS} CastleInternalJoysticksWindows, {$endif}
+  {$ifdef MSWINDOWS} CastleInternalJoysticksWindows, {$endif} //needed to report a buggy library name, nothing more
   CastleLog, CastleUtils;
 
 function TJoysticksHelper.IndexOf(const Joy: TJoystick): Integer;
@@ -536,6 +560,29 @@ begin
   FreeJoysticksDatabase;
 end;
 
+procedure TCastleJoysticks.UpdateFakeEvents;
+begin
+  if GenerateFakeEvents then
+    FakeEventsHandler.Update;
+end;
+
+function TCastleJoysticks.GetGenerateFakeEvents: Boolean;
+begin
+  Result := (FakeEventsHandler <> nil) and (FakeEventsHandler.IsActive);
+end;
+
+procedure TCastleJoysticks.SetGenerateFakeEvents(const AValue: Boolean);
+begin
+  if FakeEventsHandler = nil then
+  begin
+    if AValue = false then
+      Exit //do not create anything if FakeEventsHandler is not requested
+    else
+      FakeEventsHandler := TFakeJoystickEventsHandler.Create;
+  end;
+  FakeEventsHandler.IsActive := AValue;
+end;
+
 constructor TCastleJoysticks.Create;
 begin
   inherited; //parent is empty
@@ -546,6 +593,31 @@ destructor TCastleJoysticks.Destroy;
 begin
   FreeAndNil(JoysticksLayouts);
   FreeAndNil(JoysticksAdditionalData);
+  FreeAndNil(FakeEventsHandler);
+  inherited;
+end;
+
+{ TCastleJoysticks.TFakeJoystickEventsHandler --------------------------------}
+
+procedure TCastleJoysticks.TFakeJoystickEventsHandler.Update;
+begin
+  //update events every frame
+end;
+
+procedure TCastleJoysticks.TFakeJoystickEventsHandler.ReleaseAllFakeEvents;
+begin
+  //release all events
+end;
+
+constructor TCastleJoysticks.TFakeJoystickEventsHandler.Create;
+begin
+  inherited; //parent is empty
+  IsActive := true;
+end;
+
+destructor TCastleJoysticks.TFakeJoystickEventsHandler.Destroy;
+begin
+  ReleaseAllFakeEvents;
   inherited;
 end;
 
