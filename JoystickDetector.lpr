@@ -25,6 +25,11 @@ uses
 var
   Window: TCastleWindowBase;
 
+procedure UpdateWindow(Container: TUiContainer);
+begin
+  JoysticksNew.UpdateFakeEvents;
+end;
+
 procedure ApplicationInitialize;
 
   procedure ListJoysticks;
@@ -42,6 +47,7 @@ procedure ApplicationInitialize;
   end;
 
 begin
+  Window.OnUpdate := @UpdateWindow;
   JoysticksNew.Container := Window.Container;
   JoysticksNew.FreeJoysticksDatabaseAfterInitialization := false; //will prevent joystick database from freeing automatically after autodetecting joysticks
   JoysticksNew.Initialize;
@@ -57,6 +63,7 @@ begin
     {$endif}
   end;
   JoysticksNew.FreeDatabase;
+  JoysticksNew.GenerateFakeEvents := true;
 end;
 
 begin
