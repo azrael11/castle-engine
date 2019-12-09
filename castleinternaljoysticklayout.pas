@@ -1,3 +1,22 @@
+{
+  Copyright 2019-2019 Yevhen Loza, Michalis Kamburelis.
+
+  This file is part of "Castle Game Engine".
+
+  "Castle Game Engine" is free software; see the file COPYING.txt,
+  included in this distribution, for details about the copyright.
+
+  "Castle Game Engine" is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+  ----------------------------------------------------------------------------
+}
+
+{ Joystick layout determines what joystick events reported by the backend
+  correspond to standardized joystick events, understood by Castle Game Engine
+  Joystick layouts can be loaded from Game Controller database for SDL
+  or created manually. }
 unit CastleInternalJoystickLayout;
 
 interface
@@ -6,6 +25,9 @@ uses
   Generics.Collections;
 
 type
+  { Internal joystick events. Translates joystick events, reported by the
+    backend into some standardized internal format.
+    Here we follow SDL definitions to be compatible with SDL gamepads database }
   TJoystickEvent = (
     { The event was not detected, in other words, it means an error }
     unknownEvent, unknownAxisEvent, unknownButtonEvent,
@@ -57,6 +79,9 @@ type
   TInvertAxes = specialize TList<Byte>;
 
 type
+  { Layout is used to store information on how to translate the joystick events
+    reported by the backend into a standardized format and methods to
+    perform such translation. }
   TJoystickLayout = class
   strict private
     type

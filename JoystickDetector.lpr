@@ -1,4 +1,20 @@
-{ Reading and using the database from https://github.com/gabomdq/SDL_GameControllerDB }
+{
+  Copyright 2019-2019 Yevhen Loza, Michalis Kamburelis.
+
+  This file is part of "Castle Game Engine".
+
+  "Castle Game Engine" is free software; see the file COPYING.txt,
+  included in this distribution, for details about the copyright.
+
+  "Castle Game Engine" is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+  ----------------------------------------------------------------------------
+}
+
+{ Temporary test app for new Joystick management pipeline.
+  In future it will be merged with examples/joystick/joystick_demo_standalone.lpi. }
 program JoystickDetector;
 
 uses

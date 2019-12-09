@@ -1,3 +1,23 @@
+{
+  Copyright 2019-2019 Yevhen Loza, Michalis Kamburelis.
+
+  This file is part of "Castle Game Engine".
+
+  "Castle Game Engine" is free software; see the file COPYING.txt,
+  included in this distribution, for details about the copyright.
+
+  "Castle Game Engine" is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+  ----------------------------------------------------------------------------
+}
+
+{ Convert Game Controller database for SDL into Pascal code.
+  Currently we can work only with Linux and Windows joysticks.
+  Other platforms backends work in a different way
+  (through "Explicit" backend, which also manages the events,
+   sent by the joystick) }
 program CastleInternalJoystickDatabaseConverter;
 
 uses
@@ -6,6 +26,7 @@ uses
   CastleInternalJoystickLayout;
 
 type
+  { Dictionary to contain buggy GUIDs }
   TBuggyGuidDictionary = specialize TObjectDictionary<String, TStringList>;
 
 type
@@ -15,10 +36,12 @@ type
   public
     { Platform of the database report }
     Platform: String;
+    { Convert a joystick layout string read from the database into TJoystickLayout }
     procedure Parse(const AString: String);
   end;
 
 type
+  { All records read from the database }
   TAllJoysticks = specialize TObjectList<TJoystickParser>;
 
 function TJoystickParser.StrToJoystickEvent(const AString: String): TJoystickEvent;
@@ -206,14 +229,16 @@ begin
 end;
 
 var
+  { Stores buggy GUIDs }
   BuggyGuids: TBuggyGuidDictionary;
 
+{ Generate a list of buggy GUIDs.
+  for now - hardcoded, if we meet any other buggy GUIDs then we may consider
+  storing those as an external file and read them here. }
 procedure GetBuggyGuids;
 var
   SList: TStringList;
 begin
-  { for now - hardcoded, if we meet any other buggy GUIDs then we may consider
-    storing those as an external file and read them here. }
   BuggyGuids := TBuggyGuidDictionary.Create([doOwnsValues]);
   SList := TStringList.Create;
   SList.Add('03000000790000000600000000000000');
@@ -223,6 +248,7 @@ begin
   BuggyGuids.Add('Linux', SList);
 end;
 
+{ Returns if the GUID of ALayout is known to be buggy }
 function IsBuggyGuid(const ALayout: TJoystickParser): Boolean;
 const
   BuggyGuidMarker = 'buggy';
@@ -241,12 +267,19 @@ begin
 end;
 
 var
+  { All records read from the database }
   Database: TAllJoysticks;
 
+{ Read a joystick database from URL }
 procedure ParseJoysticksDatabase(const URL: String);
 
+  { Test if ALayout has a duplicate name among other loaded layouts
+    And register it as "buggy" if other layout uses a different
+    buttons/axes layout }
   procedure TestAndRegisterDuplicates(const ALayout: TJoystickParser);
 
+    { Returns true if the two dictionaries are not equal
+      and false if all records are equal }
     function DictionariesNotEqual(const DictA, DictB: TJoystickDictionary): Boolean;
     var
       B: Byte;
@@ -263,6 +296,7 @@ procedure ParseJoysticksDatabase(const URL: String);
   var
     JP: TJoystickParser;
 
+    { Mark both "current" and "other" layouts as buggy }
     procedure MarkAsBuggyDuplicateName;
     begin
       JP.BuggyDuplicateName := true;
@@ -320,6 +354,7 @@ begin
   end;
 end;
 
+{ Generate Pascal code to recreate the joysticks layouts database }
 procedure WriteDatabase(const Platform: String);
 var
   RecCount: Integer;
