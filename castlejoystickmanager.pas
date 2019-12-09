@@ -23,7 +23,7 @@ interface
 
 uses
   SysUtils, Classes, Generics.Collections,
-  CastleWindow, CastleKeysMouse, CastleVectors, CastleJoysticks,
+  CastleWindow, CastleKeysMouse, CastleVectors, CastleJoysticks, CastleTimeUtils,
   CastleInternalJoystickLayout;
 
 const
@@ -46,10 +46,11 @@ const
   joyUp = keyPadUp;
   joyDown = keyPadDown;
 
-  joyFakeLeft = joyLeft;
+  joyFakeLeft = joyLeft; {WARNING: duplicating}
   joyFakeRight = joyRight;
   joyFakeUp = joyUp;
   joyFakeDown = joyDown;
+  { Note, duplicate events will cause minor bugs with Release event }
 
 type
   { Temporary: these are the routines that need to go into new TJoystick }
@@ -84,9 +85,20 @@ type
         Note, that this class is designed to handle only simple cases,
         such as menu navigation. }
       TFakeJoystickEventsHandler = class
+      private const
+        FakeEventsPause = 0.3; { seconds // todo - remake into a variable }
       strict private
-
+        LastFakeEventTimerX, LastFakeEventTimerY: TTimerResult;
+        { A workaround being unable to set TTimerResult value directly }
+        Never: TTimerResult;
+        //LastFakeEvent: TJoystickKeyPair;
+        function SumAllAxes: TVector2;
+        procedure PressKey(const AKey: TKey);
+        procedure ReleaseKey(const AKey: TKey);
+        procedure ReleaseXAxes;
+        procedure ReleaseYAxes;
       public
+        FakeEventsDelay: TFloatTime;
         IsActive: Boolean;
         procedure Update;
         procedure ReleaseAllFakeEvents;
@@ -96,7 +108,6 @@ type
     var
       FakeEventsHandler: TFakeJoystickEventsHandler;
       JoysticksLayouts: TJoystickDictionary;
-      JoysticksAdditionalData: TJoystickAdditionalDataDictionary;
 
     { Current defaults are:
       Windows: 030000005e0400000a0b000000000000, Xbox Adaptive Controller
@@ -114,6 +125,8 @@ type
     function GetGenerateFakeEvents: Boolean;
     procedure SetGenerateFakeEvents(const AValue: Boolean);
   public
+    { Temporary: additional data for TJoystick }
+    JoysticksAdditionalData: TJoystickAdditionalDataDictionary;
     { Window container that will receive joystick buttons press events }
     Container: TWindowContainer;
     { Determines if the joystick layouts database freed immediately
@@ -599,25 +612,132 @@ end;
 
 { TCastleJoysticks.TFakeJoystickEventsHandler --------------------------------}
 
-procedure TCastleJoysticks.TFakeJoystickEventsHandler.Update;
+function TCastleJoysticks.TFakeJoystickEventsHandler.SumAllAxes: TVector2;
+var
+  I: Integer;
 begin
-  //update events every frame
+  Result := TVector2.Zero;
+  for I := 0 to Pred(Joysticks.Count) do
+  begin
+    Result += JoysticksNew.JoysticksAdditionalData[Joysticks[I]].LeftAxis;
+    Result += JoysticksNew.JoysticksAdditionalData[Joysticks[I]].RightAxis;
+  end;
+  Result.Normalize;
+end;
+
+procedure TCastleJoysticks.TFakeJoystickEventsHandler.Update;
+var
+  FakeAxes: TVector2;
+begin
+  { We have no smarter idea than simply to sum both left and right axes
+    of all available joysticks to generate fake events.
+    Note, that this approach is fail-proof, in case player has several
+    joysticks connected to the computer, or prefers to use different axes
+    for menu navigation.
+    This issue has to be addressed differently in hot-seat multiplayer,
+    however, TFakeJoystickEventsHandler was only designed to handle simple menus }
+  FakeAxes := SumAllAxes;
+
+  if Abs(FakeAxes.X) < JoysticksNew.JoystickEpsilon then
+    ReleaseXAxes
+  else
+  begin
+    if TimerSeconds(Timer, LastFakeEventTimerX) > FakeEventsPause then
+    begin
+      if FakeAxes.X > 0 then
+      begin
+        ReleaseKey(joyFakeLeft);
+        ReleaseKey(joyFakeRight);
+        PressKey(joyFakeRight);
+      end else
+      begin
+        ReleaseKey(joyFakeLeft);
+        ReleaseKey(joyFakeRight);
+        PressKey(joyFakeLeft);
+      end;
+      LastFakeEventTimerX := Timer;
+    end;
+  end;
+
+  if Abs(FakeAxes.Y) < JoysticksNew.JoystickEpsilon then
+    ReleaseYAxes
+  else
+  begin
+    if TimerSeconds(Timer, LastFakeEventTimerY) > FakeEventsPause then
+    begin
+      if FakeAxes.Y > 0 then
+      begin
+        ReleaseKey(joyFakeUp);
+        ReleaseKey(joyFakeDown);
+        PressKey(joyFakeUp);
+      end else
+      begin
+        ReleaseKey(joyFakeUp);
+        ReleaseKey(joyFakeDown);
+        PressKey(joyFakeDown);
+      end;
+      LastFakeEventTimerY := Timer;
+    end;
+  end;
 end;
 
 procedure TCastleJoysticks.TFakeJoystickEventsHandler.ReleaseAllFakeEvents;
 begin
-  //release all events
+  ReleaseXAxes;
+  ReleaseYAxes;
+end;
+
+procedure TCastleJoysticks.TFakeJoystickEventsHandler.PressKey(const AKey: TKey);
+var
+  ButtonEvent: TInputPressRelease;
+begin
+  ButtonEvent := InputKey(TVector2.Zero, AKey, '');
+  JoysticksNew.Container.EventPress(ButtonEvent);
+  JoysticksNew.Container.Pressed.KeyDown(ButtonEvent.Key, ButtonEvent.KeyString);
+  WriteLnLog('Fake Pressed', KeyToStr(ButtonEvent.Key));
+end;
+
+procedure TCastleJoysticks.TFakeJoystickEventsHandler.ReleaseKey(const AKey: TKey);
+var
+  ButtonEvent: TInputPressRelease;
+  UnusedStringVariable: String;
+begin
+  ButtonEvent := InputKey(TVector2.Zero, AKey, '');
+  if JoysticksNew.Container.Pressed[ButtonEvent.Key] then
+  begin
+    JoysticksNew.Container.EventRelease(ButtonEvent);
+    JoysticksNew.Container.Pressed.KeyUp(ButtonEvent.Key, UnusedStringVariable);
+    WriteLnLog('Fake Released', KeyToStr(ButtonEvent.Key));
+  end;
+end;
+
+procedure TCastleJoysticks.TFakeJoystickEventsHandler.ReleaseXAxes;
+begin
+  LastFakeEventTimerX := Never;
+  ReleaseKey(joyFakeLeft);
+  ReleaseKey(joyFakeRight);
+end;
+
+procedure TCastleJoysticks.TFakeJoystickEventsHandler.ReleaseYAxes;
+begin
+  LastFakeEventTimerY := Never;
+  ReleaseKey(joyFakeUp);
+  ReleaseKey(joyFakeDown);
 end;
 
 constructor TCastleJoysticks.TFakeJoystickEventsHandler.Create;
 begin
   inherited; //parent is empty
   IsActive := true;
+  Never := Timer;
 end;
 
 destructor TCastleJoysticks.TFakeJoystickEventsHandler.Destroy;
 begin
-  ReleaseAllFakeEvents;
+  { Normally any problem shouldn't happen and we should free TFakeJoystickEventsHandler
+    only in case finalize - and that means we're working with half-freed
+    instances and therefore SIGSEGVs }
+  //ReleaseAllFakeEvents;
   inherited;
 end;
 
