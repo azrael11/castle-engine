@@ -497,10 +497,16 @@ begin
   InitializeLog;
   GetBuggyGuids;
   Database := TAllJoysticks.Create(true);
+
   ParseJoysticksDatabase('castle-data:/gamecontrollerdb.txt');
   ParseJoysticksDatabase('castle-data:/buggyjoysticks.txt');
   WriteDatabase('Windows');
   WriteDatabase('Linux');
+
+  Database.Clear;
+  ParseJoysticksDatabase('castle-data:/defaultjoystick.txt');
+  WriteDatabase('Generic');
+
   FreeAndNil(BuggyGuids);
   FreeAndNil(Database);
 end.

@@ -16,7 +16,8 @@
 { Joystick event manager:
   - Reads joysticks layouts database;
   - Tries to autodetect initialized joysticks by name;
-  - Converts joystick events to Press events or Axes events. }
+  - Converts joystick events to Press events or Axes events;
+  - Generates "Fake" buttons events based on joystick axes data }
 unit CastleJoystickManager;
 
 interface
@@ -112,7 +113,8 @@ type
 
     { Current defaults are:
       Windows: 030000005e0400000a0b000000000000, Xbox Adaptive Controller
-      Linux: 030000006f0e00001304000000010000, Generic X-Box pad }
+      Linux: 030000006f0e00001304000000010000, Generic X-Box pad
+      otherwise: "minimalistic" (a joystick with only left stick) }
     function DefaultJoystickGuid: String;
     { Correctly send this joystick event to Container.Pressed or
       TJoystick.LeftAxis, TJoystick.RightAxis }
@@ -186,10 +188,13 @@ type
 function JoysticksNew: TCastleJoysticks;
 
 implementation
+{$ifdef Linux}{$define DatabaseLoaded}{$endif}
+{$ifdef Windows}{$define DatabaseLoaded}{$endif}
 uses
   {$ifdef Linux}CastleInternalJoystickDatabaseLinux, {$endif}
   {$ifdef Windows}CastleInternalJoystickDatabaseWindows, {$endif}
   {$ifdef MSWINDOWS} CastleInternalJoysticksWindows, {$endif} //needed to report a buggy library name, nothing more
+  {$ifndef DatabaseLoaded} CastleInternalJoystickDatabaseGeneric, {$endif}
   CastleLog, CastleUtils;
 
 function TJoysticksHelper.IndexOf(const Joy: TJoystick): Integer;
@@ -409,10 +414,14 @@ function TCastleJoysticks.DefaultJoystickGuid: String;
 begin
   {$ifdef Windows}
   Result := '030000005e0400000a0b000000000000';
-  {$else}
+  {$endif}
   {$ifdef Linux}
   Result := '030000006f0e00001304000000010000';
   {$endif}
+
+  //this is a "minimalistic" joystick used on non Windows/Linux systems
+  {$ifndef DatabaseLoaded}
+  Result := 'minimalistic';
   {$endif}
 end;
 
