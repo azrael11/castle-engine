@@ -86,7 +86,7 @@ type
         such as menu navigation. }
       TFakeJoystickEventsHandler = class
       private const
-        FakeEventsPause = 0.3; { seconds // todo - remake into a variable }
+      DefaultFakeEventsPause = 0.3; { seconds // todo - remake into a variable }
       strict private
         LastFakeEventTimerX, LastFakeEventTimerY: TTimerResult;
         { A workaround being unable to set TTimerResult value directly }
@@ -98,6 +98,7 @@ type
         procedure ReleaseXAxes;
         procedure ReleaseYAxes;
       public
+        FakeEventsPause: Single;
         FakeEventsDelay: TFloatTime;
         IsActive: Boolean;
         procedure Update;
@@ -124,6 +125,8 @@ type
 
     function GetGenerateFakeEvents: Boolean;
     procedure SetGenerateFakeEvents(const AValue: Boolean);
+    function GetFakeEventsPause: TFloatTime;
+    procedure SetFakeEventsPause(const AValue: TFloatTime);
   public
     { Temporary: additional data for TJoystick }
     JoysticksAdditionalData: TJoystickAdditionalDataDictionary;
@@ -162,8 +165,19 @@ type
       Note, that different OSes report the same physical gamepad by different GUIDs }
     procedure AssignJoystickLayoutByGuid(const Joy: TJoystick; const JoystickGuid: String);
 
-    procedure UpdateFakeEvents;
+    { Set this to true to start generating "fake" buttons events by joysticks axes movement.
+      If FakeJoystickEventsHandler is not going to be used for a long time
+      GenerateFakeEvents should be set to "false" avoid Press-related bugs.
+      Note, that FakeEvents is designed to handle only simple cases,
+      such as menu navigation. }
     property GenerateFakeEvents: Boolean read GetGenerateFakeEvents write SetGenerateFakeEvents;
+    { If using FakeEvents - call this every frame in Window.OnUpdate
+      or inside any other object, that updates every frame, e.g. TUiState }
+    procedure UpdateFakeEvents;
+    { Delay between two sequential "fake" press events generated,
+      I.e. in case the player holds axis downwards for some time,
+      the fake events will be generated every FakeEventsPause seconds }
+    property FakeEventsPause: TFloatTime read GetFakeEventsPause write SetFakeEventsPause;
 
     constructor Create; //override;
     destructor Destroy; override;
@@ -579,11 +593,24 @@ begin
     FakeEventsHandler.Update;
 end;
 
+function TCastleJoysticks.GetFakeEventsPause: TFloatTime;
+begin
+  if FakeEventsHandler <> nil then
+    Result := FakeEventsHandler.FakeEventsPause
+  else
+    Result := -1;
+end;
+procedure TCastleJoysticks.SetFakeEventsPause(const AValue: TFloatTime);
+begin
+  if FakeEventsHandler = nil then
+    FakeEventsHandler := TFakeJoystickEventsHandler.Create;
+  FakeEventsHandler.FakeEventsPause := AValue;
+end;
+
 function TCastleJoysticks.GetGenerateFakeEvents: Boolean;
 begin
   Result := (FakeEventsHandler <> nil) and (FakeEventsHandler.IsActive);
 end;
-
 procedure TCastleJoysticks.SetGenerateFakeEvents(const AValue: Boolean);
 begin
   if FakeEventsHandler = nil then
@@ -730,6 +757,7 @@ begin
   inherited; //parent is empty
   IsActive := true;
   Never := Timer;
+  FakeEventsPause := DefaultFakeEventsPause;
 end;
 
 destructor TCastleJoysticks.TFakeJoystickEventsHandler.Destroy;
