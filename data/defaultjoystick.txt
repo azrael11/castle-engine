@@ -1,0 +1,6 @@
+# Game Controller DB for SDL in 2.0.10 format
+# A minimalistic joystick layout that can be used with any OS
+# Has only the following features:
+# LeftStick: X axis [0] and Y axis [1]
+
+minimalistic,Default,leftx:a0,lefty:a1,platform:Generic,
