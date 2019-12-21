@@ -224,6 +224,7 @@ tools/castle-editor/code/castle_editor.res
 tools/castle-engine
 tools/image-to-pascal/image-to-pascal
 tools/internal/generate-persistent-vectors/generate-persistent-vectors
+tools/internal/joystick-database-converter/joystick-database-converter
 tools/internal/teapot-to-pascal/teapot-to-pascal
 tools/internal/teapot-to-pascal/teapot-to-pascal.res
 tools/internal/x3d-nodes-to-pascal/code/x3d-nodes-to-pascal
