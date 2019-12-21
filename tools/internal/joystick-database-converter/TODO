@@ -4,8 +4,6 @@ Phase - 1
 
 Phase - 2
 
- * [TODO] Merge 2 git repositories preserving history:
-   https://stackoverflow.com/questions/1425892/how-do-you-merge-two-git-repositories 
  * [TODO] Integrate into Castle Game Engine (rewrite TJoysticks, TJoystick)
  * [TODO] Improve current backends
  * [CRITICAL] Windows and Linux backends handle axes in an ambiguous way,
