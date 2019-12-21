@@ -9,7 +9,7 @@
         <MainUnitHasScaledStatement Value="False"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <Title Value="CastleInternalJoystickDatabaseConverter"/>
+      <Title Value="joystick-database-converter"/>
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
     </General>
@@ -19,7 +19,7 @@
         <CompilerOptions>
           <Version Value="11"/>
           <Target>
-            <Filename Value="CastleInternalJoystickDatabaseConverter"/>
+            <Filename Value="joystick-database-converter"/>
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
@@ -54,7 +54,7 @@
         <CompilerOptions>
           <Version Value="11"/>
           <Target>
-            <Filename Value="CastleInternalJoystickDatabaseConverter"/>
+            <Filename Value="joystick-database-converter"/>
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
@@ -90,7 +90,7 @@
     </RequiredPackages>
     <Units>
       <Unit>
-        <Filename Value="CastleInternalJoystickDatabaseConverter.pas"/>
+        <Filename Value="joystick-database-converter.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
@@ -102,7 +102,7 @@
   <CompilerOptions>
     <Version Value="11"/>
     <Target>
-      <Filename Value="CastleInternalJoystickDatabaseConverter"/>
+      <Filename Value="joystick-database-converter"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>

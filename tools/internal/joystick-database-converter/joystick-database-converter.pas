@@ -18,7 +18,7 @@
   Other platforms backends work in a different way
   (through "Explicit" backend, which also manages the events,
    sent by the joystick) }
-program CastleInternalJoystickDatabaseConverter;
+program JoystickDatabaseConverter;
 
 uses
   Classes, SysUtils, Generics.Collections,
