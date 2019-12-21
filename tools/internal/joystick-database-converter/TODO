@@ -4,6 +4,8 @@ Phase - 1
 
 Phase - 2
 
+ * castleinternaljoystickslinux.pas(103,49) Warning: Range check error while evaluating constants
+   (-2142213613 must be between 0 and 18446744073709551615)
  * [TODO] Integrate into Castle Game Engine (rewrite TJoysticks, TJoystick)
  * [TODO] Improve current backends
  * [CRITICAL] Windows and Linux backends handle axes in an ambiguous way,
