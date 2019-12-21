@@ -17,7 +17,7 @@ var
   { Database of joysticks by name/GUID,
     A database corresponding to the current OS will be loaded
     As different OS report different GUIDs and names for the same joystick
-    Note that the database contains a large number of joysticks 
+    Note that the database contains a large number of joysticks
     with identical "name" but different GUID. }
   JoystickLayoutsByName, JoystickLayoutsByGuid: TJoystickDatabase;
 

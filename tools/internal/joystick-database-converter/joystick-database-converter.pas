@@ -474,7 +474,7 @@ begin
     '  { Database of joysticks by name/GUID,' + NL +
     '    A database corresponding to the current OS will be loaded' + NL +
     '    As different OS report different GUIDs and names for the same joystick' + NL +
-    '    Note that the database contains a large number of joysticks ' + NL +
+    '    Note that the database contains a large number of joysticks' + NL +
     '    with identical "name" but different GUID. }' + NL +
     '  JoystickLayoutsByName, JoystickLayoutsByGuid: TJoystickDatabase;' + NL +
     NL +
