@@ -29,10 +29,10 @@ uses
 
 const
   { Joystick buttons }
-  joyA = keyPadB; {WARNING: inverting}
-  joyB = keyPadA; {WARNING: inverting}
-  joyY = keyPadX; {WARNING: inverting}
-  joyX = keyPadY; {WARNING: inverting}
+  joySouth = keyPadB; {WARNING: inverting}
+  joyEast = keyPadA; {WARNING: inverting}
+  joyNorth = keyPadX; {WARNING: inverting}
+  joyWest = keyPadY; {WARNING: inverting}
   joyBack = keyPadMinus;
   joyStart = keyPadPlus;
   joyLeftShoulder = keyPadL;
@@ -220,10 +220,10 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJ
   function JoystickEventToKey(const AJoystickEvent: TJoystickEvent): TKey;
   begin
     case AJoystickEvent of
-      padA: Result := joyA;
-      padB: Result := joyB;
-      padY: Result := joyY;
-      padX: Result := joyX;
+      padA: Result := joySouth;
+      padB: Result := joyEast;
+      padY: Result := joyNorth;
+      padX: Result := joyWest;
       buttonBack: Result := joyBack;
       buttonStart: Result := joyStart;
       buttonLeftShoulder: Result := joyLeftShoulder;
