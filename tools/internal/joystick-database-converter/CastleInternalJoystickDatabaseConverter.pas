@@ -25,6 +25,10 @@ uses
   CastleDownload, CastleLog, CastleStringUtils, CastleUtils,
   CastleInternalJoystickLayout;
 
+const
+  { Relative path to src/ui/joysticks folder }
+  BaseDir = '../../../src/ui/joysticks/';
+
 type
   { Dictionary to contain buggy GUIDs }
   TBuggyGuidDictionary = specialize TObjectDictionary<String, TStringList>;
@@ -447,7 +451,7 @@ var
 begin
   RecCount := 0;
   UnitName := 'CastleInternalJoystickDatabase' + Platform;
-  OutputUnit := TTextWriter.Create(UnitName + '.pas');
+  OutputUnit := TTextWriter.Create(BaseDir + UnitName + '.pas');
   OutputUnit.Write(
     '{ -*- buffer-read-only: t -*- }' + NL +
     NL +
