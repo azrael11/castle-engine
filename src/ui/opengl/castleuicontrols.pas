@@ -2322,7 +2322,7 @@ implementation
 
 uses DOM, TypInfo, Math,
   CastleLog, CastleComponentSerialize, CastleXMLUtils, CastleStringUtils,
-  CastleInternalSettings,
+  CastleInternalSettings, CastleJoystickManager,
   {$ifdef CASTLE_OBJFPC} CastleGL {$else} GL, GLExt {$endif};
 
 { TTouchList ----------------------------------------------------------------- }
@@ -2401,6 +2401,8 @@ begin
       WritelnLog('3D Mouse', 'Exception %s when initializing T3DConnexionDevice: %s',
         [E.ClassName, E.Message]);
   end;
+
+  JoysticksNew.UiContainers.Add(Self);
 end;
 
 destructor TUIContainer.Destroy;
@@ -2417,6 +2419,7 @@ begin
   FreeAndNil(FNewFocus);
   { set to nil by SetForceCaptureInput, to detach free notification }
   ForceCaptureInput := nil;
+  JoysticksNew.UiContainers.Remove(Self);
   inherited;
 end;
 
