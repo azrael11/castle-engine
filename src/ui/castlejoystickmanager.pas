@@ -69,6 +69,7 @@ type
 type
   TJoystickDictionary = specialize TObjectDictionary<TJoystick, TJoystickLayout>;
   TJoystickAdditionalDataDictionary = specialize TObjectDictionary<TJoystick, TJoystickAdditionalData>;
+  TUiContainerList = specialize TObjectList<TUiContainer>;
 
 type
   { Temporary: to be merged with TJoysticks }
@@ -125,6 +126,9 @@ type
     procedure DoButtonUp(const Joy: TJoystick; const Button: Byte);
     procedure DoButtonPress(const Joy: TJoystick; const Button: Byte);
 
+    procedure SendPressEventToAllContainers(const AEvent: TInputPressRelease);
+    procedure SendReleaseEventToAllContainers(const AEvent: TInputPressRelease);
+
     function GetGenerateFakeEvents: Boolean;
     procedure SetGenerateFakeEvents(const AValue: Boolean);
     function GetFakeEventsPause: TFloatTime;
@@ -132,8 +136,9 @@ type
   public
     { Temporary: additional data for TJoystick }
     JoysticksAdditionalData: TJoystickAdditionalDataDictionary;
-    { Window container that will receive joystick buttons press events }
-    Container: TUiContainer;
+    { A list of Ui containers that receive joystick buttons press events
+      every Ui container is automatically added on TUiContainer.Create }
+    UiContainers: TUiContainerList;
     { Determines if the joystick layouts database freed immediately
       after the joysticks have been autodetected.
       If you need to propose the player to choose a joystick manually
@@ -210,6 +215,30 @@ end;
 
 { TJoystickManager ---------------------------------------------------------}
 
+procedure TCastleJoysticks.SendPressEventToAllContainers(const AEvent: TInputPressRelease);
+var
+  C: TUiContainer;
+begin
+  for C in UiContainers do
+  begin
+    C.EventPress(AEvent);
+    C.Pressed.KeyDown(AEvent.Key, AEvent.KeyString);
+  end;
+end;
+
+procedure TCastleJoysticks.SendReleaseEventToAllContainers(const AEvent: TInputPressRelease);
+var
+  C: TUiContainer;
+  UnusedStringVariable: String;
+begin
+  for C in UiContainers do
+    if C.Pressed[AEvent.Key] then
+    begin
+      C.EventRelease(AEvent);
+      C.Pressed.KeyUp(AEvent.Key, UnusedStringVariable);
+    end;
+end;
+
 procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJoystickEventPair; const Value: Single);
 
   function KeyToStr(const AKey: TKey): String;
@@ -245,42 +274,23 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJ
 
   procedure JoystickKey(const AValue: Single);
   var
-    UnusedStringVariable: String;
     ButtonEvent: TInputPressRelease;
-    EventReleased: Boolean;
   begin
     ButtonEvent := InputKey(TVector2.Zero, JoystickEventToKey(JEP.Primary), '');
     ButtonEvent.FingerIndex := Joysticks.IndexOf(Joy);
     if Abs(AValue) > JoystickEpsilon then
     begin
-      Container.EventPress(ButtonEvent);
-      Container.Pressed.KeyDown(ButtonEvent.Key, ButtonEvent.KeyString);
+      SendPressEventToAllContainers(ButtonEvent);
       WriteLnLog('Pressed', KeyToStr(ButtonEvent.Key));
     end else
     begin
-      EventReleased := false;
-      if Container.Pressed[ButtonEvent.Key] then
-      begin
-        Container.EventRelease(ButtonEvent);
-        Container.Pressed.KeyUp(ButtonEvent.Key, UnusedStringVariable);
-        WriteLnLog('Released', KeyToStr(ButtonEvent.Key));
-        EventReleased := true;
-      end;
+      SendReleaseEventToAllContainers(ButtonEvent);
       if JEP.Inverse <> JEP.Primary then
       begin
         ButtonEvent := InputKey(TVector2.Zero, JoystickEventToKey(JEP.Inverse), '');
         ButtonEvent.FingerIndex := Joysticks.IndexOf(Joy);
-        if Container.Pressed[ButtonEvent.Key] then
-        begin
-          Container.EventRelease(ButtonEvent);
-          Container.Pressed.KeyUp(ButtonEvent.Key, UnusedStringVariable);
-          WriteLnLog('Released', KeyToStr(ButtonEvent.Key));
-          EventReleased := true;
-        end;
+        SendReleaseEventToAllContainers(ButtonEvent);
       end;
-      if not EventReleased then
-        WriteLnLog('Warning', Format('Received a releasing event, however neither %s nor %s have been pressed',
-          [JoystickEventToStr(JEP.Primary), JoystickEventToStr(JEP.Inverse)]));
     end;
   end;
 
@@ -432,7 +442,6 @@ procedure TCastleJoysticks.Initialize;
     Result := Trim(AJoystickName);
     while Pos('  ', Result) > 0 do
       Result := StringReplace(Result, '  ', ' ', [rfReplaceAll]);
-    WriteLnLog(Result);
   end;
 
 var
@@ -636,6 +645,7 @@ constructor TCastleJoysticks.Create;
 begin
   inherited; //parent is empty
   FreeJoysticksDatabaseAfterInitialization := true;
+  UiContainers := TUiContainerList.Create(false);
 end;
 
 destructor TCastleJoysticks.Destroy;
@@ -643,6 +653,7 @@ begin
   FreeAndNil(JoysticksLayouts);
   FreeAndNil(JoysticksAdditionalData);
   FreeAndNil(FakeEventsHandler);
+  FreeAndNil(UiContainers);
   inherited;
 end;
 
@@ -728,23 +739,16 @@ var
   ButtonEvent: TInputPressRelease;
 begin
   ButtonEvent := InputKey(TVector2.Zero, AKey, '');
-  JoysticksNew.Container.EventPress(ButtonEvent);
-  JoysticksNew.Container.Pressed.KeyDown(ButtonEvent.Key, ButtonEvent.KeyString);
+  JoysticksNew.SendPressEventToAllContainers(ButtonEvent);
   WriteLnLog('Fake Pressed', KeyToStr(ButtonEvent.Key));
 end;
 
 procedure TCastleJoysticks.TFakeJoystickEventsHandler.ReleaseKey(const AKey: TKey);
 var
   ButtonEvent: TInputPressRelease;
-  UnusedStringVariable: String;
 begin
   ButtonEvent := InputKey(TVector2.Zero, AKey, '');
-  if JoysticksNew.Container.Pressed[ButtonEvent.Key] then
-  begin
-    JoysticksNew.Container.EventRelease(ButtonEvent);
-    JoysticksNew.Container.Pressed.KeyUp(ButtonEvent.Key, UnusedStringVariable);
-    WriteLnLog('Fake Released', KeyToStr(ButtonEvent.Key));
-  end;
+  JoysticksNew.SendReleaseEventToAllContainers(ButtonEvent);
 end;
 
 procedure TCastleJoysticks.TFakeJoystickEventsHandler.ReleaseXAxes;

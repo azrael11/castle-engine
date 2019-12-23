@@ -48,7 +48,7 @@ procedure ApplicationInitialize;
 
 begin
   Window.OnUpdate := @UpdateWindow;
-  JoysticksNew.Container := Window.Container;
+  JoysticksNew.UiContainers.Add(Window.Container);
   JoysticksNew.FreeJoysticksDatabaseAfterInitialization := false; //will prevent joystick database from freeing automatically after autodetecting joysticks
   JoysticksNew.Initialize;
   if Joysticks.Count > 0 then
