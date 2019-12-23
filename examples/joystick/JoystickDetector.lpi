@@ -95,16 +95,6 @@
         <Filename Value="JoystickDetector.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit>
-      <Unit>
-        <Filename Value="castlejoystickmanager.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="CastleJoystickManager"/>
-      </Unit>
-      <Unit>
-        <Filename Value="castleinternaljoysticklayout.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="CastleInternalJoystickLayout"/>
-      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
