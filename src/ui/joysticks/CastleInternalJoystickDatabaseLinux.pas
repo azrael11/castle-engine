@@ -36,14 +36,10 @@ begin
   FreeAndNil(JoystickLayoutsByGuid);
 end;
 
-procedure InitJoysticksDatabase;
+procedure InitJoysticksDatabasePart1;
 var
   JoyData: TJoystickLayout;
 begin
-  FreeJoysticksDatabase;
-  JoystickLayoutsByName := TJoystickDatabase.Create;
-  JoystickLayoutsByGuid := TJoystickDatabase.Create([doOwnsValues]);
-
   JoyData := TJoystickLayout.Create;
   JoyData.JoystickName := '8Bitdo FC30 Pro';
   JoyData.Guid := '05000000c82d00001038000000010000';
@@ -6108,7 +6104,12 @@ begin
   JoyData.CacheJoystickEvents;
   JoystickLayoutsByName.AddOrSetValue(JoyData.JoystickName, JoyData);
   JoystickLayoutsByGuid.Add(JoyData.Guid, JoyData);
+end;
 
+procedure InitJoysticksDatabasePart2;
+var
+  JoyData: TJoystickLayout;
+begin
   JoyData := TJoystickLayout.Create;
   JoyData.JoystickName := 'Razer Sabertooth';
   JoyData.Guid := '030000008916000000fe000024010000';
@@ -8715,6 +8716,15 @@ begin
   JoyData.CacheJoystickEvents;
   JoystickLayoutsByName.AddOrSetValue(JoyData.JoystickName, JoyData);
   JoystickLayoutsByGuid.Add(JoyData.Guid, JoyData);
+end;
+
+procedure InitJoysticksDatabase;
+begin
+  FreeJoysticksDatabase;
+  JoystickLayoutsByName := TJoystickDatabase.Create;
+  JoystickLayoutsByGuid := TJoystickDatabase.Create([doOwnsValues]);
+  InitJoysticksDatabasePart1;
+  InitJoysticksDatabasePart2;
 end;
 
 finalization

@@ -36,14 +36,10 @@ begin
   FreeAndNil(JoystickLayoutsByGuid);
 end;
 
-procedure InitJoysticksDatabase;
+procedure InitJoysticksDatabasePart1;
 var
   JoyData: TJoystickLayout;
 begin
-  FreeJoysticksDatabase;
-  JoystickLayoutsByName := TJoystickDatabase.Create;
-  JoystickLayoutsByGuid := TJoystickDatabase.Create([doOwnsValues]);
-
   JoyData := TJoystickLayout.Create;
   JoyData.JoystickName := 'Default';
   JoyData.Guid := 'minimalistic';
@@ -54,6 +50,14 @@ begin
   JoyData.CacheJoystickEvents;
   JoystickLayoutsByName.AddOrSetValue(JoyData.JoystickName, JoyData);
   JoystickLayoutsByGuid.Add(JoyData.Guid, JoyData);
+end;
+
+procedure InitJoysticksDatabase;
+begin
+  FreeJoysticksDatabase;
+  JoystickLayoutsByName := TJoystickDatabase.Create;
+  JoystickLayoutsByGuid := TJoystickDatabase.Create([doOwnsValues]);
+  InitJoysticksDatabasePart1;
 end;
 
 finalization

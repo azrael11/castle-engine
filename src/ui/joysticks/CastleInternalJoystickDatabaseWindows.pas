@@ -36,14 +36,10 @@ begin
   FreeAndNil(JoystickLayoutsByGuid);
 end;
 
-procedure InitJoysticksDatabase;
+procedure InitJoysticksDatabasePart1;
 var
   JoyData: TJoystickLayout;
 begin
-  FreeJoysticksDatabase;
-  JoystickLayoutsByName := TJoystickDatabase.Create;
-  JoystickLayoutsByGuid := TJoystickDatabase.Create([doOwnsValues]);
-
   JoyData := TJoystickLayout.Create;
   JoyData.JoystickName := '3DRUDDER';
   JoyData.Guid := '03000000fa2d00000100000000000000';
@@ -5979,7 +5975,12 @@ begin
   JoyData.CacheJoystickEvents;
   JoystickLayoutsByName.AddOrSetValue(JoyData.JoystickName, JoyData);
   JoystickLayoutsByGuid.Add(JoyData.Guid, JoyData);
+end;
 
+procedure InitJoysticksDatabasePart2;
+var
+  JoyData: TJoystickLayout;
+begin
   JoyData := TJoystickLayout.Create;
   JoyData.JoystickName := 'PS1 Controller';
   JoyData.Guid := '030000008f0e00007530000000000000';
@@ -9244,6 +9245,15 @@ begin
   JoyData.CacheJoystickEvents;
   JoystickLayoutsByName.AddOrSetValue(JoyData.JoystickName, JoyData);
   JoystickLayoutsByGuid.Add(JoyData.Guid, JoyData);
+end;
+
+procedure InitJoysticksDatabase;
+begin
+  FreeJoysticksDatabase;
+  JoystickLayoutsByName := TJoystickDatabase.Create;
+  JoystickLayoutsByGuid := TJoystickDatabase.Create([doOwnsValues]);
+  InitJoysticksDatabasePart1;
+  InitJoysticksDatabasePart2;
 end;
 
 finalization

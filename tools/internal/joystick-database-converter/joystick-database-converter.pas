@@ -422,8 +422,10 @@ var
       Result +=
         '  JoystickLayoutsByGuid.Add(JoyData.Guid, JoyData);' + NL;
     end;
+
   var
     JP: TJoystickParser;
+    I, ProceduresCount: Integer;
   begin
     Result := NL +
       'procedure FreeJoysticksDatabase;' + NL +
@@ -431,17 +433,44 @@ var
       '  FreeAndNil(JoystickLayoutsByName);' + NL +
       '  FreeAndNil(JoystickLayoutsByGuid);' + NL +
       'end;' + NL +
-      NL +
+      NL;
+
+    I := 0;
+    ProceduresCount := 0;
+
+    for JP in Database do
+      if JP.Platform = Platform then
+      begin
+        if I mod 200 = 0 then
+        begin
+          Inc(ProceduresCount);
+          if I > 0 then
+            Result +=
+              'end;' + NL + NL;
+
+          Result +=
+            'procedure InitJoysticksDatabasePart' + IntToStr(ProceduresCount) + ';' + NL +
+            'var' + NL +
+            '  JoyData: TJoystickLayout;' + NL +
+            'begin';
+        end;
+        Inc(I);
+        Result += DatabaseLayoutToString(JP);
+      end;
+    Result +=
+      'end;' + NL + NL;
+
+    Result +=
       'procedure InitJoysticksDatabase;' + NL +
-      'var' + NL +
-      '  JoyData: TJoystickLayout;' + NL +
       'begin' + NL +
       '  FreeJoysticksDatabase;' + NL +
       '  JoystickLayoutsByName := TJoystickDatabase.Create;' + NL + //owns nothing as contains duplicates
       '  JoystickLayoutsByGuid := TJoystickDatabase.Create([doOwnsValues]);' + NL;
-    for JP in Database do
-      if JP.Platform = Platform then
-        Result := Result + DatabaseLayoutToString(JP);
+
+    for I := 1 to ProceduresCount do
+      Result +=
+      '  InitJoysticksDatabasePart' + IntToStr(I) + ';' + NL;
+
     Result += 'end;' + NL;
   end;
 
