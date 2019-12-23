@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
-  <Package Version="4">
+  <Package Version="5">
     <Name Value="castle_base"/>
     <Type Value="RunAndDesignTime"/>
     <AddToProjectUsesSection Value="True"/>
@@ -9,7 +9,7 @@
       <Version Value="11"/>
       <SearchPaths>
         <IncludeFiles Value="../src/base;../src/base/unix;../src/base/windows;../src/audio;../src/castlescript;../src/3d;../src/x3d/opengl/glsl;../src/x3d/opengl;../src/x3d;../src/base/opengl;../src/images/opengl;../src/images/opengl/glsl;../src/images;../src/x3d/auto_generated_node_helpers;../src/ui/opengl;../src/deprecated_units"/>
-        <OtherUnitFiles Value="../src/base;../src/3d;../src/x3d;../src/x3d/opengl;../src/images;../src/fonts;../src/fonts/windows;../src/audio;../src/files;../src/castlescript;../src/ui;../src/ui/windows;../src/ui/opengl;../src/game;../src/services;../src/services/opengl;../src/3d/opengl;../src/base/opengl;../src/images/opengl;../src/fonts/opengl;../src/physics/kraft;../src/pasgltf;../src/audio/openal;../src/audio/ogg_vorbis;../src/audio/fmod;../src/deprecated_units"/>
+        <OtherUnitFiles Value="../src/base;../src/3d;../src/x3d;../src/x3d/opengl;../src/images;../src/fonts;../src/fonts/windows;../src/audio;../src/files;../src/castlescript;../src/ui;../src/ui/windows;../src/ui/opengl;../src/game;../src/services;../src/services/opengl;../src/3d/opengl;../src/base/opengl;../src/images/opengl;../src/fonts/opengl;../src/physics/kraft;../src/pasgltf;../src/audio/openal;../src/audio/ogg_vorbis;../src/audio/fmod;../src/deprecated_units;../src/ui/joysticks"/>
         <UnitOutputDirectory Value="lib/castle_base/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Conditionals Value="// example for adding linker options on macOS
@@ -100,7 +100,7 @@ This is the same license as used by Lazarus LCL and FPC RTL.
 See https://castle-engine.io/license.php for details.
 "/>
     <Version Major="6" Minor="5"/>
-    <Files Count="692">
+    <Files Count="695">
       <Item1>
         <Filename Value="../src/3d/castle3d.pas"/>
         <UnitName Value="Castle3D"/>
@@ -2885,6 +2885,18 @@ See https://castle-engine.io/license.php for details.
         <Filename Value="../src/x3d/x3dtriangles_raysegment_nonleaf.inc"/>
         <Type Value="Include"/>
       </Item692>
+      <Item693>
+        <Filename Value="../src/ui/castlejoystickmanager.pas"/>
+        <UnitName Value="CastleJoystickManager"/>
+      </Item693>
+      <Item694>
+        <Filename Value="../src/ui/castleinternaljoysticklayout.pas"/>
+        <UnitName Value="CastleInternalJoystickLayout"/>
+      </Item694>
+      <Item695>
+        <Filename Value="../src/ui/joysticks/CastleInternalJoystickDatabaseGeneric.pas"/>
+        <UnitName Value="CastleInternalJoystickDatabaseGeneric"/>
+      </Item695>
     </Files>
     <RequiredPkgs Count="1">
       <Item1>
