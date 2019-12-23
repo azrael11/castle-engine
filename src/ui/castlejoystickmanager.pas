@@ -24,7 +24,7 @@ interface
 
 uses
   SysUtils, Classes, Generics.Collections,
-  CastleWindow, CastleKeysMouse, CastleVectors, CastleJoysticks, CastleTimeUtils,
+  CastleUiControls, CastleKeysMouse, CastleVectors, CastleJoysticks, CastleTimeUtils,
   CastleInternalJoystickLayout;
 
 const
@@ -133,7 +133,7 @@ type
     { Temporary: additional data for TJoystick }
     JoysticksAdditionalData: TJoystickAdditionalDataDictionary;
     { Window container that will receive joystick buttons press events }
-    Container: TWindowContainer;
+    Container: TUiContainer;
     { Determines if the joystick layouts database freed immediately
       after the joysticks have been autodetected.
       If you need to propose the player to choose a joystick manually
