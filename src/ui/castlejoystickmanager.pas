@@ -25,7 +25,7 @@ interface
 uses
   SysUtils, Classes, Generics.Collections,
   CastleUiControls, CastleKeysMouse, CastleVectors, CastleJoysticks, CastleTimeUtils,
-  CastleInternalJoystickLayout;
+  CastleInternalJoystickLayout, CastleApplicationProperties;
 
 const
   { Joystick buttons }
@@ -180,7 +180,7 @@ type
     property GenerateFakeEvents: Boolean read GetGenerateFakeEvents write SetGenerateFakeEvents;
     { If using FakeEvents - call this every frame in Window.OnUpdate
       or inside any other object, that updates every frame, e.g. TUiState }
-    procedure UpdateFakeEvents;
+    procedure UpdateFakeEvents(Sender: TObject);
     { Delay between two sequential "fake" press events generated,
       I.e. in case the player holds axis downwards for some time,
       the fake events will be generated every FakeEventsPause seconds }
@@ -605,7 +605,7 @@ begin
   FreeJoysticksDatabase;
 end;
 
-procedure TCastleJoysticks.UpdateFakeEvents;
+procedure TCastleJoysticks.UpdateFakeEvents(Sender: TObject);
 begin
   if GenerateFakeEvents then
     FakeEventsHandler.Update;
@@ -646,6 +646,7 @@ begin
   inherited; //parent is empty
   FreeJoysticksDatabaseAfterInitialization := true;
   UiContainers := TUiContainerList.Create(false);
+  ApplicationProperties.OnUpdate.Add(@UpdateFakeEvents);
 end;
 
 destructor TCastleJoysticks.Destroy;
