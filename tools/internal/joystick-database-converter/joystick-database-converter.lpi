@@ -23,7 +23,6 @@
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
-            <OtherUnitFiles Value="../../../src/ui"/>
             <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
@@ -58,7 +57,6 @@
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
-            <OtherUnitFiles Value="../../../src/ui"/>
             <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <CodeGeneration>
@@ -93,10 +91,6 @@
         <Filename Value="joystick-database-converter.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
-      <Unit>
-        <Filename Value="../../../src/ui/castleinternaljoysticklayout.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -106,7 +100,6 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../../../src/ui"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
   </CompilerOptions>
