@@ -91,7 +91,7 @@ end;
 
 procedure TStateMain.Update(const SecondsPassed: Single; var HandleInput: Boolean);
 begin
-
+  inherited;
 end;
 
 function TStateMain.Press(const Event: TInputPressRelease): Boolean;
