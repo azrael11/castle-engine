@@ -23,6 +23,12 @@ uses
   CastleKeysMouse, CastleControls, CastleUiState, CastleUiControls;
 
 type
+  TJoystickLayoutButton = class(TCastleButton)
+  public
+    LayoutLabel: TCastleLabel;
+  end;
+
+type
   TStateMain = class(TUiState)
   strict private
     ImageSouth, ImageEast, ImageWest, ImageNorth,
@@ -38,6 +44,7 @@ type
     procedure HideAllKeys;
     procedure ShowKey(const AKey: TKey; const AExists: Boolean);
     procedure FillJoystickNames;
+    procedure ClickJoystickLayout(Sender: TObject);
   public
     procedure Start; override;
     procedure Stop; override;
@@ -110,7 +117,8 @@ procedure TStateMain.FillJoystickNames;
 var
   SList: TStringList;
   S: String;
-  L: TCastleLabel;
+  JoystickLayoutLabel: TCastleLabel;
+  JoystickLayoutButton: TJoystickLayoutButton;
 begin
   SList := JoysticksNew.JoysticksLayoutsNames;
   if SList <> nil then
@@ -118,10 +126,17 @@ begin
     SList.Sort;
     for S in SList do
     begin
-      L := TCastleLabel.Create(FreeAtStop);
-      L.Caption := S;
-      L.Color := White;
-      VerticalGroupJoysticksNames.InsertFront(L);
+      JoystickLayoutButton := TJoystickLayoutButton.Create(FreeAtStop);
+      JoystickLayoutButton.CustomBackground := true;
+      JoystickLayoutButton.AutoSizeToChildren := true;
+      JoystickLayoutButton.EnableParentDragging := true;
+      JoystickLayoutButton.OnClick := @ClickJoystickLayout;
+      JoystickLayoutLabel := TCastleLabel.Create(JoystickLayoutButton);
+      JoystickLayoutLabel.Caption := S;
+      JoystickLayoutLabel.Color := White;
+      JoystickLayoutButton.LayoutLabel := JoystickLayoutLabel;
+      JoystickLayoutButton.InsertFront(JoystickLayoutLabel);
+      VerticalGroupJoysticksNames.InsertFront(JoystickLayoutButton);
     end;
     FreeAndNil(SList);
   end;
@@ -146,6 +161,11 @@ begin
   ImageDPadRight.Exists := false;
   ImageDPadUp.Exists := false;
   ImageDPadDown.Exists := false;
+end;
+
+procedure TStateMain.ClickJoystickLayout(Sender: TObject);
+begin
+  JoysticksNew.AssignJoystickLayoutByName(Joysticks[0], (Sender as TJoystickLayoutButton).LayoutLabel.Caption);
 end;
 
 procedure TStateMain.ShowKey(const AKey: TKey; const AExists: Boolean);
