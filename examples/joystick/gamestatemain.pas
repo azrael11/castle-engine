@@ -62,7 +62,6 @@ type
     procedure RemoveFocusFromJoystick(const AButton: TJoystickSelectButton);
   public
     procedure Start; override;
-    procedure Stop; override;
     procedure Update(const SecondsPassed: Single; var HandleInput: Boolean); override;
     function Press(const Event: TInputPressRelease): Boolean; override;
     function Release(const Event: TInputPressRelease): Boolean; override;
@@ -125,12 +124,6 @@ begin
   HideAllKeys;
   DetectJoysticks;
   FillJoystickNames;
-end;
-
-procedure TStateMain.Stop;
-begin
-
-  inherited;
 end;
 
 procedure TStateMain.DetectJoysticks;
@@ -241,7 +234,6 @@ begin
   AButton.CustomColorFocused := Vector4(0.4, 0.4, 0.4, 0.2);
   AButton.CustomColorPressed := Vector4(0.5, 0.5, 0.5, 0.2);
 end;
-
 
 procedure TStateMain.ClickJoystickLayout(Sender: TObject);
 begin
