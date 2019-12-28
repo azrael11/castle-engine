@@ -188,6 +188,54 @@
           "$Children" : [
           ],
           "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Height" : 1.7000000000000000E+002,
+          "HorizontalAnchorDelta" : 7.4000000000000000E+002,
+          "Name" : "RightStickAxis",
+          "VerticalAnchorDelta" : 4.1000000000000000E+002,
+          "Width" : 1.7000000000000000E+002,
+          "$Children" : [
+            {
+              "Content" : {
+                "URL" : "castle-data:/Axis.png",
+                "$ClassName" : "TCastleImagePersistent"
+              },
+              "HorizontalAnchorParent" : "hpMiddle",
+              "HorizontalAnchorSelf" : "hpMiddle",
+              "Name" : "ImageRightAxis",
+              "VerticalAnchorParent" : "vpMiddle",
+              "VerticalAnchorSelf" : "vpMiddle",
+              "$Children" : [
+              ],
+              "$ClassName" : "TCastleImageControl"
+            }
+          ],
+          "$ClassName" : "TCastleUserInterface"
+        },
+        {
+          "Height" : 1.7000000000000000E+002,
+          "HorizontalAnchorDelta" : 1.9400000000000000E+002,
+          "Name" : "LeftStickAxis",
+          "VerticalAnchorDelta" : 6.2800000000000000E+002,
+          "Width" : 1.7000000000000000E+002,
+          "$Children" : [
+            {
+              "Content" : {
+                "URL" : "castle-data:/Axis.png",
+                "$ClassName" : "TCastleImagePersistent"
+              },
+              "HorizontalAnchorParent" : "hpMiddle",
+              "HorizontalAnchorSelf" : "hpMiddle",
+              "Name" : "ImageLeftAxis",
+              "VerticalAnchorParent" : "vpMiddle",
+              "VerticalAnchorSelf" : "vpMiddle",
+              "$Children" : [
+              ],
+              "$ClassName" : "TCastleImageControl"
+            }
+          ],
+          "$ClassName" : "TCastleUserInterface"
         }
       ],
       "$ClassName" : "TCastleImageControl"
