@@ -34,6 +34,9 @@ type
     function Release(const Event: TInputPressRelease): Boolean; override;
   end;
 
+var
+  StateMain: TStateMain;
+
 implementation
 
 uses
