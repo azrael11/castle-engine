@@ -27,42 +27,6 @@ uses
   CastleUiControls, CastleKeysMouse, CastleVectors, CastleJoysticks, CastleTimeUtils,
   CastleInternalJoystickLayout, CastleApplicationProperties;
 
-const
-  { Joystick buttons }
-  joySouth = keyPadB; {WARNING: inverting}
-  joyEast = keyPadA; {WARNING: inverting}
-  joyNorth = keyPadX; {WARNING: inverting}
-  joyWest = keyPadY; {WARNING: inverting}
-  joyBack = keyPadMinus;
-  joyStart = keyPadPlus;
-  joyLeftShoulder = keyPadL;
-  joyRightShoulder = keyPadR;
-  joyLeftTrigger = keyPadZL;
-  joyRightTrigger = keyPadZR;
-  joyLeftStick = keyReserved_178; {WARNING: duplicating}
-  joyRightStick = keyReserved_179; {WARNING: duplicating}
-  joyGuide = keyReserved_180; {WARNING: duplicating}
-  joyLeft = keyPadLeft;
-  joyRight = keyPadRight;
-  joyUp = keyPadUp;
-  joyDown = keyPadDown;
-
-  joyFakeLeft = joyLeft; {WARNING: duplicating}
-  joyFakeRight = joyRight;
-  joyFakeUp = joyUp;
-  joyFakeDown = joyDown;
-  { Note, duplicate events will cause minor bugs with Release event }
-
-  itJoystick = itKey; //a small temporary hack to send correct joystick press events
-
-type
-  { Temporary: these are the routines that need to go into new TJoystick }
-  TJoystickAdditionalData = class
-    TrimmedName: String;
-    Layout: TJoystickLayout;
-    LeftAxis, RightAxis, DPad: TVector2;
-  end;
-
 type
   { Temporary: additional routines required for TJoysticks }
   TJoysticksHelper = class helper for TJoysticks
@@ -70,8 +34,6 @@ type
   end;
 
 type
-  TJoystickDictionary = specialize TObjectDictionary<TJoystick, TJoystickLayout>;
-  TJoystickAdditionalDataDictionary = specialize TObjectDictionary<TJoystick, TJoystickAdditionalData>;
   TUiContainerList = specialize TObjectList<TUiContainer>;
 
 type
@@ -113,7 +75,6 @@ type
       end;
     var
       FakeEventsHandler: TFakeJoystickEventsHandler;
-      JoysticksLayouts: TJoystickDictionary;
 
     { Current defaults are:
       Windows: 030000005e0400000a0b000000000000, Xbox Adaptive Controller
@@ -137,8 +98,6 @@ type
     function GetFakeEventsPause: TFloatTime;
     procedure SetFakeEventsPause(const AValue: TFloatTime);
   public
-    { Temporary: additional data for TJoystick }
-    JoysticksAdditionalData: TJoystickAdditionalDataDictionary;
     { A list of Ui containers that receive joystick buttons press events
       every Ui container is automatically added on TUiContainer.Create }
     UiContainers: TUiContainerList;
@@ -308,29 +267,25 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJ
   //todo: optimize?
   procedure JoystickLeftXAxis(const AValue: Single);
   begin
-    JoysticksAdditionalData.Items[Joy].LeftAxis :=
-      Vector2(AValue, JoysticksAdditionalData.Items[Joy].LeftAxis.Y);
+    Joy.LeftAxis := Vector2(AValue, Joy.LeftAxis.Y);
   end;
   procedure JoystickLeftYAxis(const AValue: Single);
   begin
     { Y axes should be 1 when pointing up, -1 when pointing down.
       This is consistent with CGE 2D coordinate system
       (and standard math 2D coordinate system). }
-    JoysticksAdditionalData.Items[Joy].LeftAxis :=
-      Vector2(JoysticksAdditionalData.Items[Joy].LeftAxis.X, -AValue);
+    Joy.LeftAxis := Vector2(Joy.LeftAxis.X, -AValue);
   end;
   procedure JoystickRightXAxis(const AValue: Single);
   begin
-    JoysticksAdditionalData.Items[Joy].RightAxis :=
-      Vector2(AValue, JoysticksAdditionalData.Items[Joy].RightAxis.Y);
+    Joy.RightAxis := Vector2(AValue, Joy.RightAxis.Y);
   end;
   procedure JoystickRightYAxis(const AValue: Single);
   begin
     { Y axes should be 1 when pointing up, -1 when pointing down.
       This is consistent with CGE 2D coordinate system
       (and standard math 2D coordinate system). }
-    JoysticksAdditionalData.Items[Joy].RightAxis :=
-      Vector2(JoysticksAdditionalData.Items[Joy].RightAxis.X, -AValue);
+    Joy.RightAxis := Vector2(Joy.RightAxis.X, -AValue);
   end;
 
 begin
@@ -360,32 +315,30 @@ end;
 
 procedure TCastleJoysticks.DoAxisMove(const Joy: TJoystick; const Axis: Byte; const Value: Single);
 var
-  JL: TJoystickLayout;
   JEP: TJoystickEventPair;
 begin
-  JL := JoysticksLayouts.Items[Joy];
   if (Axis <> 6) and (Axis <> 7) then //if event is not D-Pad
   begin
-    JEP := JL.AxisEvent(Axis, Value);
+    JEP := Joy.Layout.AxisEvent(Axis, Value);
     if JEP.Primary <> unknownAxisEvent then
     begin
-      if (JL.InvertAxis(Axis)) {temp} xor (Axis = JOY_AXIS_Y) {/temp} then //temporary: counteract the backend inverting JOY_AXIS_Y
+      if (Joy.Layout.InvertAxis(Axis)) {temp} xor (Axis = JOY_AXIS_Y) {/temp} then //temporary: counteract the backend inverting JOY_AXIS_Y
         SendJoystickEvent(Joy, JEP, -Value)
       else
         SendJoystickEvent(Joy, JEP, Value);
     end else
       WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at axis [%s]',
-        [JoysticksAdditionalData.Items[Joy].TrimmedName,
-         JoysticksLayouts.Items[Joy].JoystickName, IntToStr(Axis)]));
+        [Joy.TrimmedName,
+         Joy.Layout.JoystickName, IntToStr(Axis)]));
   end else
   begin
-    JEP := JL.DPadEvent(Axis, Value);
+    JEP := Joy.Layout.DPadEvent(Axis, Value);
     if JEP.Primary <> unknownAxisEvent then
       SendJoystickEvent(Joy, JEP, Value)
     else
       WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at D-Pad axis [%s]',
-        [JoysticksAdditionalData.Items[Joy].TrimmedName,
-         JoysticksLayouts.Items[Joy].JoystickName, IntToStr(Axis)]));
+        [Joy.TrimmedName,
+         Joy.Layout.JoystickName, IntToStr(Axis)]));
   end;
 end;
 {procedure TCastleJoysticks.DoButtonDown(const Joy: TJoystick; const Button: Byte);
@@ -404,27 +357,25 @@ procedure TCastleJoysticks.DoButtonPress(const Joy: TJoystick; const Button: Byt
 var
   JEP: TJoystickEventPair;
 begin
-  JEP.Primary := JoysticksLayouts.Items[Joy].ButtonEvent(Button);
+  JEP.Primary := Joy.Layout.ButtonEvent(Button);
   JEP.Inverse := JEP.Primary;
   if JEP.Primary <> unknownButtonEvent then
     SendJoystickEvent(Joy, JEP, 1.0)
   else
     WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at button [%s]',
-      [JoysticksAdditionalData.Items[Joy].TrimmedName,
-       JoysticksLayouts.Items[Joy].JoystickName, IntToStr(Button)]));
+      [Joy.TrimmedName, Joy.Layout.JoystickName, IntToStr(Button)]));
 end;
 procedure TCastleJoysticks.DoButtonUp(const Joy: TJoystick; const Button: Byte);
 var
   JEP: TJoystickEventPair;
 begin
-  JEP.Primary := JoysticksLayouts.Items[Joy].ButtonEvent(Button);
+  JEP.Primary := Joy.Layout.ButtonEvent(Button);
   JEP.Inverse := JEP.Primary;
   if JEP.Primary <> unknownButtonEvent then
     SendJoystickEvent(Joy, JEP, 0.0)
   else
     WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at button [%s]',
-      [JoysticksAdditionalData.Items[Joy].TrimmedName,
-       JoysticksLayouts.Items[Joy].JoystickName, IntToStr(Button)]));
+      [Joy.TrimmedName, Joy.Layout.JoystickName, IntToStr(Button)]));
 end;
 
 function TCastleJoysticks.DefaultJoystickGuid: String;
@@ -453,21 +404,10 @@ procedure TCastleJoysticks.Initialize;
 
 var
   I: Integer;
-  J: TJoystick;
+  Joy: TJoystick;
   JL: TJoystickLayout;
-  JAD: TJoystickAdditionalData;
   JoyName: String;
 begin
-  if JoysticksLayouts = nil then
-  begin
-    JoysticksLayouts := TJoystickDictionary.Create([doOwnsValues]);
-    JoysticksAdditionalData := TJoystickAdditionalDataDictionary.Create([doOwnsValues]);
-  end else
-  begin
-    JoysticksLayouts.Clear;
-    JoysticksAdditionalData.Clear;
-  end;
-
   InitializeDatabase;
 
   Joysticks.Initialize;
@@ -478,15 +418,15 @@ begin
 
   for I := 0 to Pred(Joysticks.Count) do
   begin
-    J := Joysticks[I];
-    WriteLnLog('Joystick Name', J.Info.Name);
-    WriteLnLog('Joystick Buttons', IntToStr(J.Info.Count.Buttons));
-    WriteLnLog('Joystick Axes', IntToStr(J.Info.Count.Axes));
-    WriteLnLog('Joystick Caps', IntToStr(J.Info.Caps));
+    Joy := Joysticks[I];
+    WriteLnLog('Joystick Name', Joy.Info.Name);
+    WriteLnLog('Joystick Buttons', IntToStr(Joy.Info.Count.Buttons));
+    WriteLnLog('Joystick Axes', IntToStr(Joy.Info.Count.Axes));
+    WriteLnLog('Joystick Caps', IntToStr(Joy.Info.Caps));
 
     //try autodetect the joystick by GUID
     //if autodetect by GUID failed then try
-    JoyName := TrimJoystickName(J.Info.Name);
+    JoyName := TrimJoystickName(Joy.Info.Name);
     {$ifdef Windows}
     if JoyName = 'Microsoft PC-joystick driver' then
       WriteLnLog(Format('%s reported a generic joystick name. Unfortunately autodetect will fail.', [WINMMLIB]));
@@ -506,12 +446,8 @@ begin
     end;
 
     WriteLnLog(JL.LogJoystickFeatures);
-    JoysticksLayouts.Add(J, JL);
-
-    JAD := TJoystickAdditionalData.Create;
-    JAD.TrimmedName := JoyName;
-    JAD.Layout := JL;
-    JoysticksAdditionalData.Add(J, JAD);
+    Joy.Layout := JL;
+    Joy.TrimmedName := JoyName;
 
     WriteLnLog('--------------------');
   end;
@@ -556,7 +492,7 @@ procedure TCastleJoysticks.AssignJoystickLayoutByName(const Joy: TJoystick; cons
 var
   NewJoystickLayout: TJoystickLayout;
 begin
-  if JoysticksLayouts = nil then
+  if not Joysticks.Initialized then
     WriteLnLog('Warning', 'Joysticks not initialized. Unable to AssignJoystickLayoutByName.')
   else
   begin
@@ -567,12 +503,11 @@ begin
       if JoystickLayoutsByName.ContainsKey(JoystickName) then
       begin
         NewJoystickLayout := JoystickLayoutsByName[JoystickName].MakeCopy;
-        JoysticksLayouts.AddOrSetValue(Joy, NewJoystickLayout);
-        JoysticksAdditionalData[Joy].Layout := NewJoystickLayout;
+        Joy.Layout := NewJoystickLayout;
         if not NewJoystickLayout.BuggyDuplicateName then
-          WriteLnLog(Format('Joystick "%s" layout has been successfully changed to "%s".', [JoysticksAdditionalData[Joy].TrimmedName, NewJoystickLayout.JoystickName]))
+          WriteLnLog(Format('Joystick "%s" layout has been successfully changed to "%s".', [Joy.TrimmedName, NewJoystickLayout.JoystickName]))
         else
-          WriteLnLog(Format('Warning: Joystick "%s" layout has been successfully changed to "%s". However, there are several different layouts for this joystick name in the databse.', [JoysticksAdditionalData[Joy].TrimmedName, NewJoystickLayout.JoystickName]));
+          WriteLnLog(Format('Warning: Joystick "%s" layout has been successfully changed to "%s". However, there are several different layouts for this joystick name in the databse.', [Joy.TrimmedName, NewJoystickLayout.JoystickName]));
         WriteLnLog(NewJoystickLayout.LogJoystickFeatures);
       end else
         WriteLnLog('Warning', Format('Joystick name "%s" not found in the database. No changes were made.', [JoystickName]));
@@ -584,7 +519,7 @@ procedure TCastleJoysticks.AssignJoystickLayoutByGuid(const Joy: TJoystick; cons
 var
   NewJoystickLayout: TJoystickLayout;
 begin
-  if JoysticksLayouts = nil then
+  if not Joysticks.Initialized then
     WriteLnLog('Warning', 'Joysticks not initialized. Unable to AssignJoystickLayoutByGuid.')
   else
   begin
@@ -595,9 +530,8 @@ begin
       if JoystickLayoutsByGuid.ContainsKey(JoystickGuid) then
       begin
         NewJoystickLayout := JoystickLayoutsByGuid[JoystickGuid].MakeCopy;
-        JoysticksLayouts.AddOrSetValue(Joy, NewJoystickLayout);
-        JoysticksAdditionalData[Joy].Layout := NewJoystickLayout;
-        WriteLnLog(Format('Joystick "%s" layout has been successfully changed to "%s".', [JoysticksAdditionalData[Joy].TrimmedName, NewJoystickLayout.JoystickName]));
+        Joy.Layout := NewJoystickLayout;
+        WriteLnLog(Format('Joystick "%s" layout has been successfully changed to "%s".', [Joy.TrimmedName, NewJoystickLayout.JoystickName]));
         WriteLnLog(NewJoystickLayout.LogJoystickFeatures);
       end else
         WriteLnLog('Warning', Format('Joystick GUID "%s" not found in the database. No changes were made.', [JoystickGuid]));
@@ -661,8 +595,6 @@ end;
 
 destructor TCastleJoysticks.Destroy;
 begin
-  FreeAndNil(JoysticksLayouts);
-  FreeAndNil(JoysticksAdditionalData);
   FreeAndNil(FakeEventsHandler);
   FreeAndNil(UiContainers);
   inherited;
@@ -677,8 +609,8 @@ begin
   Result := TVector2.Zero;
   for I := 0 to Pred(Joysticks.Count) do
   begin
-    Result += JoysticksNew.JoysticksAdditionalData[Joysticks[I]].LeftAxis;
-    Result += JoysticksNew.JoysticksAdditionalData[Joysticks[I]].RightAxis;
+    Result += Joysticks[I].LeftAxis;
+    Result += Joysticks[I].RightAxis;
   end;
   Result.Normalize;
 end;

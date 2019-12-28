@@ -163,7 +163,7 @@ begin
     JoystickSelectButton := TJoystickSelectButton.Create(FreeAtStop);
     JoystickSelectButton.Joystick := Joysticks[I];
     JoystickSelectButton.OnClick := @ClickSelectJoystick;
-    JoystickSelectButton.Caption := JoysticksNew.JoysticksAdditionalData[Joysticks[I]].TrimmedName;
+    JoystickSelectButton.Caption := Joysticks[I].TrimmedName;
     JoystickSelectButton.FontSize := 30;
     JoystickSelectButton.CustomTextColor := White;
     JoystickSelectButton.CustomTextColorUse := true;
@@ -201,7 +201,7 @@ begin
       JoystickLayoutLabel := TCastleLabel.Create(JoystickLayoutButton);
       JoystickLayoutLabel.Caption := S;
       JoystickLayoutLabel.Color := White;
-      if JoysticksNew.JoysticksAdditionalData[CurrentJoystick].Layout.JoystickName = S then
+      if CurrentJoystick.Layout.JoystickName = S then
         AddFocusToLayout(JoystickLayoutButton)
       else
         RemoveFocusFromLayout(JoystickLayoutButton);
@@ -317,20 +317,20 @@ begin
   if CurrentJoystick = nil then
     Exit;
 
-  AxisNormalized := JoysticksNew.JoysticksAdditionalData[CurrentJoystick].RightAxis;
+  AxisNormalized := CurrentJoystick.RightAxis;
   if AxisNormalized.Length > 1.0 then
     AxisNormalized.NormalizeMe;
   ImageRightAxis.HorizontalAnchorDelta := RightStickAxis.Width / 2 * AxisNormalized[0];
   ImageRightAxis.VerticalAnchorDelta := RightStickAxis.Height / 2 * AxisNormalized[1];
 
-  AxisNormalized := JoysticksNew.JoysticksAdditionalData[CurrentJoystick].LeftAxis;
+  AxisNormalized := CurrentJoystick.LeftAxis;
   if AxisNormalized.Length > 1.0 then
     AxisNormalized.NormalizeMe;
   ImageLeftAxis.HorizontalAnchorDelta := LeftStickAxis.Width / 2 * AxisNormalized[0];
   ImageLeftAxis.VerticalAnchorDelta := LeftStickAxis.Height / 2 * AxisNormalized[1];
 
-  JoystickReportedName.Caption := JoysticksNew.JoysticksAdditionalData[CurrentJoystick].TrimmedName;
-  JoystickLayoutName.Caption := JoysticksNew.JoysticksAdditionalData[CurrentJoystick].Layout.JoystickName;
+  JoystickReportedName.Caption := CurrentJoystick.TrimmedName;
+  JoystickLayoutName.Caption := CurrentJoystick.Layout.JoystickName;
 end;
 
 function TStateMain.Press(const Event: TInputPressRelease): Boolean;

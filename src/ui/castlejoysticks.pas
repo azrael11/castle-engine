@@ -24,8 +24,38 @@ unit CastleJoysticks;
 
 interface
 
-uses Generics.Collections, Classes,
-  CastleVectors;
+uses
+  Generics.Collections, Classes,
+  CastleVectors, CastleKeysMouse,
+  CastleInternalJoystickLayout;
+
+const
+  { Joystick buttons }
+  joySouth = keyPadB; {WARNING: inverting}
+  joyEast = keyPadA; {WARNING: inverting}
+  joyNorth = keyPadX; {WARNING: inverting}
+  joyWest = keyPadY; {WARNING: inverting}
+  joyBack = keyPadMinus;
+  joyStart = keyPadPlus;
+  joyLeftShoulder = keyPadL;
+  joyRightShoulder = keyPadR;
+  joyLeftTrigger = keyPadZL;
+  joyRightTrigger = keyPadZR;
+  joyLeftStick = keyReserved_178; {WARNING: duplicating}
+  joyRightStick = keyReserved_179; {WARNING: duplicating}
+  joyGuide = keyReserved_180; {WARNING: duplicating}
+  joyLeft = keyPadLeft;
+  joyRight = keyPadRight;
+  joyUp = keyPadUp;
+  joyDown = keyPadDown;
+
+  joyFakeLeft = joyLeft; {WARNING: duplicating}
+  joyFakeRight = joyRight;
+  joyFakeUp = joyUp;
+  joyFakeDown = joyDown;
+  { Note, duplicate events will cause minor bugs with Release event }
+
+  itJoystick = itKey; //a small temporary hack to send correct joystick press events
 
 type
   PJoyInfo = ^TJoyInfo;
@@ -55,6 +85,9 @@ type
     Do not construct instances of this yourself, TJoysticks creates
     this automatically when necessary. }
   TJoystick = class
+  strict private
+    FLayout: TJoystickLayout;
+    procedure SetLayout(const NewLayout: TJoystickLayout);
   public
     { Implementation-specific information. }
     InternalBackendInfo: TObject;
@@ -64,6 +97,11 @@ type
     { State.
       TODO: Deprecate at some point, in favor of simpler joystick API like @link(TJoystick.Axis). }
     State   : TJoyState;
+
+    TrimmedName: String;
+    LeftAxis, RightAxis, DPad: TVector2;
+
+    property Layout: TJoystickLayout read FLayout write SetLayout;
 
     function Axis: TVector2;
     destructor Destroy; override;
@@ -198,7 +236,14 @@ uses SysUtils, Math,
 destructor TJoystick.Destroy;
 begin
   FreeAndNil(InternalBackendInfo);
+  FreeAndNil(FLayout);
   inherited;
+end;
+
+procedure TJoystick.SetLayout(const NewLayout: TJoystickLayout);
+begin
+  FreeAndNil(FLayout);
+  FLayout := NewLayout;
 end;
 
 function TJoystick.Axis: TVector2;
