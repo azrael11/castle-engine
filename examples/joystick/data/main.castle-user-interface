@@ -327,6 +327,40 @@
       "$Children" : [
       ],
       "$ClassName" : "TCastleHorizontalGroup"
+    },
+    {
+      "ColorPersistent" : {
+        "Alpha" : 8.6666667461395264E-001,
+        "Blue" : 1.5294118225574493E-001,
+        "Green" : 1.5294118225574493E-001,
+        "Red" : 1.5294118225574493E-001,
+        "$ClassName" : "TCastleColorPersistent"
+      },
+      "FullSize" : true,
+      "HorizontalAnchorDelta" : 1.0200001525878906E+002,
+      "Name" : "RectangleControlNoJoysticksDetected",
+      "VerticalAnchorDelta" : 4.9221084594726562E+002,
+      "$Children" : [
+        {
+          "ColorPersistent" : {
+            "Blue" : 1.0000000000000000E+000,
+            "Green" : 1.0000000000000000E+000,
+            "Red" : 1.0000000000000000E+000,
+            "$ClassName" : "TCastleColorPersistent"
+          },
+          "FontSize" : 1.5000000000000000E+002,
+          "HorizontalAnchorParent" : "hpMiddle",
+          "HorizontalAnchorSelf" : "hpMiddle",
+          "Name" : "LabelNoJoysticksDetected",
+          "Text" : "No joysticks detected!\n",
+          "VerticalAnchorParent" : "vpMiddle",
+          "VerticalAnchorSelf" : "vpMiddle",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleLabel"
+        }
+      ],
+      "$ClassName" : "TCastleRectangleControl"
     }
   ],
   "$ClassName" : "TCastleRectangleControl"

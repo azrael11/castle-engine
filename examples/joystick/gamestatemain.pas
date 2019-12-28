@@ -49,6 +49,7 @@ type
     HorizontalGroupDetectedJoysticks: TCastleHorizontalGroup;
     LastFocusedLayoutButton: TJoystickLayoutButton;
     LastFocusedJoystickButton: TJoystickSelectButton;
+    RectangleControlNoJoysticksDetected: TCastleRectangleControl;
     CurrentJoystick: TJoystick;
     procedure HideAllKeys;
     procedure ShowKey(const AKey: TKey; const AExists: Boolean);
@@ -119,6 +120,8 @@ begin
 
   HorizontalGroupDetectedJoysticks := UIOwner.FindRequiredComponent('HorizontalGroupDetectedJoysticks') as TCastleHorizontalGroup;
 
+  RectangleControlNoJoysticksDetected := UIOwner.FindRequiredComponent('RectangleControlNoJoysticksDetected') as TCastleRectangleControl;
+
   DetectJoysticks;
   HideAllKeys;
   FillJoystickNames;
@@ -141,9 +144,14 @@ begin
   JoysticksNew.Initialize;
 
   if Joysticks.Count > 0 then
-    CurrentJoystick := Joysticks[0]
-  else
+  begin
+    CurrentJoystick := Joysticks[0];
+    RectangleControlNoJoysticksDetected.Exists := false;
+  end else
+  begin
     CurrentJoystick := nil;
+    RectangleControlNoJoysticksDetected.Exists := true;
+  end;
 
   HorizontalGroupDetectedJoysticks.ClearControls;
 
