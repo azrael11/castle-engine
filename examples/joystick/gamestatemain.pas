@@ -15,7 +15,6 @@
 
 { Visualises joystick input. }
 unit GameStateMain;
-
 interface
 
 uses
@@ -60,7 +59,7 @@ implementation
 
 uses
   SysUtils,
-  CastleComponentSerialize, CastleVectors, CastleColors,
+  CastleComponentSerialize, CastleVectors, CastleColors, CastleUtils,
   CastleJoysticks, CastleJoystickManager;
 
 procedure TStateMain.Start;
@@ -188,6 +187,8 @@ begin
     joyRight: ImageDPadRight.Exists := AExists;
     joyUp: ImageDPadUp.Exists := AExists;
     joyDown: ImageDPadDown.Exists := AExists;
+    else
+      raise EInternalError.CreateFmt('TStateMain.ShowKey received an impossible key "%s".', [KeyToStr(AKey)]);
   end;
 end;
 
