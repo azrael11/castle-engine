@@ -39,9 +39,9 @@ const
   joyRightShoulder = keyPadR;
   joyLeftTrigger = keyPadZL;
   joyRightTrigger = keyPadZR;
-  joyLeftStick = keyPadL; {WARNING: duplicating}
-  joyRightStick = keyPadR; {WARNING: duplicating}
-  joyGuide = keyPadPlus; {WARNING: duplicating}
+  joyLeftStick = keyReserved_178; {WARNING: duplicating}
+  joyRightStick = keyReserved_179; {WARNING: duplicating}
+  joyGuide = keyReserved_180; {WARNING: duplicating}
   joyLeft = keyPadLeft;
   joyRight = keyPadRight;
   joyUp = keyPadUp;
