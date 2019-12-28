@@ -23,7 +23,7 @@ Phase - 3
 
  * [TODO] Rework backend
  * [TODO] DirectInput headers for FreePascal: http://www.clootie.ru/fpc/index.html
-   Unfortunately they have MPL1.1 license, which is incompatible
+   We can use those, if they are working (there are some problems already discovered)
  * [CRITICAL] Note that in Windows we get a wrong reported joystick name as "Microsoft PC-joystick driver"
    while the joystick name reported by SDL2 is G-Shark GS-GP702 and the true name is Esperanza EG102
  * [BUG?] Currently we do not send Axis=0 event (on Windows?), which is important for correct determination of joystick
