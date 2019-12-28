@@ -28,6 +28,11 @@ type
     LayoutLabel: TCastleLabel;
   end;
 
+  TJoystickSelectButton = class(TCastleButton)
+  public
+    Joystick: TJoystick;
+  end;
+
 type
   TStateMain = class(TUiState)
   strict private
@@ -41,14 +46,20 @@ type
     JoystickLayoutName, JoystickReportedName: TCastleLabel;
     //ScrollViewJoysticksNames: TCastleScrollView;
     VerticalGroupJoysticksNames: TCastleVerticalGroup;
-    LastFocusedButton: TJoystickLayoutButton;
+    HorizontalGroupDetectedJoysticks: TCastleHorizontalGroup;
+    LastFocusedLayoutButton: TJoystickLayoutButton;
+    LastFocusedJoystickButton: TJoystickSelectButton;
     CurrentJoystick: TJoystick;
     procedure HideAllKeys;
     procedure ShowKey(const AKey: TKey; const AExists: Boolean);
     procedure FillJoystickNames;
+    procedure DetectJoysticks;
     procedure ClickJoystickLayout(Sender: TObject);
-    procedure AddFocusTo(const AButton: TJoystickLayoutButton);
-    procedure RemoveFocusFrom(const AButton: TJoystickLayoutButton);
+    procedure ClickSelectJoystick(Sender: TObject);
+    procedure AddFocusToLayout(const AButton: TJoystickLayoutButton);
+    procedure RemoveFocusFromLayout(const AButton: TJoystickLayoutButton);
+    procedure AddFocusToJoystick(const AButton: TJoystickSelectButton);
+    procedure RemoveFocusFromJoystick(const AButton: TJoystickSelectButton);
   public
     procedure Start; override;
     procedure Stop; override;
@@ -107,9 +118,12 @@ begin
   //JoysticksNames := UIOwner.FindRequiredComponent('JoysticksNames') as TCastleScrollView;
   VerticalGroupJoysticksNames := UIOwner.FindRequiredComponent('VerticalGroupJoysticksNames') as TCastleVerticalGroup;
 
+  HorizontalGroupDetectedJoysticks := UIOwner.FindRequiredComponent('HorizontalGroupDetectedJoysticks') as TCastleHorizontalGroup;
+
   CurrentJoystick := Joysticks[0];
 
   HideAllKeys;
+  DetectJoysticks;
   FillJoystickNames;
 end;
 
@@ -117,6 +131,30 @@ procedure TStateMain.Stop;
 begin
 
   inherited;
+end;
+
+procedure TStateMain.DetectJoysticks;
+var
+  I: Integer;
+  JoystickSelectButton: TJoystickSelectButton;
+begin
+  HorizontalGroupDetectedJoysticks.ClearControls;
+  for I := 0 to Pred(Joysticks.Count) do
+  begin
+    JoystickSelectButton := TJoystickSelectButton.Create(FreeAtStop);
+    JoystickSelectButton.Joystick := Joysticks[I];
+    JoystickSelectButton.OnClick := @ClickSelectJoystick;
+    JoystickSelectButton.Caption := JoysticksNew.JoysticksAdditionalData[Joysticks[I]].TrimmedName;
+    JoystickSelectButton.FontSize := 30;
+    JoystickSelectButton.CustomTextColor := White;
+    JoystickSelectButton.CustomTextColorUse := true;
+    JoystickSelectButton.CustomBackground := true;
+    if Joysticks[I] = CurrentJoystick then
+      AddFocusToJoystick(JoystickSelectButton)
+    else
+      RemoveFocusFromJoystick(JoystickSelectButton);
+    HorizontalGroupDetectedJoysticks.InsertFront(JoystickSelectButton);
+  end;
 end;
 
 procedure TStateMain.FillJoystickNames;
@@ -129,6 +167,7 @@ begin
   SList := JoysticksNew.JoysticksLayoutsNames;
   if SList <> nil then
   begin
+    VerticalGroupJoysticksNames.ClearControls;
     SList.Sort;
     for S in SList do
     begin
@@ -141,9 +180,9 @@ begin
       JoystickLayoutLabel.Caption := S;
       JoystickLayoutLabel.Color := White;
       if JoysticksNew.JoysticksAdditionalData[CurrentJoystick].Layout.JoystickName = S then
-        AddFocusTo(JoystickLayoutButton)
+        AddFocusToLayout(JoystickLayoutButton)
       else
-        RemoveFocusFrom(JoystickLayoutButton);
+        RemoveFocusFromLayout(JoystickLayoutButton);
       JoystickLayoutButton.LayoutLabel := JoystickLayoutLabel;
       JoystickLayoutButton.InsertFront(JoystickLayoutLabel);
       VerticalGroupJoysticksNames.InsertFront(JoystickLayoutButton);
@@ -173,26 +212,52 @@ begin
   ImageDPadDown.Exists := false;
 end;
 
-procedure TStateMain.AddFocusTo(const AButton: TJoystickLayoutButton);
+procedure TStateMain.AddFocusToLayout(const AButton: TJoystickLayoutButton);
 begin
-  LastFocusedButton := AButton;
+  LastFocusedLayoutButton := AButton;
   AButton.CustomColorNormal := Vector4(0.3, 0.3, 0.0, 1.0);
   AButton.CustomColorFocused := Vector4(0.4, 0.4, 0.0, 1.0);
   AButton.CustomColorPressed := Vector4(0.4, 0.4, 0.0, 1.0);
 end;
 
-procedure TStateMain.RemoveFocusFrom(const AButton: TJoystickLayoutButton);
+procedure TStateMain.RemoveFocusFromLayout(const AButton: TJoystickLayoutButton);
 begin
   AButton.CustomColorNormal := Vector4(0.3, 0.3, 0.0, 0.0);
   AButton.CustomColorFocused := Vector4(0.4, 0.4, 0.0, 0.2);
   AButton.CustomColorPressed := Vector4(0.4, 0.4, 0.0, 0.2);
 end;
 
+procedure TStateMain.AddFocusToJoystick(const AButton: TJoystickSelectButton);
+begin
+  LastFocusedJoystickButton := AButton;
+  AButton.CustomColorNormal := Vector4(0.3, 0.3, 0.3, 1.0);
+  AButton.CustomColorFocused := Vector4(0.4, 0.4, 0.4, 1.0);
+  AButton.CustomColorPressed := Vector4(0.5, 0.5, 0.5, 1.0);
+end;
+
+procedure TStateMain.RemoveFocusFromJoystick(const AButton: TJoystickSelectButton);
+begin
+  AButton.CustomColorNormal := Vector4(0.3, 0.3, 0.3, 0.2);
+  AButton.CustomColorFocused := Vector4(0.4, 0.4, 0.4, 0.2);
+  AButton.CustomColorPressed := Vector4(0.5, 0.5, 0.5, 0.2);
+end;
+
+
 procedure TStateMain.ClickJoystickLayout(Sender: TObject);
 begin
-  RemoveFocusFrom(LastFocusedButton);
-  AddFocusTo(Sender as TJoystickLayoutButton);
-  JoysticksNew.AssignJoystickLayoutByName(CurrentJoystick, LastFocusedButton.LayoutLabel.Caption);
+  RemoveFocusFromLayout(LastFocusedLayoutButton);
+  AddFocusToLayout(Sender as TJoystickLayoutButton);
+  JoysticksNew.AssignJoystickLayoutByName(CurrentJoystick, LastFocusedLayoutButton.LayoutLabel.Caption);
+end;
+
+procedure TStateMain.ClickSelectJoystick(Sender: TObject);
+begin
+  RemoveFocusFromJoystick(LastFocusedJoystickButton);
+  LastFocusedJoystickButton := Sender as TJoystickSelectButton;
+  AddFocusToJoystick(LastFocusedJoystickButton);
+  CurrentJoystick := LastFocusedJoystickButton.Joystick;
+  FillJoystickNames; //to highlight a correct layout
+  HideAllKeys;
 end;
 
 procedure TStateMain.ShowKey(const AKey: TKey; const AExists: Boolean);
