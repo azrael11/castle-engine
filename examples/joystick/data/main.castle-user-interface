@@ -111,6 +111,16 @@
         },
         {
           "Content" : {
+            "URL" : "castle-data:/gamepad/right_stick_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageRightStick",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
             "URL" : "castle-data:/gamepad/left_shoulder_press.png",
             "$ClassName" : "TCastleImagePersistent"
           },
@@ -135,16 +145,6 @@
             "$ClassName" : "TCastleImagePersistent"
           },
           "Name" : "ImageLeftStick",
-          "$Children" : [
-          ],
-          "$ClassName" : "TCastleImageControl"
-        },
-        {
-          "Content" : {
-            "URL" : "castle-data:/gamepad/right_stick_press.png",
-            "$ClassName" : "TCastleImagePersistent"
-          },
-          "Name" : "ImageRightStick",
           "$Children" : [
           ],
           "$ClassName" : "TCastleImageControl"
