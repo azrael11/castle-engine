@@ -208,7 +208,7 @@ uses
 function InputJoystick(const Key: TKey): TInputPressRelease;
 begin
   FillChar(Result, SizeOf(Result), 0);
-  Result.Position := Vector2.Zero;
+  Result.Position := TVector2.Zero;
   Result.EventType := itJoystick;
   Result.Key := Key;
   Result.ModifiersDown := [];
