@@ -49,8 +49,8 @@ implementation
 
 uses
   SysUtils,
-  CastleComponentSerialize,
-  CastleJoystickManager;
+  CastleComponentSerialize, CastleVectors,
+  CastleJoysticks, CastleJoystickManager;
 
 procedure TStateMain.Start;
 var
@@ -140,9 +140,23 @@ begin
 end;
 
 procedure TStateMain.Update(const SecondsPassed: Single; var HandleInput: Boolean);
+var
+  AxisNormalized: TVector2;
 begin
   inherited;
+  AxisNormalized := JoysticksNew.JoysticksAdditionalData[Joysticks[0]].RightAxis;
+  AxisNormalized.NormalizeMe;
+  ImageRightAxis.HorizontalAnchorDelta := RightStickAxis.Width / 2 *
+    AxisNormalized[0];
+  ImageRightAxis.VerticalAnchorDelta := RightStickAxis.Height / 2 *
+    AxisNormalized[1];
 
+  AxisNormalized := JoysticksNew.JoysticksAdditionalData[Joysticks[0]].LeftAxis;
+  AxisNormalized.NormalizeMe;
+  ImageLeftAxis.HorizontalAnchorDelta := LeftStickAxis.Width / 2 *
+    AxisNormalized[0];
+  ImageLeftAxis.VerticalAnchorDelta := LeftStickAxis.Height / 2 *
+    AxisNormalized[1];
 end;
 
 function TStateMain.Press(const Event: TInputPressRelease): Boolean;
