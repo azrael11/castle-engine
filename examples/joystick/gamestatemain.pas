@@ -64,7 +64,7 @@ implementation
 
 uses
   SysUtils,
-  CastleComponentSerialize, CastleVectors, CastleColors, CastleUtils,
+  CastleComponentSerialize, CastleVectors, CastleColors, CastleUtils, CastleLog,
   CastleJoystickManager;
 
 procedure TStateMain.Start;
@@ -216,7 +216,8 @@ begin
     joyUp: ImageDPadUp.Exists := AExists;
     joyDown: ImageDPadDown.Exists := AExists;
     else
-      raise EInternalError.CreateFmt('TStateMain.ShowKey received an impossible key "%s".', [KeyToStr(AKey)]);
+      //raise EInternalError.CreateFmt
+      WriteLnLog('TStateMain.ShowKey received an impossible key "%s".', [KeyToStr(AKey)]);
   end;
 end;
 
@@ -227,17 +228,13 @@ begin
   inherited;
   AxisNormalized := JoysticksNew.JoysticksAdditionalData[CurrentJoystick].RightAxis;
   AxisNormalized.NormalizeMe;
-  ImageRightAxis.HorizontalAnchorDelta := RightStickAxis.Width / 2 *
-    AxisNormalized[0];
-  ImageRightAxis.VerticalAnchorDelta := RightStickAxis.Height / 2 *
-    AxisNormalized[1];
+  ImageRightAxis.HorizontalAnchorDelta := RightStickAxis.Width / 2 * AxisNormalized[0];
+  ImageRightAxis.VerticalAnchorDelta := RightStickAxis.Height / 2 * AxisNormalized[1];
 
   AxisNormalized := JoysticksNew.JoysticksAdditionalData[CurrentJoystick].LeftAxis;
   AxisNormalized.NormalizeMe;
-  ImageLeftAxis.HorizontalAnchorDelta := LeftStickAxis.Width / 2 *
-    AxisNormalized[0];
-  ImageLeftAxis.VerticalAnchorDelta := LeftStickAxis.Height / 2 *
-    AxisNormalized[1];
+  ImageLeftAxis.HorizontalAnchorDelta := LeftStickAxis.Width / 2 * AxisNormalized[0];
+  ImageLeftAxis.VerticalAnchorDelta := LeftStickAxis.Height / 2 * AxisNormalized[1];
 
   JoystickReportedName.Caption := JoysticksNew.JoysticksAdditionalData[CurrentJoystick].TrimmedName;
   JoystickLayoutName.Caption := JoysticksNew.JoysticksAdditionalData[CurrentJoystick].Layout.JoystickName;
