@@ -236,9 +236,69 @@
             }
           ],
           "$ClassName" : "TCastleUserInterface"
+        },
+        {
+          "ColorPersistent" : {
+            "Blue" : 1.0000000000000000E+000,
+            "Green" : 1.0000000000000000E+000,
+            "Red" : 1.0000000000000000E+000,
+            "$ClassName" : "TCastleColorPersistent"
+          },
+          "FontSize" : 5.0000000000000000E+001,
+          "HorizontalAnchorParent" : "hpMiddle",
+          "HorizontalAnchorSelf" : "hpMiddle",
+          "Name" : "JoystickLayoutName",
+          "Text" : "JoystickLayoutName\n",
+          "$Children" : [
+            {
+              "ColorPersistent" : {
+                "Blue" : 1.0000000000000000E+000,
+                "Green" : 1.0000000000000000E+000,
+                "Red" : 1.0000000000000000E+000,
+                "$ClassName" : "TCastleColorPersistent"
+              },
+              "HorizontalAnchorParent" : "hpMiddle",
+              "HorizontalAnchorSelf" : "hpMiddle",
+              "Name" : "JoystickReportedName",
+              "Text" : "JoystickReportedName\n",
+              "VerticalAnchorDelta" : 1.0000000000000000E+001,
+              "VerticalAnchorParent" : "vpTop",
+              "$Children" : [
+              ],
+              "$ClassName" : "TCastleLabel"
+            }
+          ],
+          "$ClassName" : "TCastleLabel"
         }
       ],
       "$ClassName" : "TCastleImageControl"
+    },
+    {
+      "EnableDragging" : true,
+      "Height" : 1.0000000000000000E+003,
+      "Name" : "ScrollViewJoysticksNames",
+      "ScrollArea" : {
+        "AutoSizeToChildren" : true,
+        "HorizontalAnchorDelta" : 1.6000000000000000E+001,
+        "Name" : "ScrollArea",
+        "$Children" : [
+          {
+            "Name" : "VerticalGroupJoysticksNames",
+            "$Children" : [
+            ],
+            "$ClassName" : "TCastleVerticalGroup"
+          }
+        ],
+        "$ClassName" : "TInternalCastleScrollArea"
+      },
+      "ScrollBarLeft" : true,
+      "ScrollBarWidth" : 1.2000000000000000E+001,
+      "VerticalAnchorParent" : "vpMiddle",
+      "VerticalAnchorSelf" : "vpMiddle",
+      "Width" : 7.5000000000000000E+002,
+      "$Children" : [
+      ],
+      "$ClassName" : "TCastleScrollView"
     }
   ],
   "$ClassName" : "TCastleRectangleControl"
