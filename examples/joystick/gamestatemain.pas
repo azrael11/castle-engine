@@ -119,10 +119,8 @@ begin
 
   HorizontalGroupDetectedJoysticks := UIOwner.FindRequiredComponent('HorizontalGroupDetectedJoysticks') as TCastleHorizontalGroup;
 
-  CurrentJoystick := Joysticks[0];
-
-  HideAllKeys;
   DetectJoysticks;
+  HideAllKeys;
   FillJoystickNames;
 end;
 
@@ -131,7 +129,27 @@ var
   I: Integer;
   JoystickSelectButton: TJoystickSelectButton;
 begin
+  { Will prevent joystick database from freeing automatically after autodetecting joysticks
+    Using this feature here to allow user to select a new joystick layout
+    at any moment during the course of the game
+    Normally, the database can be safely freed after the joysticks have been
+    autodetected or user closes Options }
+  JoysticksNew.FreeJoysticksDatabaseAfterInitialization := false;
+
+  { Actually detect joysticks.
+    This will automatically call TEventsHandler.JoysticksChanged on some platforms. }
+  JoysticksNew.Initialize;
+
+  if Joysticks.Count > 0 then
+    CurrentJoystick := Joysticks[0]
+  else
+    CurrentJoystick := nil;
+
   HorizontalGroupDetectedJoysticks.ClearControls;
+
+  if CurrentJoystick = nil then
+    Exit;
+
   for I := 0 to Pred(Joysticks.Count) do
   begin
     JoystickSelectButton := TJoystickSelectButton.Create(FreeAtStop);
@@ -157,6 +175,9 @@ var
   JoystickLayoutLabel: TCastleLabel;
   JoystickLayoutButton: TJoystickLayoutButton;
 begin
+  if CurrentJoystick = nil then
+    Exit;
+
   SList := JoysticksNew.JoysticksLayoutsNames;
   if SList <> nil then
   begin
@@ -247,6 +268,7 @@ begin
   RemoveFocusFromJoystick(LastFocusedJoystickButton);
   LastFocusedJoystickButton := Sender as TJoystickSelectButton;
   AddFocusToJoystick(LastFocusedJoystickButton);
+
   CurrentJoystick := LastFocusedJoystickButton.Joystick;
   FillJoystickNames; //to highlight a correct layout
   HideAllKeys;
@@ -283,6 +305,10 @@ var
   AxisNormalized: TVector2;
 begin
   inherited;
+
+  if CurrentJoystick = nil then
+    Exit;
+
   AxisNormalized := JoysticksNew.JoysticksAdditionalData[CurrentJoystick].RightAxis;
   AxisNormalized.NormalizeMe;
   ImageRightAxis.HorizontalAnchorDelta := RightStickAxis.Width / 2 * AxisNormalized[0];
