@@ -25,12 +25,15 @@ uses
 type
   TStateMain = class(TUiState)
   strict private
-    ImageA, ImageB, ImageX, ImageY, ImageStart, ImageBack, ImageGuide,
+    ImageSouth, ImageEast, ImageWest, ImageNorth,
+    ImageStart, ImageBack, ImageGuide,
     ImageRightShoulder, ImageRightTrigger, ImageRightStick,
     ImageLeftShoulder, ImageLeftTrigger, ImageLeftStick,
     ImageDPadRight, ImageDPadLeft, ImageDPadUp, ImageDPadDown: TCastleImageControl;
     ImageRightAxis, ImageLeftAxis: TCastleImageControl;
     RightStickAxis, LeftStickAxis: TCastleUserInterface;
+    procedure HideAllKeys;
+    procedure ShowKey(const AKey: TKey; const AExists: Boolean);
   public
     procedure Start; override;
     procedure Stop; override;
@@ -46,7 +49,8 @@ implementation
 
 uses
   SysUtils,
-  CastleComponentSerialize;
+  CastleComponentSerialize,
+  CastleJoystickManager;
 
 procedure TStateMain.Start;
 var
@@ -58,10 +62,10 @@ begin
   InsertUserInterface('castle-data:/main.castle-user-interface',
     FreeAtStop, UiOwner);
 
-  ImageA := UIOwner.FindRequiredComponent('ImageA') as TCastleImageControl;
-  ImageB := UIOwner.FindRequiredComponent('ImageB') as TCastleImageControl;
-  ImageX := UIOwner.FindRequiredComponent('ImageX') as TCastleImageControl;
-  ImageY := UIOwner.FindRequiredComponent('ImageY') as TCastleImageControl;
+  ImageSouth := UIOwner.FindRequiredComponent('ImageSouth') as TCastleImageControl;
+  ImageEast := UIOwner.FindRequiredComponent('ImageEast') as TCastleImageControl;
+  ImageWest := UIOwner.FindRequiredComponent('ImageWest') as TCastleImageControl;
+  ImageNorth := UIOwner.FindRequiredComponent('ImageNorth') as TCastleImageControl;
   ImageStart := UIOwner.FindRequiredComponent('ImageStart') as TCastleImageControl;
   ImageBack := UIOwner.FindRequiredComponent('ImageBack') as TCastleImageControl;
   ImageGuide := UIOwner.FindRequiredComponent('ImageGuide') as TCastleImageControl;
@@ -81,6 +85,8 @@ begin
 
   RightStickAxis := UIOwner.FindRequiredComponent('RightStickAxis') as TCastleUserInterface;
   LeftStickAxis := UIOwner.FindRequiredComponent('LeftStickAxis') as TCastleUserInterface;
+
+  HideAllKeys;
 end;
 
 procedure TStateMain.Stop;
@@ -89,21 +95,66 @@ begin
   inherited;
 end;
 
+procedure TStateMain.HideAllKeys;
+begin
+  ImageSouth.Exists := false;
+  ImageEast.Exists := false;
+  ImageWest.Exists := false;
+  ImageNorth.Exists := false;
+  ImageBack.Exists := false;
+  ImageStart.Exists := false;
+  ImageLeftShoulder.Exists := false;
+  ImageRightShoulder.Exists := false;
+  ImageLeftTrigger.Exists := false;
+  ImageRightTrigger.Exists := false;
+  ImageLeftStick.Exists := false;
+  ImageRightStick.Exists := false;
+  ImageGuide.Exists := false;
+  ImageDPadLeft.Exists := false;
+  ImageDPadRight.Exists := false;
+  ImageDPadUp.Exists := false;
+  ImageDPadDown.Exists := false;
+end;
+
+procedure TStateMain.ShowKey(const AKey: TKey; const AExists: Boolean);
+begin
+  case AKey of
+    joySouth: ImageSouth.Exists := AExists;
+    joyEast: ImageEast.Exists := AExists;
+    joyWest: ImageWest.Exists := AExists;
+    joyNorth: ImageNorth.Exists := AExists;
+    joyBack: ImageBack.Exists := AExists;
+    joyStart: ImageStart.Exists := AExists;
+    joyLeftShoulder: ImageLeftShoulder.Exists := AExists;
+    joyRightShoulder: ImageRightShoulder.Exists := AExists;
+    joyLeftTrigger: ImageLeftTrigger.Exists := AExists;
+    joyRightTrigger: ImageRightTrigger.Exists := AExists;
+    joyLeftStick: ImageLeftStick.Exists := AExists;
+    joyRightStick: ImageRightStick.Exists := AExists;
+    joyGuide: ImageGuide.Exists := AExists;
+    joyLeft: ImageDPadLeft.Exists := AExists;
+    joyRight: ImageDPadRight.Exists := AExists;
+    joyUp: ImageDPadUp.Exists := AExists;
+    joyDown: ImageDPadDown.Exists := AExists;
+  end;
+end;
+
 procedure TStateMain.Update(const SecondsPassed: Single; var HandleInput: Boolean);
 begin
   inherited;
+
 end;
 
 function TStateMain.Press(const Event: TInputPressRelease): Boolean;
 begin
   Result := inherited;
-
+  ShowKey(Event.Key, true);
 end;
 
 function TStateMain.Release(const Event: TInputPressRelease): Boolean;
 begin
   Result := inherited;
-
+  ShowKey(Event.Key, false);
 end;
 
 end.
