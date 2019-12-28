@@ -246,13 +246,15 @@ end;
 function TStateMain.Press(const Event: TInputPressRelease): Boolean;
 begin
   Result := inherited;
-  ShowKey(Event.Key, true);
+  if Event.EventType = itJoystick then
+    ShowKey(Event.Key, true);
 end;
 
 function TStateMain.Release(const Event: TInputPressRelease): Boolean;
 begin
   Result := inherited;
-  ShowKey(Event.Key, false);
+  if Event.EventType = itJoystick then
+    ShowKey(Event.Key, false);
 end;
 
 end.
