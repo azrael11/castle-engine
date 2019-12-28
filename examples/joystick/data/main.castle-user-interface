@@ -13,9 +13,11 @@
         "URL" : "castle-data:/gamepad/base_image.png",
         "$ClassName" : "TCastleImagePersistent"
       },
+      "HorizontalAnchorDelta" : -1.0000000000000000E+001,
       "HorizontalAnchorParent" : "hpRight",
       "HorizontalAnchorSelf" : "hpRight",
       "Name" : "ImageBase",
+      "VerticalAnchorDelta" : 1.0000000000000000E+001,
       "$Children" : [
         {
           "Content" : {
@@ -282,7 +284,7 @@
       "HorizontalAnchorDelta" : 1.5000000000000000E+002,
       "Name" : "LabelSelectJoystickLayout",
       "Text" : "Select Joystick layout:\n",
-      "VerticalAnchorDelta" : 9.5000000000000000E+002,
+      "VerticalAnchorDelta" : 9.6000000000000000E+002,
       "$Children" : [
       ],
       "$ClassName" : "TCastleLabel"
@@ -290,6 +292,7 @@
     {
       "EnableDragging" : true,
       "Height" : 9.5000000000000000E+002,
+      "HorizontalAnchorDelta" : 1.0000000000000000E+001,
       "Name" : "ScrollViewJoysticksNames",
       "ScrollArea" : {
         "AutoSizeToChildren" : true,
@@ -307,6 +310,7 @@
       },
       "ScrollBarLeft" : true,
       "ScrollBarWidth" : 1.2000000000000000E+001,
+      "VerticalAnchorDelta" : 1.0000000000000000E+001,
       "Width" : 7.5000000000000000E+002,
       "$Children" : [
       ],
@@ -316,6 +320,8 @@
       "HorizontalAnchorParent" : "hpMiddle",
       "HorizontalAnchorSelf" : "hpMiddle",
       "Name" : "HorizontalGroupDetectedJoysticks",
+      "Spacing" : 1.0000000000000000E+001,
+      "VerticalAnchorDelta" : -1.0000000000000000E+001,
       "VerticalAnchorParent" : "vpTop",
       "VerticalAnchorSelf" : "vpTop",
       "$Children" : [
