@@ -1,0 +1,197 @@
+{
+  "ColorPersistent" : {
+    "Blue" : 1.5294118225574493E-001,
+    "Green" : 1.5294118225574493E-001,
+    "Red" : 1.5294118225574493E-001,
+    "$ClassName" : "TCastleColorPersistent"
+  },
+  "FullSize" : true,
+  "Name" : "RectangleControl1",
+  "$Children" : [
+    {
+      "Content" : {
+        "URL" : "castle-data:/gamepad/base_image.png",
+        "$ClassName" : "TCastleImagePersistent"
+      },
+      "HorizontalAnchorParent" : "hpRight",
+      "HorizontalAnchorSelf" : "hpRight",
+      "Name" : "ImageBase",
+      "VerticalAnchorParent" : "vpMiddle",
+      "VerticalAnchorSelf" : "vpMiddle",
+      "$Children" : [
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/a_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageA",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/b_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageB",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/x_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageX",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/y_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageY",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/start_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageStart",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/back_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageBack",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/guide_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageGuide",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/right_shoulder_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageRightShoulder",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/right_trigger_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageRightTrigger",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/left_shoulder_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageLeftShoulder",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/left_trigger_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageLeftTrigger",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/left_stick_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageLeftStick",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/right_stick_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageRightStick",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/dpad_right.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageDPadRight",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/dpad_left.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageDPadLeft",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/dpad_up.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageDPadUp",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/dpad_down.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageDPadDown",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        }
+      ],
+      "$ClassName" : "TCastleImageControl"
+    }
+  ],
+  "$ClassName" : "TCastleRectangleControl"
+}
