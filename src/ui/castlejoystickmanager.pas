@@ -41,7 +41,8 @@ type
   TCastleJoysticks = class
   private //we need to access some of these properties in TFakeJoysitckEventHandler
     const
-      { "Dead zone" of the joystick axes, that do not trigger button events }
+      { "Dead zone" of the joystick axes, that do not trigger button events
+        Todo = remake it into a variable}
       JoystickEpsilon = 0.3;
     type
       { Converts joystick axis events into "fake" buttons events

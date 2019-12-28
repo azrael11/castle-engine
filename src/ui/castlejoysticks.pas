@@ -30,7 +30,8 @@ uses
   CastleInternalJoystickLayout;
 
 const
-  { Joystick buttons }
+  { Joystick buttons
+    TODO: move into CastleKeysMouse? }
   joySouth = keyPadB; {WARNING: inverting}
   joyEast = keyPadA; {WARNING: inverting}
   joyNorth = keyPadX; {WARNING: inverting}
@@ -103,7 +104,7 @@ type
 
     property Layout: TJoystickLayout read FLayout write SetLayout;
 
-    function Axis: TVector2;
+    function Axis: TVector2; deprecated 'use LeftAxis and RightAxis';
     destructor Destroy; override;
   end;
 
@@ -248,10 +249,11 @@ end;
 
 function TJoystick.Axis: TVector2;
 begin
-  Result := Vector2(
+  Result := LeftAxis;
+  {Result := Vector2(
     State.Axis[JOY_AXIS_X],
     State.Axis[JOY_AXIS_Y]
-  );
+  );}
 end;
 
 { TJoysticks ----------------------------------------------------------------- }
