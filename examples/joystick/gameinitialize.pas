@@ -79,9 +79,18 @@ begin
   LabelSelectedJoystick.Caption := 'Selected: none';
   MenuGroup.InsertFront(LabelSelectedJoystick);}
 
+  JoysticksNew.FreeJoysticksDatabaseAfterInitialization := false; //will prevent joystick database from freeing automatically after autodetecting joysticks
   { Actually detect joysticks.
     This will automatically call TEventsHandler.JoysticksChanged on some platforms. }
   JoysticksNew.Initialize;
+
+
+  {$ifdef Windows}
+  JoysticksNew.AssignJoystickLayoutByName(Joysticks[0], 'Esperanza EG102');
+  {$endif}
+  {$ifdef Linux}
+  JoysticksNew.AssignJoystickLayoutByName(Joysticks[0], 'Esperanza EG102');
+  {$endif}
 
   StateMain := TStateMain.Create(Application);
   TUiState.Current := StateMain;
