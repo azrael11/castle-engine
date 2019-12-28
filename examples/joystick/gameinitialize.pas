@@ -86,13 +86,6 @@ begin
     This will automatically call TEventsHandler.JoysticksChanged on some platforms. }
   JoysticksNew.Initialize;
 
-  {$ifdef Windows}
-  JoysticksNew.AssignJoystickLayoutByName(Joysticks[0], 'Esperanza EG102');
-  {$endif}
-  {$ifdef Linux}
-  JoysticksNew.AssignJoystickLayoutByName(Joysticks[0], 'Esperanza EG102');
-  {$endif}
-
   StateMain := TStateMain.Create(Application);
   TUiState.Current := StateMain;
 end;
