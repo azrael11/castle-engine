@@ -79,7 +79,9 @@ begin
   LabelSelectedJoystick.Caption := 'Selected: none';
   MenuGroup.InsertFront(LabelSelectedJoystick);}
 
-  JoysticksNew.FreeJoysticksDatabaseAfterInitialization := false; //will prevent joystick database from freeing automatically after autodetecting joysticks
+  //will prevent joystick database from freeing automatically after autodetecting joysticks
+  JoysticksNew.FreeJoysticksDatabaseAfterInitialization := false;
+
   { Actually detect joysticks.
     This will automatically call TEventsHandler.JoysticksChanged on some platforms. }
   JoysticksNew.Initialize;

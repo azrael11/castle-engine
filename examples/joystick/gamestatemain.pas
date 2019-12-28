@@ -32,8 +32,12 @@ type
     ImageDPadRight, ImageDPadLeft, ImageDPadUp, ImageDPadDown: TCastleImageControl;
     ImageRightAxis, ImageLeftAxis: TCastleImageControl;
     RightStickAxis, LeftStickAxis: TCastleUserInterface;
+    JoystickLayoutName, JoystickReportedName: TCastleLabel;
+    //ScrollViewJoysticksNames: TCastleScrollView;
+    VerticalGroupJoysticksNames: TCastleVerticalGroup;
     procedure HideAllKeys;
     procedure ShowKey(const AKey: TKey; const AExists: Boolean);
+    procedure FillJoystickNames;
   public
     procedure Start; override;
     procedure Stop; override;
@@ -49,7 +53,7 @@ implementation
 
 uses
   SysUtils,
-  CastleComponentSerialize, CastleVectors,
+  CastleComponentSerialize, CastleVectors, CastleColors,
   CastleJoysticks, CastleJoystickManager;
 
 procedure TStateMain.Start;
@@ -86,13 +90,41 @@ begin
   RightStickAxis := UIOwner.FindRequiredComponent('RightStickAxis') as TCastleUserInterface;
   LeftStickAxis := UIOwner.FindRequiredComponent('LeftStickAxis') as TCastleUserInterface;
 
+  JoystickLayoutName := UIOwner.FindRequiredComponent('JoystickLayoutName') as TCastleLabel;
+  JoystickReportedName := UIOwner.FindRequiredComponent('JoystickReportedName') as TCastleLabel;
+
+  //JoysticksNames := UIOwner.FindRequiredComponent('JoysticksNames') as TCastleScrollView;
+  VerticalGroupJoysticksNames := UIOwner.FindRequiredComponent('VerticalGroupJoysticksNames') as TCastleVerticalGroup;
+
   HideAllKeys;
+  FillJoystickNames;
 end;
 
 procedure TStateMain.Stop;
 begin
 
   inherited;
+end;
+
+procedure TStateMain.FillJoystickNames;
+var
+  SList: TStringList;
+  S: String;
+  L: TCastleLabel;
+begin
+  SList := JoysticksNew.JoysticksLayoutsNames;
+  if SList <> nil then
+  begin
+    SList.Sort;
+    for S in SList do
+    begin
+      L := TCastleLabel.Create(FreeAtStop);
+      L.Caption := S;
+      L.Color := White;
+      VerticalGroupJoysticksNames.InsertFront(L);
+    end;
+    FreeAndNil(SList);
+  end;
 end;
 
 procedure TStateMain.HideAllKeys;
@@ -157,6 +189,9 @@ begin
     AxisNormalized[0];
   ImageLeftAxis.VerticalAnchorDelta := LeftStickAxis.Height / 2 *
     AxisNormalized[1];
+
+  JoystickReportedName.Caption := JoysticksNew.JoysticksAdditionalData[Joysticks[0]].TrimmedName;
+  JoystickLayoutName.Caption := JoysticksNew.JoysticksAdditionalData[Joysticks[0]].Layout.JoystickName;
 end;
 
 function TStateMain.Press(const Event: TInputPressRelease): Boolean;
