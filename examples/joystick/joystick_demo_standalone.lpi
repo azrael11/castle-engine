@@ -4,6 +4,7 @@
     <Version Value="12"/>
     <General>
       <Flags>
+        <SaveClosedFiles Value="False"/>
         <MainUnitHasUsesSectionForAllUnits Value="False"/>
         <MainUnitHasCreateFormStatements Value="False"/>
         <MainUnitHasTitleStatement Value="False"/>
@@ -36,7 +37,7 @@
         <PackageName Value="castle_base"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="7">
+    <Units Count="4">
       <Unit0>
         <Filename Value="joystick_demo_standalone.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -59,8 +60,8 @@
         <UnitName Value="GameStateMain"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
-        <TopLine Value="140"/>
-        <CursorPos X="40" Y="153"/>
+        <TopLine Value="156"/>
+        <CursorPos X="13" Y="157"/>
         <UsageCount Value="22"/>
         <Loaded Value="True"/>
       </Unit2>
@@ -70,32 +71,9 @@
         <EditorIndex Value="3"/>
         <TopLine Value="60"/>
         <CursorPos X="3" Y="71"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="11"/>
         <Loaded Value="True"/>
       </Unit3>
-      <Unit4>
-        <Filename Value="../../../castle-engine-master/src/ui/castlekeysmouse.pas"/>
-        <UnitName Value="CastleKeysMouse"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="249"/>
-        <CursorPos X="19" Y="145"/>
-        <UsageCount Value="10"/>
-      </Unit4>
-      <Unit5>
-        <Filename Value="../../../castle-engine-master/src/3d/castlecomponentserialize.pas"/>
-        <UnitName Value="CastleComponentSerialize"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="764"/>
-        <CursorPos Y="780"/>
-        <UsageCount Value="10"/>
-      </Unit5>
-      <Unit6>
-        <Filename Value="../../../castle-engine-master/src/base/castlevectors_generic_float_record.inc"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="88"/>
-        <CursorPos X="26" Y="98"/>
-        <UsageCount Value="10"/>
-      </Unit6>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
