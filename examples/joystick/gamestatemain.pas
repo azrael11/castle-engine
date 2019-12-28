@@ -75,7 +75,7 @@ implementation
 
 uses
   SysUtils,
-  CastleComponentSerialize, CastleVectors, CastleColors, CastleUtils, CastleLog,
+  CastleComponentSerialize, CastleVectors, CastleColors, CastleLog, {CastleUtils,}
   CastleJoystickManager;
 
 procedure TStateMain.Start;
