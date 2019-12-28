@@ -53,10 +53,13 @@ const
   joyFakeDown = joyDown;
   { Note, duplicate events will cause minor bugs with Release event }
 
+  itJoystick = itKey; //a small temporary hack to send correct joystick press events
+
 type
   { Temporary: these are the routines that need to go into new TJoystick }
   TJoystickAdditionalData = class
     TrimmedName: String;
+    Layout: TJoystickLayout;
     LeftAxis, RightAxis, DPad: TVector2;
   end;
 
@@ -202,6 +205,16 @@ uses
   {$ifndef DatabaseLoaded} CastleInternalJoystickDatabaseGeneric, {$endif}
   CastleLog, CastleUtils;
 
+function InputJoystick(const Key: TKey): TInputPressRelease;
+begin
+  FillChar(Result, SizeOf(Result), 0);
+  Result.Position := Vector2.Zero;
+  Result.EventType := itJoystick;
+  Result.Key := Key;
+  Result.ModifiersDown := [];
+  Result.KeyString := '';
+end;
+
 function TJoysticksHelper.IndexOf(const Joy: TJoystick): Integer;
 var
   I: Integer;
@@ -276,7 +289,7 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJ
   var
     ButtonEvent: TInputPressRelease;
   begin
-    ButtonEvent := InputKey(TVector2.Zero, JoystickEventToKey(JEP.Primary), '');
+    ButtonEvent := InputJoystick(JoystickEventToKey(JEP.Primary));
     ButtonEvent.FingerIndex := Joysticks.IndexOf(Joy);
     if Abs(AValue) > JoystickEpsilon then
     begin
@@ -287,7 +300,7 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJ
       SendReleaseEventToAllContainers(ButtonEvent);
       if JEP.Inverse <> JEP.Primary then
       begin
-        ButtonEvent := InputKey(TVector2.Zero, JoystickEventToKey(JEP.Inverse), '');
+        ButtonEvent := InputJoystick(JoystickEventToKey(JEP.Inverse));
         ButtonEvent.FingerIndex := Joysticks.IndexOf(Joy);
         SendReleaseEventToAllContainers(ButtonEvent);
       end;
@@ -503,6 +516,7 @@ begin
 
     JAD := TJoystickAdditionalData.Create;
     JAD.TrimmedName := JoyName;
+    JAD.Layout := JL;
     JoysticksAdditionalData.Add(J, JAD);
 
     WriteLnLog('--------------------');
@@ -560,6 +574,7 @@ begin
       begin
         NewJoystickLayout := JoystickLayoutsByName[JoystickName].MakeCopy;
         JoysticksLayouts.AddOrSetValue(Joy, NewJoystickLayout);
+        JoysticksAdditionalData[Joy].Layout := NewJoystickLayout;
         if not NewJoystickLayout.BuggyDuplicateName then
           WriteLnLog(Format('Joystick "%s" layout has been successfully changed to "%s".', [JoysticksAdditionalData[Joy].TrimmedName, NewJoystickLayout.JoystickName]))
         else
@@ -587,6 +602,7 @@ begin
       begin
         NewJoystickLayout := JoystickLayoutsByGuid[JoystickGuid].MakeCopy;
         JoysticksLayouts.AddOrSetValue(Joy, NewJoystickLayout);
+        JoysticksAdditionalData[Joy].Layout := NewJoystickLayout;
         WriteLnLog(Format('Joystick "%s" layout has been successfully changed to "%s".', [JoysticksAdditionalData[Joy].TrimmedName, NewJoystickLayout.JoystickName]));
         WriteLnLog(NewJoystickLayout.LogJoystickFeatures);
       end else
@@ -739,7 +755,7 @@ procedure TCastleJoysticks.TFakeJoystickEventsHandler.PressKey(const AKey: TKey)
 var
   ButtonEvent: TInputPressRelease;
 begin
-  ButtonEvent := InputKey(TVector2.Zero, AKey, '');
+  ButtonEvent := InputJoystick(AKey);
   JoysticksNew.SendPressEventToAllContainers(ButtonEvent);
   WriteLnLog('Fake Pressed', KeyToStr(ButtonEvent.Key));
 end;
@@ -748,7 +764,7 @@ procedure TCastleJoysticks.TFakeJoystickEventsHandler.ReleaseKey(const AKey: TKe
 var
   ButtonEvent: TInputPressRelease;
 begin
-  ButtonEvent := InputKey(TVector2.Zero, AKey, '');
+  ButtonEvent := InputJoystick(AKey);
   JoysticksNew.SendReleaseEventToAllContainers(ButtonEvent);
 end;
 
