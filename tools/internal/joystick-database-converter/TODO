@@ -18,8 +18,6 @@ Phase - 2
    newer backends.
  * TJoyState has max 8 axes [0..7], however, database has as much as 14 axes
  * [TODO] Test X-Box controller
- * [TODO] Delete all debugging logs
- * [TODO] Improve CGE joystick example
 
 Phase - 3
 

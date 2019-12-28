@@ -292,10 +292,8 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJ
     ButtonEvent := InputJoystick(JoystickEventToKey(JEP.Primary));
     ButtonEvent.FingerIndex := Joysticks.IndexOf(Joy);
     if Abs(AValue) > JoystickEpsilon then
-    begin
-      SendPressEventToAllContainers(ButtonEvent);
-      WriteLnLog('Pressed', KeyToStr(ButtonEvent.Key));
-    end else
+      SendPressEventToAllContainers(ButtonEvent)
+    else
     begin
       SendReleaseEventToAllContainers(ButtonEvent);
       if JEP.Inverse <> JEP.Primary then
@@ -312,7 +310,6 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJ
   begin
     JoysticksAdditionalData.Items[Joy].LeftAxis :=
       Vector2(AValue, JoysticksAdditionalData.Items[Joy].LeftAxis.Y);
-    WriteLnLog('LeftAxis', JoysticksAdditionalData.Items[Joy].LeftAxis.ToString);
   end;
   procedure JoystickLeftYAxis(const AValue: Single);
   begin
@@ -321,13 +318,11 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJ
       (and standard math 2D coordinate system). }
     JoysticksAdditionalData.Items[Joy].LeftAxis :=
       Vector2(JoysticksAdditionalData.Items[Joy].LeftAxis.X, -AValue);
-    WriteLnLog('LeftAxis', JoysticksAdditionalData.Items[Joy].LeftAxis.ToString);
   end;
   procedure JoystickRightXAxis(const AValue: Single);
   begin
     JoysticksAdditionalData.Items[Joy].RightAxis :=
       Vector2(AValue, JoysticksAdditionalData.Items[Joy].RightAxis.Y);
-    WriteLnLog('RightAxis', JoysticksAdditionalData.Items[Joy].RightAxis.ToString);
   end;
   procedure JoystickRightYAxis(const AValue: Single);
   begin
@@ -336,7 +331,6 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJ
       (and standard math 2D coordinate system). }
     JoysticksAdditionalData.Items[Joy].RightAxis :=
       Vector2(JoysticksAdditionalData.Items[Joy].RightAxis.X, -AValue);
-    WriteLnLog('RightAxis', JoysticksAdditionalData.Items[Joy].RightAxis.ToString);
   end;
 
 begin
@@ -757,7 +751,6 @@ var
 begin
   ButtonEvent := InputJoystick(AKey);
   JoysticksNew.SendPressEventToAllContainers(ButtonEvent);
-  WriteLnLog('Fake Pressed', KeyToStr(ButtonEvent.Key));
 end;
 
 procedure TCastleJoysticks.TFakeJoystickEventsHandler.ReleaseKey(const AKey: TKey);
