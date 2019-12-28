@@ -31,53 +31,12 @@ uses SysUtils, Classes,
 
 var
   Window: TCastleWindowBase;
-  //Notifications: TCastleNotifications;
-  //ButtonReinitialize: TCastleButton;
-  //OnScreenMenu: TCastleOnScreenMenu;
-  //LabelJoysticksCount: TCastleLabel;
-  //LabelSelectedJoystick: TCastleLabel;
-  //SelectedJoystick: Integer = -1;
 
-{ One-time initialization of resources. }
+  { One-time initialization of resources. }
 procedure ApplicationInitialize;
-{var
-  MenuGroup: TCastleVerticalGroup;}
 begin
   { Adjust container settings for a scalable UI (adjusts to any window size in a smart way). }
   Window.Container.LoadSettings('castle-data:/CastleSettings.xml');
-
-  {Notifications := TCastleNotifications.Create(Application);
-  Notifications.Anchor(vpBottom, 10);
-  Notifications.Anchor(hpMiddle);
-  Notifications.TextAlignment := hpMiddle;
-  Notifications.Timeout := 2.0;
-  Notifications.Fade := 0.5;
-  Window.Controls.InsertBack(Notifications); }
-
-  {ButtonReinitialize := TCastleButton.Create(Application);
-  ButtonReinitialize.Caption := 'Detect connected joysticks again (Joysticks.Initialize)';
-  ButtonReinitialize.Left := 10;
-  ButtonReinitialize.Bottom := 10;
-  ButtonReinitialize.OnClick := @TEventsHandler(nil).ClickReinitialize;
-  Window.Controls.InsertFront(ButtonReinitialize);}
-
-  {MenuGroup := TCastleVerticalGroup.Create(Application);
-  MenuGroup.Left := 10;
-  MenuGroup.Anchor(vpTop, -10);
-  MenuGroup.Spacing := 10;
-  Window.Controls.InsertFront(MenuGroup);}
-
-  {LabelJoysticksCount := TCastleLabel.Create(Application);
-  LabelJoysticksCount.Color := White;
-  MenuGroup.InsertFront(LabelJoysticksCount);}
-
-  {OnScreenMenu := TCastleOnScreenMenu.Create(Application);
-  MenuGroup.InsertFront(OnScreenMenu);}
-
-  {LabelSelectedJoystick := TCastleLabel.Create(Application);
-  LabelSelectedJoystick.Color := White;
-  LabelSelectedJoystick.Caption := 'Selected: none';
-  MenuGroup.InsertFront(LabelSelectedJoystick);}
 
   //will prevent joystick database from freeing automatically after autodetecting joysticks
   JoysticksNew.FreeJoysticksDatabaseAfterInitialization := false;
