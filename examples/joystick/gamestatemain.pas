@@ -318,12 +318,14 @@ begin
     Exit;
 
   AxisNormalized := JoysticksNew.JoysticksAdditionalData[CurrentJoystick].RightAxis;
-  AxisNormalized.NormalizeMe;
+  if AxisNormalized.Length > 1.0 then
+    AxisNormalized.NormalizeMe;
   ImageRightAxis.HorizontalAnchorDelta := RightStickAxis.Width / 2 * AxisNormalized[0];
   ImageRightAxis.VerticalAnchorDelta := RightStickAxis.Height / 2 * AxisNormalized[1];
 
   AxisNormalized := JoysticksNew.JoysticksAdditionalData[CurrentJoystick].LeftAxis;
-  AxisNormalized.NormalizeMe;
+  if AxisNormalized.Length > 1.0 then
+    AxisNormalized.NormalizeMe;
   ImageLeftAxis.HorizontalAnchorDelta := LeftStickAxis.Width / 2 * AxisNormalized[0];
   ImageLeftAxis.VerticalAnchorDelta := LeftStickAxis.Height / 2 * AxisNormalized[1];
 
