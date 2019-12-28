@@ -19,7 +19,8 @@ interface
 
 uses
   Classes,
-  CastleKeysMouse, CastleControls, CastleUiState, CastleUiControls;
+  CastleKeysMouse, CastleControls, CastleUiState, CastleUiControls,
+  CastleJoysticks;
 
 type
   TJoystickLayoutButton = class(TCastleButton)
@@ -41,6 +42,7 @@ type
     //ScrollViewJoysticksNames: TCastleScrollView;
     VerticalGroupJoysticksNames: TCastleVerticalGroup;
     LastFocusedButton: TJoystickLayoutButton;
+    CurrentJoystick: TJoystick;
     procedure HideAllKeys;
     procedure ShowKey(const AKey: TKey; const AExists: Boolean);
     procedure FillJoystickNames;
@@ -63,7 +65,7 @@ implementation
 uses
   SysUtils,
   CastleComponentSerialize, CastleVectors, CastleColors, CastleUtils,
-  CastleJoysticks, CastleJoystickManager;
+  CastleJoystickManager;
 
 procedure TStateMain.Start;
 var
@@ -105,6 +107,8 @@ begin
   //JoysticksNames := UIOwner.FindRequiredComponent('JoysticksNames') as TCastleScrollView;
   VerticalGroupJoysticksNames := UIOwner.FindRequiredComponent('VerticalGroupJoysticksNames') as TCastleVerticalGroup;
 
+  CurrentJoystick := Joysticks[0];
+
   HideAllKeys;
   FillJoystickNames;
 end;
@@ -136,7 +140,7 @@ begin
       JoystickLayoutLabel := TCastleLabel.Create(JoystickLayoutButton);
       JoystickLayoutLabel.Caption := S;
       JoystickLayoutLabel.Color := White;
-      if JoysticksNew.JoysticksAdditionalData[Joysticks[0]].Layout.JoystickName = S then
+      if JoysticksNew.JoysticksAdditionalData[CurrentJoystick].Layout.JoystickName = S then
         AddFocusTo(JoystickLayoutButton)
       else
         RemoveFocusFrom(JoystickLayoutButton);
@@ -179,7 +183,7 @@ end;
 
 procedure TStateMain.RemoveFocusFrom(const AButton: TJoystickLayoutButton);
 begin
-  AButton.CustomColorNormal := Vector4(0.0, 0.0, 0.0, 0.0);
+  AButton.CustomColorNormal := Vector4(0.3, 0.3, 0.0, 0.0);
   AButton.CustomColorFocused := Vector4(0.4, 0.4, 0.0, 0.2);
   AButton.CustomColorPressed := Vector4(0.4, 0.4, 0.0, 0.2);
 end;
@@ -188,7 +192,7 @@ procedure TStateMain.ClickJoystickLayout(Sender: TObject);
 begin
   RemoveFocusFrom(LastFocusedButton);
   AddFocusTo(Sender as TJoystickLayoutButton);
-  JoysticksNew.AssignJoystickLayoutByName(Joysticks[0], LastFocusedButton.LayoutLabel.Caption);
+  JoysticksNew.AssignJoystickLayoutByName(CurrentJoystick, LastFocusedButton.LayoutLabel.Caption);
 end;
 
 procedure TStateMain.ShowKey(const AKey: TKey; const AExists: Boolean);
@@ -221,22 +225,22 @@ var
   AxisNormalized: TVector2;
 begin
   inherited;
-  AxisNormalized := JoysticksNew.JoysticksAdditionalData[Joysticks[0]].RightAxis;
+  AxisNormalized := JoysticksNew.JoysticksAdditionalData[CurrentJoystick].RightAxis;
   AxisNormalized.NormalizeMe;
   ImageRightAxis.HorizontalAnchorDelta := RightStickAxis.Width / 2 *
     AxisNormalized[0];
   ImageRightAxis.VerticalAnchorDelta := RightStickAxis.Height / 2 *
     AxisNormalized[1];
 
-  AxisNormalized := JoysticksNew.JoysticksAdditionalData[Joysticks[0]].LeftAxis;
+  AxisNormalized := JoysticksNew.JoysticksAdditionalData[CurrentJoystick].LeftAxis;
   AxisNormalized.NormalizeMe;
   ImageLeftAxis.HorizontalAnchorDelta := LeftStickAxis.Width / 2 *
     AxisNormalized[0];
   ImageLeftAxis.VerticalAnchorDelta := LeftStickAxis.Height / 2 *
     AxisNormalized[1];
 
-  JoystickReportedName.Caption := JoysticksNew.JoysticksAdditionalData[Joysticks[0]].TrimmedName;
-  JoystickLayoutName.Caption := JoysticksNew.JoysticksAdditionalData[Joysticks[0]].Layout.JoystickName;
+  JoystickReportedName.Caption := JoysticksNew.JoysticksAdditionalData[CurrentJoystick].TrimmedName;
+  JoystickLayoutName.Caption := JoysticksNew.JoysticksAdditionalData[CurrentJoystick].Layout.JoystickName;
 end;
 
 function TStateMain.Press(const Event: TInputPressRelease): Boolean;
