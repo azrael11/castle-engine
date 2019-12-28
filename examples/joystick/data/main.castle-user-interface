@@ -24,7 +24,7 @@
             "URL" : "castle-data:/gamepad/a_press.png",
             "$ClassName" : "TCastleImagePersistent"
           },
-          "Name" : "ImageA",
+          "Name" : "ImageSouth",
           "$Children" : [
           ],
           "$ClassName" : "TCastleImageControl"
@@ -34,7 +34,7 @@
             "URL" : "castle-data:/gamepad/b_press.png",
             "$ClassName" : "TCastleImagePersistent"
           },
-          "Name" : "ImageB",
+          "Name" : "ImageEast",
           "$Children" : [
           ],
           "$ClassName" : "TCastleImageControl"
@@ -44,7 +44,7 @@
             "URL" : "castle-data:/gamepad/x_press.png",
             "$ClassName" : "TCastleImagePersistent"
           },
-          "Name" : "ImageX",
+          "Name" : "ImageWest",
           "$Children" : [
           ],
           "$ClassName" : "TCastleImageControl"
@@ -54,7 +54,7 @@
             "URL" : "castle-data:/gamepad/y_press.png",
             "$ClassName" : "TCastleImagePersistent"
           },
-          "Name" : "ImageY",
+          "Name" : "ImageNorth",
           "$Children" : [
           ],
           "$ClassName" : "TCastleImageControl"
