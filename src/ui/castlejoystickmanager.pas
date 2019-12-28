@@ -338,21 +338,19 @@ begin
       SendJoystickEvent(Joy, JEP, Value)
     else
       WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at D-Pad axis [%s]',
-        [Joy.TrimmedName,
-         Joy.Layout.JoystickName, IntToStr(Axis)]));
+        [Joy.TrimmedName, Joy.Layout.JoystickName, IntToStr(Axis)]));
   end;
 end;
 {procedure TCastleJoysticks.DoButtonDown(const Joy: TJoystick; const Button: Byte);
 var
   JE: TJoystickEvent;
 begin
-  JE := JoysticksLayouts.Items[Joy].ButtonEvent(Button);
+  JE := Joy.Layout.ButtonEvent(Button);
   if JE <> unknownButtonEvent then
     SendJoystickEvent(Joy, JE, 1.0)
   else
     WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at button [%s]',
-      [JoysticksAdditionalData.Items[Joy].TrimmedName,
-       JoysticksLayouts.Items[Joy].JoystickName, IntToStr(Button)]));
+      [Joy.TrimmedName, Joy.Layout.JoystickName, IntToStr(Button)]));
 end;}
 procedure TCastleJoysticks.DoButtonPress(const Joy: TJoystick; const Button: Byte);
 var

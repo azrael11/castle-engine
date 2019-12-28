@@ -31,7 +31,8 @@ uses
 
 const
   { Joystick buttons
-    TODO: move into CastleKeysMouse? }
+    TODO: move into CastleKeysMouse?
+    TODO: assign special key events }
   joySouth = keyPadB; {WARNING: inverting}
   joyEast = keyPadA; {WARNING: inverting}
   joyNorth = keyPadX; {WARNING: inverting}
@@ -42,9 +43,9 @@ const
   joyRightShoulder = keyPadR;
   joyLeftTrigger = keyPadZL;
   joyRightTrigger = keyPadZR;
-  joyLeftStick = keyReserved_178; {WARNING: duplicating}
-  joyRightStick = keyReserved_179; {WARNING: duplicating}
-  joyGuide = keyReserved_180; {WARNING: duplicating}
+  joyLeftStick = keyReserved_178;
+  joyRightStick = keyReserved_179;
+  joyGuide = keyReserved_180;
   joyLeft = keyPadLeft;
   joyRight = keyPadRight;
   joyUp = keyPadUp;
