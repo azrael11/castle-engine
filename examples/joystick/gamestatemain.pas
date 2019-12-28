@@ -40,10 +40,13 @@ type
     JoystickLayoutName, JoystickReportedName: TCastleLabel;
     //ScrollViewJoysticksNames: TCastleScrollView;
     VerticalGroupJoysticksNames: TCastleVerticalGroup;
+    LastFocusedButton: TJoystickLayoutButton;
     procedure HideAllKeys;
     procedure ShowKey(const AKey: TKey; const AExists: Boolean);
     procedure FillJoystickNames;
     procedure ClickJoystickLayout(Sender: TObject);
+    procedure AddFocusTo(const AButton: TJoystickLayoutButton);
+    procedure RemoveFocusFrom(const AButton: TJoystickLayoutButton);
   public
     procedure Start; override;
     procedure Stop; override;
@@ -133,6 +136,10 @@ begin
       JoystickLayoutLabel := TCastleLabel.Create(JoystickLayoutButton);
       JoystickLayoutLabel.Caption := S;
       JoystickLayoutLabel.Color := White;
+      if JoysticksNew.JoysticksAdditionalData[Joysticks[0]].Layout.JoystickName = S then
+        AddFocusTo(JoystickLayoutButton)
+      else
+        RemoveFocusFrom(JoystickLayoutButton);
       JoystickLayoutButton.LayoutLabel := JoystickLayoutLabel;
       JoystickLayoutButton.InsertFront(JoystickLayoutLabel);
       VerticalGroupJoysticksNames.InsertFront(JoystickLayoutButton);
@@ -162,9 +169,26 @@ begin
   ImageDPadDown.Exists := false;
 end;
 
+procedure TStateMain.AddFocusTo(const AButton: TJoystickLayoutButton);
+begin
+  LastFocusedButton := AButton;
+  AButton.CustomColorNormal := Vector4(0.3, 0.3, 0.0, 1.0);
+  AButton.CustomColorFocused := Vector4(0.4, 0.4, 0.0, 1.0);
+  AButton.CustomColorPressed := Vector4(0.4, 0.4, 0.0, 1.0);
+end;
+
+procedure TStateMain.RemoveFocusFrom(const AButton: TJoystickLayoutButton);
+begin
+  AButton.CustomColorNormal := Vector4(0.0, 0.0, 0.0, 0.0);
+  AButton.CustomColorFocused := Vector4(0.4, 0.4, 0.0, 0.2);
+  AButton.CustomColorPressed := Vector4(0.4, 0.4, 0.0, 0.2);
+end;
+
 procedure TStateMain.ClickJoystickLayout(Sender: TObject);
 begin
-  JoysticksNew.AssignJoystickLayoutByName(Joysticks[0], (Sender as TJoystickLayoutButton).LayoutLabel.Caption);
+  RemoveFocusFrom(LastFocusedButton);
+  AddFocusTo(Sender as TJoystickLayoutButton);
+  JoysticksNew.AssignJoystickLayoutByName(Joysticks[0], LastFocusedButton.LayoutLabel.Caption);
 end;
 
 procedure TStateMain.ShowKey(const AKey: TKey; const AExists: Boolean);
