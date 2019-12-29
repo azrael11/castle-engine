@@ -82,38 +82,39 @@ end;
 
 procedure TLinuxJoysticksBackend.Initialize(const List: TJoystickList);
 var
-  i, j : Integer;
+  I, J: Integer;
   NewJoystick: TJoystick;
   NewBackendInfo: TLinuxJoystickBackendInfo;
 begin
-  for i := 0 to 15 do
+  for I := 0 to 15 do
   begin
     NewJoystick := TJoystick.Create;
     NewBackendInfo := TLinuxJoystickBackendInfo.Create;
     NewJoystick.InternalBackendInfo := NewBackendInfo;
 
-    NewBackendInfo.Device := FpOpen( '/dev/input/js' + IntToStr( i ), O_RDONLY or O_NONBLOCK );
+    NewBackendInfo.Device := FpOpen( '/dev/input/js' + IntToStr(I), O_RDONLY or O_NONBLOCK );
     if NewBackendInfo.Device < 0 then
-      NewBackendInfo.Device := FpOpen( '/dev/js' + IntToStr( i ), O_RDONLY or O_NONBLOCK );
+      NewBackendInfo.Device := FpOpen( '/dev/js' + IntToStr(I), O_RDONLY or O_NONBLOCK );
 
     if NewBackendInfo.Device > -1 then
     begin
       NewBackendInfo.DeviceInitialized := true;
-      SetLength( NewJoystick.Info.Name, 256 );
-      FpIOCtl( NewBackendInfo.Device, JSIOCGNAME,    @NewJoystick.Info.Name[ 1 ] );
-      FpIOCtl( NewBackendInfo.Device, JSIOCGAXMAP,   @NewBackendInfo.AxesMap[ 0 ] );
-      FpIOCtl( NewBackendInfo.Device, JSIOCGAXES,    @NewJoystick.Info.Count.Axes );
-      FpIOCtl( NewBackendInfo.Device, JSIOCGBUTTONS, @NewJoystick.Info.Count.Buttons );
+      SetLength(NewJoystick.Info.Name, 256);
+      FpIOCtl(NewBackendInfo.Device, JSIOCGNAME,    @NewJoystick.Info.Name[1]);
+      FpIOCtl(NewBackendInfo.Device, JSIOCGAXMAP,   @NewBackendInfo.AxesMap[0]);
+      FpIOCtl(NewBackendInfo.Device, JSIOCGAXES,    @NewJoystick.Info.Count.Axes);
+      FpIOCtl(NewBackendInfo.Device, JSIOCGBUTTONS, @NewJoystick.Info.Count.Buttons);
 
-      for j := 1 to 255 do
-        if NewJoystick.Info.Name[ j ] = #0 then
+      for J := 1 to 255 do
+        if NewJoystick.Info.Name[J] = #0 then
           begin
-            SetLength( NewJoystick.Info.Name, j - 1 );
-            break;
+            SetLength(NewJoystick.Info.Name, J - 1);
+            Break;
           end;
 
       // Checking if joystick is a real one, because laptops with accelerometer can be detected as a joystick :)
-      if ( NewJoystick.Info.Count.Axes >= 2 ) and ( NewJoystick.Info.Count.Buttons > 0 ) then
+      // Note, that "030000000d0f00000d00000000010000,hori" doesn't have axes - only buttons and this condition will fail
+      if (NewJoystick.Info.Count.Axes >= 2) and (NewJoystick.Info.Count.Buttons > 0) then
       begin
         WritelnLog('CastleJoysticks Init', 'Find joy: %s (ID: %d); Axes: %d; Buttons: %d', [NewJoystick.Info.Name, I, NewJoystick.Info.Count.Axes, NewJoystick.Info.Count.Buttons]);
         List.Add(NewJoystick);
@@ -127,10 +128,10 @@ end;
 procedure TLinuxJoysticksBackend.Poll(const List: TJoystickList;
   const EventContainer: TJoysticks);
 var
-  i : Integer;
+  I: Integer;
   Value: Single;
-  axis: Byte;
-  event : TLinuxJsEvent;
+  Axis: Byte;
+  Event : TLinuxJsEvent;
   Joystick: TJoystick;
   BackendInfo: TLinuxJoystickBackendInfo;
 begin
@@ -138,48 +139,52 @@ begin
   begin
     Joystick := List[I];
     BackendInfo := Joystick.InternalBackendInfo as TLinuxJoystickBackendInfo;
-    while FpRead( BackendInfo.Device, event, 8 ) = 8 do
-      case event.EventType of
+    while FpRead(BackendInfo.Device, Event, 8) = 8 do
+      case Event.EventType of
         JS_EVENT_AXIS:
           begin
-            axis := {JS_AXIS[ BackendInfo.AxesMap[} event.number {] ]};
+            Axis := Event.number;
 
             { Obsolete Linux backend reports POV as 16,17 axes
               however "physically" they are located at the end of "real axes"
               which forces us to use the provided BackendInfo.AxesMap }
-            if BackendInfo.AxesMap[event.number] = 16 then
-              axis := JOY_NEWPOVX;
-            if BackendInfo.AxesMap[event.number] = 17 then
-              axis := JOY_NEWPOVY;
+            if BackendInfo.AxesMap[Event.number] = 16 then
+              Axis := JOY_NEWPOVX;
+            if BackendInfo.AxesMap[Event.number] = 17 then
+              Axis := JOY_NEWPOVY;
 
-            Value := event.value / 32767;
-            Joystick.State.Axis[ axis ] := Value;
-            if Assigned(EventContainer.OnAxisMove) then EventContainer.OnAxisMove(Joystick, axis, Value);
+            Value := Event.value / 32767;
+            Joystick.State.Axis[Axis] := Value;
+            if Assigned(EventContainer.OnAxisMove) then
+              EventContainer.OnAxisMove(Joystick, Axis, Value);
           end;
         JS_EVENT_BUTTON:
-          case event.value of
+          case Event.value of
             0:
               begin
-                if Joystick.State.BtnDown[ event.number ] then
+                if Joystick.State.BtnDown[Event.number] then
                 begin
-                  Joystick.State.BtnUp[ event.number ] := True;
-                  Joystick.State.BtnPress   [ event.number ] := False;
-                  if Assigned(EventContainer.OnButtonUp) then EventContainer.OnButtonUp(Joystick, event.number);
-                  Joystick.State.BtnCanPress[ event.number ] := True;
+                  Joystick.State.BtnUp[Event.number] := true;
+                  Joystick.State.BtnPress[Event.number] := false;
+                  if Assigned(EventContainer.OnButtonUp) then
+                    EventContainer.OnButtonUp(Joystick, Event.number);
+                  Joystick.State.BtnCanPress[Event.number] := true;
                 end;
 
-                Joystick.State.BtnDown[ event.number ] := False;
+                Joystick.State.BtnDown[Event.number] := false;
               end;
             1:
               begin
-                Joystick.State.BtnDown[ event.number ] := True;
-                if Assigned(EventContainer.OnButtonDown) then EventContainer.OnButtonDown(Joystick, event.number);
-                Joystick.State.BtnUp  [ event.number ] := False;
-                if Joystick.State.BtnCanPress[ event.number ] then
+                Joystick.State.BtnDown[Event.number] := true;
+                if Assigned(EventContainer.OnButtonDown) then
+                  EventContainer.OnButtonDown(Joystick, Event.number);
+                Joystick.State.BtnUp[Event.number] := False;
+                if Joystick.State.BtnCanPress[Event.number] then
                   begin
-                    Joystick.State.BtnPress   [ event.number ] := True;
-                    if Assigned(EventContainer.OnButtonPress) then EventContainer.OnButtonPress(Joystick, event.number);
-                    Joystick.State.BtnCanPress[ event.number ] := False;
+                    Joystick.State.BtnPress[Event.number] := true;
+                    if Assigned(EventContainer.OnButtonPress) then
+                      EventContainer.OnButtonPress(Joystick, Event.number);
+                    Joystick.State.BtnCanPress[Event.number] := false;
                   end;
               end;
           end;
