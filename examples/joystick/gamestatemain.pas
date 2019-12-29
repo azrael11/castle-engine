@@ -44,7 +44,6 @@ type
     ImageRightAxis, ImageLeftAxis: TCastleImageControl;
     RightStickAxis, LeftStickAxis: TCastleUserInterface;
     JoystickLayoutName, JoystickReportedName: TCastleLabel;
-    //ScrollViewJoysticksNames: TCastleScrollView;
     VerticalGroupJoysticksNames: TCastleVerticalGroup;
     HorizontalGroupDetectedJoysticks: TCastleHorizontalGroup;
     LastFocusedLayoutButton: TJoystickLayoutButton;
@@ -114,7 +113,6 @@ begin
   JoystickLayoutName := UIOwner.FindRequiredComponent('JoystickLayoutName') as TCastleLabel;
   JoystickReportedName := UIOwner.FindRequiredComponent('JoystickReportedName') as TCastleLabel;
 
-  //JoysticksNames := UIOwner.FindRequiredComponent('JoysticksNames') as TCastleScrollView;
   VerticalGroupJoysticksNames := UIOwner.FindRequiredComponent('VerticalGroupJoysticksNames') as TCastleVerticalGroup;
 
   HorizontalGroupDetectedJoysticks := UIOwner.FindRequiredComponent('HorizontalGroupDetectedJoysticks') as TCastleHorizontalGroup;
