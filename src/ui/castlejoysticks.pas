@@ -705,7 +705,7 @@ begin
     JEP := Joy.Layout.AxisEvent(Axis, Value);
     if JEP.Primary <> unknownAxisEvent then
     begin
-      if (Joy.Layout.InvertAxis(Axis)) {temp} xor (Axis = JOY_AXIS_Y) {/temp} then //temporary: counteract the backend inverting JOY_AXIS_Y
+      if (Joy.Layout.InvertAxis(Axis)) then
         SendJoystickEvent(Joy, JEP, -Value)
       else
         SendJoystickEvent(Joy, JEP, Value);
