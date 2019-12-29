@@ -54,7 +54,8 @@ type
         such as menu navigation. }
       TFakeJoystickEventsHandler = class
       private const
-      DefaultFakeEventsPause = 0.3; { seconds // todo - remake into a variable }
+        DefaultFakeEventsPause = 0.3; { seconds // todo - remake into a variable }
+        FakeEventSenderJoystick = 255;
       strict private
         LastFakeEventTimerX, LastFakeEventTimerY: TTimerResult;
         { A workaround being unable to set TTimerResult value directly }
@@ -165,7 +166,7 @@ uses
   {$ifndef DatabaseLoaded} CastleInternalJoystickDatabaseGeneric, {$endif}
   CastleLog, CastleUtils;
 
-function InputJoystick(const Key: TKey): TInputPressRelease;
+function InputJoystick(const Key: TKey; const JoystickIndex: Byte): TInputPressRelease;
 begin
   FillChar(Result, SizeOf(Result), 0);
   Result.Position := TVector2.Zero;
@@ -173,6 +174,7 @@ begin
   Result.Key := Key;
   Result.ModifiersDown := [];
   Result.KeyString := '';
+  Result.FingerIndex := JoystickIndex;
 end;
 
 function TJoysticksHelper.IndexOf(const Joy: TJoystick): Integer;
@@ -249,8 +251,7 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJ
   var
     ButtonEvent: TInputPressRelease;
   begin
-    ButtonEvent := InputJoystick(JoystickEventToKey(JEP.Primary));
-    ButtonEvent.FingerIndex := Joysticks.IndexOf(Joy);
+    ButtonEvent := InputJoystick(JoystickEventToKey(JEP.Primary), Joysticks.IndexOf(Joy));
     if Abs(AValue) > JoystickEpsilon then
       SendPressEventToAllContainers(ButtonEvent)
     else
@@ -258,8 +259,7 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJ
       SendReleaseEventToAllContainers(ButtonEvent);
       if JEP.Inverse <> JEP.Primary then
       begin
-        ButtonEvent := InputJoystick(JoystickEventToKey(JEP.Inverse));
-        ButtonEvent.FingerIndex := Joysticks.IndexOf(Joy);
+        ButtonEvent := InputJoystick(JoystickEventToKey(JEP.Inverse), Joysticks.IndexOf(Joy));
         SendReleaseEventToAllContainers(ButtonEvent);
       end;
     end;
@@ -680,7 +680,7 @@ procedure TCastleJoysticks.TFakeJoystickEventsHandler.PressKey(const AKey: TKey)
 var
   ButtonEvent: TInputPressRelease;
 begin
-  ButtonEvent := InputJoystick(AKey);
+  ButtonEvent := InputJoystick(AKey, FakeEventSenderJoystick);
   JoysticksNew.SendPressEventToAllContainers(ButtonEvent);
 end;
 
@@ -688,7 +688,7 @@ procedure TCastleJoysticks.TFakeJoystickEventsHandler.ReleaseKey(const AKey: TKe
 var
   ButtonEvent: TInputPressRelease;
 begin
-  ButtonEvent := InputJoystick(AKey);
+  ButtonEvent := InputJoystick(AKey, FakeEventSenderJoystick);
   JoysticksNew.SendReleaseEventToAllContainers(ButtonEvent);
 end;
 
