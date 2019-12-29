@@ -23,7 +23,7 @@ interface
 uses SysUtils, Classes, Generics.Collections,
   CastleKeysMouse, CastleUtils, CastleClassUtils, CastleGLUtils, CastleFonts,
   CastleRectangles, CastleTimeUtils, CastleInternalPk3DConnexion, CastleColors,
-  CastleImages, CastleVectors, CastleJoysticks, CastleApplicationProperties,
+  CastleImages, CastleVectors, CastleApplicationProperties,
   CastleGLImages;
 
 const
@@ -2322,7 +2322,7 @@ implementation
 
 uses DOM, TypInfo, Math,
   CastleLog, CastleComponentSerialize, CastleXMLUtils, CastleStringUtils,
-  CastleInternalSettings, CastleJoystickManager,
+  CastleInternalSettings, CastleJoysticks,
   {$ifdef CASTLE_OBJFPC} CastleGL {$else} GL, GLExt {$endif};
 
 { TTouchList ----------------------------------------------------------------- }
@@ -2402,7 +2402,7 @@ begin
         [E.ClassName, E.Message]);
   end;
 
-  JoysticksNew.UiContainers.Add(Self);
+  Joysticks.UiContainers.Add(Self);
 end;
 
 destructor TUIContainer.Destroy;
@@ -2419,7 +2419,7 @@ begin
   FreeAndNil(FNewFocus);
   { set to nil by SetForceCaptureInput, to detach free notification }
   ForceCaptureInput := nil;
-  JoysticksNew.UiContainers.Remove(Self);
+  Joysticks.UiContainers.Remove(Self);
   inherited;
 end;
 
