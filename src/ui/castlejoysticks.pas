@@ -365,7 +365,6 @@ uses SysUtils, Math,
   {$ifdef MSWINDOWS} CastleInternalJoysticksWindows, {$endif}
   {$ifdef LINUX}CastleInternalJoystickDatabaseLinux, {$endif}
   {$ifdef MSWINDOWS}CastleInternalJoystickDatabaseWindows, {$endif}
-  {$ifdef MSWINDOWS} CastleInternalJoysticksWindows, {$endif} //needed to report a buggy library name, nothing more
   {$ifndef DatabaseLoaded} CastleInternalJoystickDatabaseGeneric, {$endif}
   CastleInternalJoysticksExplicit;
 
