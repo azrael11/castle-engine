@@ -105,16 +105,6 @@ begin
       FpIOCtl( NewBackendInfo.Device, JSIOCGAXES,    @NewJoystick.Info.Count.Axes );
       FpIOCtl( NewBackendInfo.Device, JSIOCGBUTTONS, @NewJoystick.Info.Count.Buttons );
 
-      for j := 0 to NewJoystick.Info.Count.Axes - 1 do
-        with NewJoystick.Info do
-          case NewBackendInfo.AxesMap[ j ] of
-            2, 6:   Caps := Caps or JOY_HAS_Z;
-            5, 7:   Caps := Caps or JOY_HAS_R;
-            3:      Caps := Caps or JOY_HAS_U;
-            4:      Caps := Caps or JOY_HAS_V;
-            16, 17: Caps := Caps or JOY_HAS_POV;
-          end;
-
       for j := 1 to 255 do
         if NewJoystick.Info.Name[ j ] = #0 then
           begin
