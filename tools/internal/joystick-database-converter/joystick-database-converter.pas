@@ -17,7 +17,9 @@
   Currently we can work only with Linux and Windows joysticks.
   Other platforms backends work in a different way
   (through "Explicit" backend, which also manages the events,
-   sent by the joystick) }
+   sent by the joystick)
+  See also https://github.com/spurious/SDL-mirror/blob/master/src/joystick/SDL_gamecontroller.c -
+  same thing done in SDL }
 program JoystickDatabaseConverter;
 
 uses
