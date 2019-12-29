@@ -101,7 +101,7 @@ type
     State   : TJoyState;
 
     TrimmedName: String;
-    LeftAxis, RightAxis, DPad: TVector2;
+    LeftAxis, RightAxis: TVector2;
 
     property Layout: TJoystickLayout read FLayout write SetLayout;
 
