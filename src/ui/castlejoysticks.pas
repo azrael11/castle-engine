@@ -361,10 +361,8 @@ implementation
 
 uses SysUtils, Math,
   CastleLog, CastleUtils,
-  {$ifdef LINUX} CastleInternalJoysticksLinux, {$endif}
-  {$ifdef MSWINDOWS} CastleInternalJoysticksWindows, {$endif}
-  {$ifdef LINUX}CastleInternalJoystickDatabaseLinux, {$endif}
-  {$ifdef MSWINDOWS}CastleInternalJoystickDatabaseWindows, {$endif}
+  {$ifdef LINUX} CastleInternalJoysticksLinux, CastleInternalJoystickDatabaseLinux, {$endif}
+  {$ifdef MSWINDOWS} CastleInternalJoysticksWindows, CastleInternalJoystickDatabaseWindows, {$endif}
   {$ifndef DatabaseLoaded} CastleInternalJoystickDatabaseGeneric, {$endif}
   CastleInternalJoysticksExplicit;
 
