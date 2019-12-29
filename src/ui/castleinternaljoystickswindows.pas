@@ -20,7 +20,7 @@
 { Windows Joystick support. }
 unit CastleInternalJoysticksWindows;
 
-// TODO: only partially works on Windows (no support of new features); need to be ported to xinput library
+// TODO: only partially works on Windows (no support of new features); need to be ported to xinput/DirectInput library
 
 interface
 
@@ -110,9 +110,13 @@ function joyGetDevCapsW( uJoyID : LongWord; lpCaps : PJOYCAPSW; uSize : LongWord
 function joyGetPosEx( uJoyID : LongWord; lpInfo : PJOYINFOEX ) : LongWord; stdcall; external WINMMLIB name 'joyGetPosEx';
 
 type
-  TWindowsJoystickBackendInfo = class
+  {TWindowsJoystickBackendInfo = class
     Caps    : TJOYCAPSW;
     AxesMap : array[ 0..5 ] of Byte;
+  end;}
+
+  TWindowsJoystick = class(TJoystick)
+    Caps    : TJOYCAPSW;
   end;
 
   TWindowsJoysticksBackend = class(TJoysticksBackend)
@@ -131,54 +135,53 @@ var
   i, j : Integer;
   axis : Integer;
   caps : PLongWord;
-  NewJoystick: TJoystick;
-  NewBackendInfo: TWindowsJoystickBackendInfo;
+  NewJoystick: TWindowsJoystick;
+  //NewBackendInfo: TWindowsJoystickBackendInfo;
 begin
-  j := joyGetNumDevs();
-  for i := 0 to j - 1 do
+  for i := 0 to joyGetNumDevs() - 1 do
   begin
-    NewJoystick := TJoystick.Create;
-    NewBackendInfo := TWindowsJoystickBackendInfo.Create;
-    NewJoystick.InternalBackendInfo := NewBackendInfo;
+    NewJoystick := TWindowsJoystick.Create;
+    //NewBackendInfo := TWindowsJoystickBackendInfo.Create;
+    //NewJoystick.InternalBackendInfo := NewBackendInfo;
 
-    if joyGetDevCapsW( i, @NewBackendInfo.Caps, SizeOf( TJOYCAPSW ) ) = 0 then
+    if joyGetDevCapsW( i, @NewJoystick.Caps, SizeOf( TJOYCAPSW ) ) = 0 then
     begin
-      NewJoystick.Info.Name          := NewBackendInfo.Caps.szPname;
-      NewJoystick.Info.Count.Axes    := NewBackendInfo.Caps.wNumAxes;
-      NewJoystick.Info.Count.Buttons := NewBackendInfo.Caps.wNumButtons;
+      NewJoystick.Info.Name          := NewJoystick.Caps.szPname;
+      NewJoystick.Info.Count.Axes    := NewJoystick.Caps.wNumAxes;
+      NewJoystick.Info.Count.Buttons := NewJoystick.Caps.wNumButtons;
 
       caps  := @NewJoystick.Info.Caps;
-      NewBackendInfo.AxesMap[ 0 ] := JOY_AXIS_X;
-      NewBackendInfo.AxesMap[ 1 ] := JOY_AXIS_Y;
-      axis := 2;
-      if NewBackendInfo.Caps.wCaps and JOYCAPS_HASZ > 0 then
+      //NewBackendInfo.AxesMap[ 0 ] := JOY_AXIS_X;
+      //NewBackendInfo.AxesMap[ 1 ] := JOY_AXIS_Y;
+      //axis := 2;
+      if NewJoystick.Caps.wCaps and JOYCAPS_HASZ > 0 then
       begin
         caps^ := caps^ or JOY_HAS_Z;
-        NewBackendInfo.AxesMap[ axis ] := JOY_AXIS_Z;
-        Inc( axis );
-      end;
-      if NewBackendInfo.Caps.wCaps and JOYCAPS_HASR > 0 then
-      begin
-        caps^ := caps^ or JOY_HAS_R;
-        NewBackendInfo.AxesMap[ axis ] := JOY_AXIS_R;
-        Inc( axis );
-      end;
-      if NewBackendInfo.Caps.wCaps and JOYCAPS_HASU > 0 then
-      begin
-        caps^ := caps^ or JOY_HAS_U;
-        NewBackendInfo.AxesMap[ axis ] := JOY_AXIS_U;
-        Inc( axis );
-      end;
-      if NewBackendInfo.Caps.wCaps and JOYCAPS_HASV > 0 then
-      begin
-        caps^ := caps^ or JOY_HAS_V;
-        NewBackendInfo.AxesMap[ axis ] := JOY_AXIS_V;
+        //NewBackendInfo.AxesMap[ axis ] := JOY_AXIS_Z;
         //Inc( axis );
       end;
-      if NewBackendInfo.Caps.wCaps and JOYCAPS_HASPOV > 0 then
+      if NewJoystick.Caps.wCaps and JOYCAPS_HASR > 0 then
+      begin
+        caps^ := caps^ or JOY_HAS_R;
+        //NewBackendInfo.AxesMap[ axis ] := JOY_AXIS_R;
+        //Inc( axis );
+      end;
+      if NewJoystick.Caps.wCaps and JOYCAPS_HASU > 0 then
+      begin
+        caps^ := caps^ or JOY_HAS_U;
+        //NewBackendInfo.AxesMap[ axis ] := JOY_AXIS_U;
+        //Inc( axis );
+      end;
+      if NewJoystick.Caps.wCaps and JOYCAPS_HASV > 0 then
+      begin
+        caps^ := caps^ or JOY_HAS_V;
+        //NewBackendInfo.AxesMap[ axis ] := JOY_AXIS_V;
+        //Inc( axis );
+      end;
+      if NewJoystick.Caps.wCaps and JOYCAPS_HASPOV > 0 then
       begin
         caps^ := caps^ or JOY_HAS_POV;
-        Inc( NewJoystick.Info.Count.Axes, 2 );
+        //Inc( NewJoystick.Info.Count.Axes, 2 );
       end;
 
       WritelnLog('CastleJoysticks Init', 'Find joy: %s (ID: %d); Axes: %d; Buttons: %d',
@@ -202,17 +205,17 @@ var
   value : PLongWord;
   vMin  : LongWord;
   vMax  : LongWord;
-  Joystick: TJoystick;
-  BackendInfo: TWindowsJoystickBackendInfo;
+  Joystick: TWindowsJoystick;
+  //BackendInfo: TWindowsJoystickBackendInfo;
 begin
   state.dwSize := SizeOf( TJOYINFOEX );
   for I := 0 to List.Count - 1 do
   begin
-    Joystick := List[I];
-    BackendInfo := Joystick.InternalBackendInfo as TWindowsJoystickBackendInfo;
+    Joystick := List[I] as TWindowsJoystick;
+    //BackendInfo := Joystick.InternalBackendInfo as TWindowsJoystickBackendInfo;
 
     state.dwFlags := JOY_RETURNALL or JOY_USEDEADZONE;
-    if BackendInfo.Caps.wCaps and JOYCAPS_POVCTS > 0 then
+    if Joystick.Caps.wCaps and JOYCAPS_POVCTS > 0 then
       state.dwFlags := state.dwFlags or JOY_RETURNPOVCTS;
 
     if joyGetPosEx( i, @state ) = 0 then
@@ -220,12 +223,13 @@ begin
       for j := 0 to Joystick.Info.Count.Axes - 1 do
       begin
         //stop if joystick reported more axes than the backend can handle
-        if j > High(BackendInfo.AxesMap) then
-          Break;
+        {if j > High(BackendInfo.AxesMap) then
+          Break;}
 
         // Say "no" to if's, and do everything trciky :)
-        a     := BackendInfo.AxesMap[ j ];
-        pcaps := @BackendInfo.Caps;
+        // I have no idea what hellish trickstery is this :D Saying "YES" to ifs!
+        a     := j;
+        pcaps := @Joystick.Caps;
         Inc( pcaps, JS_AXIS[ a ] );
         vMin  := pcaps^;
         Inc( pcaps );
@@ -235,10 +239,10 @@ begin
 
         _value := value^ / ( vMax - vMin ) * 2 - 1;
 
-        if Joystick.State.Axis[ a ] <> _value then
+        if Joystick.State.Axis[ j ] <> _value then
           if Assigned(EventContainer.OnAxisMove) then
             EventContainer.OnAxisMove(Joystick, j, _value);
-        Joystick.State.Axis[ a ] := _value;
+        Joystick.State.Axis[ j ] := _value;
       end;
 
       //FillChar( Joystick.State.Axis[ JOY_NEWPOVX ], 8, 0 ); //fills NEWPOVY too? As Single is 4 bytes long.
