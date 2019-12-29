@@ -372,9 +372,9 @@ var
 begin
   Result := 'Joystick "' + JoystickName + '" has the following features:' + NL;
   if AxesExceedBackendCapabilities then
-    Result += 'Warning: this joystick layout suggests more axes than our current backend can handle (8).' + NL;
+    Result += 'Warning: this joystick layout suggests more axes than our current backends can handle (6 on Windows; 16 on Linux).' + NL;
   if ButtonsExceedBackendCapabilities then
-    Result += 'Warning: this joystick layout suggests more buttons than our current backend can handle (32).' + NL;
+    Result += 'Warning: this joystick layout suggests more buttons than our current backends can handle (32).' + NL;
   Result += 'GUID: ' + Guid + NL;
   if BuggyGuid then
     Result += 'Warning: This joystick GUID is known to be shared by different joyticks with different layouts' + NL;
