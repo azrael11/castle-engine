@@ -22,10 +22,7 @@ interface
 implementation
 
 uses SysUtils, Classes,
-  CastleVectors, CastleWindow, CastleControls, CastleOnScreenMenu,
-  CastleControlsImages, CastleImages, CastleFilesUtils, CastleColors,
-  CastleUIControls, CastleNotifications, CastleLog, CastleUiState,
-  CastleApplicationProperties,
+  CastleWindow, CastleLog, CastleUiState, CastleApplicationProperties,
   GameStateMain;
 
 var
@@ -37,6 +34,7 @@ begin
   { Adjust container settings for a scalable UI (adjusts to any window size in a smart way). }
   Window.Container.LoadSettings('castle-data:/CastleSettings.xml');
 
+  { Create and run main state of the program }
   StateMain := TStateMain.Create(Application);
   TUiState.Current := StateMain;
 end;
