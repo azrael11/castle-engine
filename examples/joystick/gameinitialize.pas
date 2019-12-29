@@ -25,7 +25,6 @@ uses SysUtils, Classes,
   CastleVectors, CastleWindow, CastleControls, CastleOnScreenMenu,
   CastleControlsImages, CastleImages, CastleFilesUtils, CastleColors,
   CastleUIControls, CastleNotifications, CastleLog, CastleUiState,
-  CastleJoysticks,
   CastleApplicationProperties,
   GameStateMain;
 
