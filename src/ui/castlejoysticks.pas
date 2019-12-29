@@ -77,7 +77,7 @@ type
   { Joystick state.
     TODO: Deprecate at some point, in favor of simpler joystick API like @link(TJoystick.Axis). }
   TJoyState = record
-    Axis        : array[ 0..7 ] of Single;
+    Axis        : array[ 0..17 ] of Single;
     BtnUp       : array[ 0..31 ] of Boolean;
     BtnDown     : array[ 0..31 ] of Boolean;
     BtnPress    : array[ 0..31 ] of Boolean;
