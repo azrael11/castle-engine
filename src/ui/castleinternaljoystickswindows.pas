@@ -241,17 +241,23 @@ begin
         Joystick.State.Axis[ a ] := _value;
       end;
 
-      FillChar( Joystick.State.Axis[ JOY_NEWPOVX ], 8, 0 ); //fills NEWPOVY too? As Single is 4 bytes long.
-      if ( Joystick.Info.Caps and JOY_HAS_POV > 0 ) and ( state.dwPOV and $FFFF <> $FFFF ) then
+      //FillChar( Joystick.State.Axis[ JOY_NEWPOVX ], 8, 0 ); //fills NEWPOVY too? As Single is 4 bytes long.
+      if ( Joystick.Info.Caps and JOY_HAS_POV > 0 ) then
       begin
-        _value := Sin( DegToRad(state.dwPOV and $FFFF / 100.0) );
+        if ( state.dwPOV and $FFFF <> $FFFF ) then
+          _value := Sin( DegToRad(state.dwPOV and $FFFF / 100.0) )
+        else
+          _value := 0;
+
         if Joystick.State.Axis[ JOY_NEWPOVX ] <> _value then
           if Assigned(EventContainer.OnAxisMove) then
             EventContainer.OnAxisMove(Joystick, JOY_NEWPOVX, _value);
         Joystick.State.Axis[ JOY_NEWPOVX ] := _value;
 
-        _value := -Cos( DegToRad(state.dwPOV and $FFFF / 100.0 ) );
-        //_value := -_value;
+        if ( state.dwPOV and $FFFF <> $FFFF ) then
+          _value := -Cos( DegToRad(state.dwPOV and $FFFF / 100.0 ) )
+        else
+          _value := 0;
         if Joystick.State.Axis[ JOY_NEWPOVY ] <> _value then
           if Assigned(EventContainer.OnAxisMove) then
             EventContainer.OnAxisMove(Joystick, JOY_NEWPOVY, _value);
