@@ -60,9 +60,9 @@ type
   TJOYINFOEX = packed record
     dwSize: LongWord;
     dwFlags: LongWord;
-    wXpos: LongWord;
-    wYpos: LongWord;
-    wZpos: LongWord;
+    dwXpos: LongWord;
+    dwYpos: LongWord;
+    dwZpos: LongWord;
     dwRpos: LongWord;
     dwUpos: LongWord;
     dwVpos: LongWord;
@@ -103,18 +103,11 @@ const
 
   WINMMLIB = 'winmm.dll';
 
-  JS_AXIS : array[ 0..5 ] of LongWord = ( 17 {X}, 19 {Y}, 21 {Z}, 26 {R}, 28 {U}, 30 {V} );
-
 function joyGetNumDevs : LongWord; stdcall; external WINMMLIB name 'joyGetNumDevs';
 function joyGetDevCapsW( uJoyID : LongWord; lpCaps : PJOYCAPSW; uSize : LongWord ) : LongWord; stdcall; external WINMMLIB name 'joyGetDevCapsW';
 function joyGetPosEx( uJoyID : LongWord; lpInfo : PJOYINFOEX ) : LongWord; stdcall; external WINMMLIB name 'joyGetPosEx';
 
 type
-  {TWindowsJoystickBackendInfo = class
-    Caps    : TJOYCAPSW;
-    AxesMap : array[ 0..5 ] of Byte;
-  end;}
-
   TWindowsJoystick = class(TJoystick)
     Caps    : TJOYCAPSW;
   end;
@@ -136,13 +129,10 @@ var
   axis : Integer;
   caps : PLongWord;
   NewJoystick: TWindowsJoystick;
-  //NewBackendInfo: TWindowsJoystickBackendInfo;
 begin
   for i := 0 to joyGetNumDevs() - 1 do
   begin
     NewJoystick := TWindowsJoystick.Create;
-    //NewBackendInfo := TWindowsJoystickBackendInfo.Create;
-    //NewJoystick.InternalBackendInfo := NewBackendInfo;
 
     if joyGetDevCapsW( i, @NewJoystick.Caps, SizeOf( TJOYCAPSW ) ) = 0 then
     begin
@@ -151,37 +141,25 @@ begin
       NewJoystick.Info.Count.Buttons := NewJoystick.Caps.wNumButtons;
 
       caps  := @NewJoystick.Info.Caps;
-      //NewBackendInfo.AxesMap[ 0 ] := JOY_AXIS_X;
-      //NewBackendInfo.AxesMap[ 1 ] := JOY_AXIS_Y;
-      //axis := 2;
       if NewJoystick.Caps.wCaps and JOYCAPS_HASZ > 0 then
       begin
         caps^ := caps^ or JOY_HAS_Z;
-        //NewBackendInfo.AxesMap[ axis ] := JOY_AXIS_Z;
-        //Inc( axis );
       end;
       if NewJoystick.Caps.wCaps and JOYCAPS_HASR > 0 then
       begin
         caps^ := caps^ or JOY_HAS_R;
-        //NewBackendInfo.AxesMap[ axis ] := JOY_AXIS_R;
-        //Inc( axis );
       end;
       if NewJoystick.Caps.wCaps and JOYCAPS_HASU > 0 then
       begin
         caps^ := caps^ or JOY_HAS_U;
-        //NewBackendInfo.AxesMap[ axis ] := JOY_AXIS_U;
-        //Inc( axis );
       end;
       if NewJoystick.Caps.wCaps and JOYCAPS_HASV > 0 then
       begin
         caps^ := caps^ or JOY_HAS_V;
-        //NewBackendInfo.AxesMap[ axis ] := JOY_AXIS_V;
-        //Inc( axis );
       end;
       if NewJoystick.Caps.wCaps and JOYCAPS_HASPOV > 0 then
       begin
         caps^ := caps^ or JOY_HAS_POV;
-        //Inc( NewJoystick.Info.Count.Axes, 2 );
       end;
 
       WritelnLog('CastleJoysticks Init', 'Find joy: %s (ID: %d); Axes: %d; Buttons: %d',
@@ -197,7 +175,7 @@ procedure TWindowsJoysticksBackend.Poll(const List: TJoystickList;
   const EventContainer: TJoysticks);
 var
   i : Integer;
-  _value: Single;
+  AxisValue: Single;
   j, a  : Integer;
   btn   : Integer;
   state : TJOYINFOEX;
@@ -206,13 +184,11 @@ var
   vMin  : LongWord;
   vMax  : LongWord;
   Joystick: TWindowsJoystick;
-  //BackendInfo: TWindowsJoystickBackendInfo;
 begin
   state.dwSize := SizeOf( TJOYINFOEX );
   for I := 0 to List.Count - 1 do
   begin
     Joystick := List[I] as TWindowsJoystick;
-    //BackendInfo := Joystick.InternalBackendInfo as TWindowsJoystickBackendInfo;
 
     state.dwFlags := JOY_RETURNALL or JOY_USEDEADZONE;
     if Joystick.Caps.wCaps and JOYCAPS_POVCTS > 0 then
@@ -222,50 +198,44 @@ begin
     begin
       for j := 0 to Joystick.Info.Count.Axes - 1 do
       begin
-        //stop if joystick reported more axes than the backend can handle
-        {if j > High(BackendInfo.AxesMap) then
-          Break;}
+        case j of
+          JOY_AXIS_X: AxisValue := State.dwXpos / (Joystick.Caps.wXmax - Joystick.Caps.wXmin) * 2 - 1;
+          JOY_AXIS_Y: AxisValue := State.dwYpos / (Joystick.Caps.wYmax - Joystick.Caps.wYmin) * 2 - 1;
+          JOY_AXIS_Z: AxisValue := State.dwZpos / (Joystick.Caps.wZmax - Joystick.Caps.wZmin) * 2 - 1;
+          JOY_AXIS_R: AxisValue := State.dwRpos / (Joystick.Caps.wRmax - Joystick.Caps.wRmin) * 2 - 1;
+          JOY_AXIS_U: AxisValue := State.dwUpos / (Joystick.Caps.wUmax - Joystick.Caps.wUmin) * 2 - 1;
+          JOY_AXIS_V: AxisValue := State.dwVpos / (Joystick.Caps.wVmax - Joystick.Caps.wVmin) * 2 - 1;
+          else
+            AxisValue := 0;
+        end;
 
-        // Say "no" to if's, and do everything trciky :)
-        // I have no idea what hellish trickstery is this :D Saying "YES" to ifs!
-        a     := j;
-        pcaps := @Joystick.Caps;
-        Inc( pcaps, JS_AXIS[ a ] );
-        vMin  := pcaps^;
-        Inc( pcaps );
-        vMax  := pcaps^;
-        value := @state;
-        Inc( value, 2 + a );
-
-        _value := value^ / ( vMax - vMin ) * 2 - 1;
-
-        if Joystick.State.Axis[ j ] <> _value then
+        if Joystick.State.Axis[ j ] <> AxisValue then
           if Assigned(EventContainer.OnAxisMove) then
-            EventContainer.OnAxisMove(Joystick, j, _value);
-        Joystick.State.Axis[ j ] := _value;
+            EventContainer.OnAxisMove(Joystick, j, AxisValue);
+        Joystick.State.Axis[ j ] := AxisValue;
       end;
 
-      //FillChar( Joystick.State.Axis[ JOY_NEWPOVX ], 8, 0 ); //fills NEWPOVY too? As Single is 4 bytes long.
+      //BUG: pressing dpad up then down may result in up not released
       if ( Joystick.Info.Caps and JOY_HAS_POV > 0 ) then
       begin
         if ( state.dwPOV and $FFFF <> $FFFF ) then
-          _value := Sin( DegToRad(state.dwPOV and $FFFF / 100.0) )
+          AxisValue := Sin( DegToRad(state.dwPOV and $FFFF / 100.0) )
         else
-          _value := 0;
+          AxisValue := 0;
 
-        if Joystick.State.Axis[ JOY_NEWPOVX ] <> _value then
+        if Joystick.State.Axis[ JOY_NEWPOVX ] <> AxisValue then
           if Assigned(EventContainer.OnAxisMove) then
-            EventContainer.OnAxisMove(Joystick, JOY_NEWPOVX, _value);
-        Joystick.State.Axis[ JOY_NEWPOVX ] := _value;
+            EventContainer.OnAxisMove(Joystick, JOY_NEWPOVX, AxisValue);
+        Joystick.State.Axis[ JOY_NEWPOVX ] := AxisValue;
 
         if ( state.dwPOV and $FFFF <> $FFFF ) then
-          _value := -Cos( DegToRad(state.dwPOV and $FFFF / 100.0 ) )
+          AxisValue := -Cos( DegToRad(state.dwPOV and $FFFF / 100.0 ) )
         else
-          _value := 0;
-        if Joystick.State.Axis[ JOY_NEWPOVY ] <> _value then
+          AxisValue := 0;
+        if Joystick.State.Axis[ JOY_NEWPOVY ] <> AxisValue then
           if Assigned(EventContainer.OnAxisMove) then
-            EventContainer.OnAxisMove(Joystick, JOY_NEWPOVY, _value);
-        Joystick.State.Axis[ JOY_NEWPOVY ] := _value;
+            EventContainer.OnAxisMove(Joystick, JOY_NEWPOVY, AxisValue);
+        Joystick.State.Axis[ JOY_NEWPOVY ] := AxisValue;
       end;
 
       for j := 0 to Joystick.Info.Count.Buttons - 1 do
