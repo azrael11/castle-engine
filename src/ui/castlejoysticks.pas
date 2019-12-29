@@ -70,7 +70,6 @@ type
       Axes    : Integer;
       Buttons : Integer;
              end;
-    Caps   : LongWord;
   end;
 
   PJoyState = ^TJoyState;
@@ -804,7 +803,6 @@ begin
     WriteLnLog('Joystick Name', Joy.Info.Name);
     WriteLnLog('Joystick Buttons', IntToStr(Joy.Info.Count.Buttons));
     WriteLnLog('Joystick Axes', IntToStr(Joy.Info.Count.Axes));
-    WriteLnLog('Joystick Caps', IntToStr(Joy.Info.Caps));
 
     //try autodetect the joystick by GUID
     //if autodetect by GUID failed then try

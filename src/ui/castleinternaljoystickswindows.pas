@@ -126,7 +126,6 @@ uses
 procedure TWindowsJoysticksBackend.Initialize(const List: TJoystickList);
 var
   I: Integer;
-  caps: PLongWord;
   NewJoystick: TWindowsJoystick;
 begin
   for I := 0 to joyGetNumDevs() - 1 do
@@ -138,29 +137,6 @@ begin
       NewJoystick.Info.Name          := NewJoystick.Capabilities.szPname;
       NewJoystick.Info.Count.Axes    := NewJoystick.Capabilities.wNumAxes;
       NewJoystick.Info.Count.Buttons := NewJoystick.Capabilities.wNumButtons;
-
-      //honestly, I have no idea what Info.Caps is for. We only use it to show a debug line with this number
-      caps  := @NewJoystick.Info.Caps;
-      if NewJoystick.Capabilities.wCaps and JOYCAPS_HASZ > 0 then
-      begin
-        caps^ := caps^ or JOY_HAS_Z;
-      end;
-      if NewJoystick.Capabilities.wCaps and JOYCAPS_HASR > 0 then
-      begin
-        caps^ := caps^ or JOY_HAS_R;
-      end;
-      if NewJoystick.Capabilities.wCaps and JOYCAPS_HASU > 0 then
-      begin
-        caps^ := caps^ or JOY_HAS_U;
-      end;
-      if NewJoystick.Capabilities.wCaps and JOYCAPS_HASV > 0 then
-      begin
-        caps^ := caps^ or JOY_HAS_V;
-      end;
-      if NewJoystick.Capabilities.wCaps and JOYCAPS_HASPOV > 0 then
-      begin
-        caps^ := caps^ or JOY_HAS_POV;
-      end;
 
       WritelnLog('CastleJoysticks Init', 'Find joy: %s (ID: %d); Axes: %d; Buttons: %d',
                  [NewJoystick.Info.Name, i, NewJoystick.Info.Count.Axes, NewJoystick.Info.Count.Buttons]);
