@@ -325,15 +325,13 @@ end;
 
 function TJoystickLayout.LogJoystickFeatures: String;
 
-  { Current backend supports no more than 6 axes [0..5]
-    + [6, 7] used for D-Pad
-      this limitation can be fixed in Linux and Windows backend
-      We can extend the amount of available axes to 8 on Windows (now: 6)
-      and to 16 on Linux
-      without rewriting the current backend
-    however PS3 Controller has 14 axes
-    by axes we understand not quantity of physical axes/sticks,
-    but their backend number }
+  { Current backends provide for available amount of available axes
+      6 on Windows
+      16 on Linux
+    Note: e.g. PS3 Controller has 14 axes
+    Note: by axes we understand not quantity of physical axes/sticks,
+    but their backend number
+    Note: some axes correspond to buttons }
   function AxesExceedBackendCapabilities: Boolean;
   const
     MaxBackendAxes =
