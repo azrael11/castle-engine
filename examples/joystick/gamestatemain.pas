@@ -75,8 +75,7 @@ implementation
 
 uses
   SysUtils,
-  CastleComponentSerialize, CastleVectors, CastleColors, CastleLog, {CastleUtils,}
-  CastleJoystickManager;
+  CastleComponentSerialize, CastleVectors, CastleColors, CastleLog;
 
 procedure TStateMain.Start;
 var
@@ -137,11 +136,11 @@ begin
     at any moment during the course of the game
     Normally, the database can be safely freed after the joysticks have been
     autodetected or user closes Options }
-  JoysticksNew.FreeJoysticksDatabaseAfterInitialization := false;
+  Joysticks.FreeJoysticksDatabaseAfterInitialization := false;
 
   { Actually detect joysticks.
     This will automatically call TEventsHandler.JoysticksChanged on some platforms. }
-  JoysticksNew.Initialize;
+  Joysticks.Initialize;
 
   if Joysticks.Count > 0 then
   begin
@@ -186,7 +185,7 @@ begin
   if CurrentJoystick = nil then
     Exit;
 
-  SList := JoysticksNew.JoysticksLayoutsNames;
+  SList := Joysticks.JoysticksLayoutsNames;
   if SList <> nil then
   begin
     VerticalGroupJoysticksNames.ClearControls;
@@ -268,7 +267,7 @@ procedure TStateMain.ClickJoystickLayout(Sender: TObject);
 begin
   RemoveFocusFromLayout(LastFocusedLayoutButton);
   AddFocusToLayout(Sender as TJoystickLayoutButton);
-  JoysticksNew.AssignJoystickLayoutByName(CurrentJoystick, LastFocusedLayoutButton.LayoutLabel.Caption);
+  Joysticks.AssignJoystickLayoutByName(CurrentJoystick, LastFocusedLayoutButton.LayoutLabel.Caption);
 end;
 
 procedure TStateMain.ClickSelectJoystick(Sender: TObject);
