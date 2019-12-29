@@ -109,7 +109,7 @@ function joyGetPosEx(uJoyID: LongWord; lpInfo: PJOYINFOEX ): LongWord; stdcall; 
 
 type
   TWindowsJoystick = class(TJoystick)
-    Capabilities: TJOYCAPSW; //not to be confused with Info.Caps
+    Capabilities: TJOYCAPSW;
   end;
 
   TWindowsJoysticksBackend = class(TJoysticksBackend)
@@ -188,7 +188,6 @@ begin
         Joystick.State.Axis[Axis] := AxisValue;
       end;
 
-      //BUG: pressing dpad up then down may result in up not released
       if Joystick.Capabilities.wCaps and JOYCAPS_HASPOV > 0 then
       begin
         if State.dwPOV and $FFFF <> $FFFF then

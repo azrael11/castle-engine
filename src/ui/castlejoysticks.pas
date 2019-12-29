@@ -636,13 +636,12 @@ procedure TCastleJoysticks.SendJoystickEvent(const Joy: TJoystick; const JEP: TJ
     if Abs(AValue) > JoystickEpsilon then
       SendPressEventToAllContainers(ButtonEvent)
     else
-    begin
       SendReleaseEventToAllContainers(ButtonEvent);
-      if JEP.Inverse <> JEP.Primary then
-      begin
-        ButtonEvent := InputJoystick(JoystickEventToKey(JEP.Inverse), IndexOf(Joy));
-        SendReleaseEventToAllContainers(ButtonEvent);
-      end;
+    // and try release the "inverse" event in both cases
+    if JEP.Inverse <> JEP.Primary then
+    begin
+      ButtonEvent := InputJoystick(JoystickEventToKey(JEP.Inverse), IndexOf(Joy));
+      SendReleaseEventToAllContainers(ButtonEvent);
     end;
   end;
 
@@ -712,7 +711,7 @@ begin
       WriteLnLog('Warning', Format('Unknown "%s" (detected as "%s") joystick event at axis [%s]',
         [Joy.TrimmedName,
          Joy.Layout.JoystickName, IntToStr(Axis)]));
-  end else
+  end else //if event is D-Pad
   begin
     JEP := Joy.Layout.DPadEvent(Axis, Value);
     if JEP.Primary <> unknownAxisEvent then
