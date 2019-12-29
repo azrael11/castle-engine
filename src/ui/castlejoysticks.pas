@@ -158,7 +158,6 @@ type
     FOnButtonUp: TOnJoyButtonEvent;
     FOnButtonPress: TOnJoyButtonEvent;
     Backend: TJoysticksBackend;
-    FList: TJoystickList;
     FInitialized: Boolean;
     FOnChange: TNotifyEvent;
     function IndexOf(const Joy: TJoystick): Integer;
@@ -167,6 +166,7 @@ type
       Always returns TExplicitJoystickBackend, but cannot be declared as such. }
     function ExplicitBackend: TJoysticksBackend;
   protected
+    FList: TJoystickList;
     { See OnChange. }
     procedure DoChange;
   public
@@ -798,9 +798,9 @@ begin
   OnButtonUp := @DoButtonUp;
   OnButtonPress := @DoButtonPress;
 
-  for I := 0 to Pred(Joysticks.Count) do
+  for I := 0 to Pred(Count) do
   begin
-    Joy := Joysticks[I];
+    Joy := FList[I];
     WriteLnLog('Joystick Name', Joy.Info.Name);
     WriteLnLog('Joystick Buttons', IntToStr(Joy.Info.Count.Buttons));
     WriteLnLog('Joystick Axes', IntToStr(Joy.Info.Count.Axes));
@@ -874,7 +874,7 @@ procedure TCastleJoysticks.AssignJoystickLayoutByName(const Joy: TJoystick; cons
 var
   NewJoystickLayout: TJoystickLayout;
 begin
-  if not Joysticks.Initialized then
+  if not Initialized then
     WriteLnLog('Warning', 'Joysticks not initialized. Unable to AssignJoystickLayoutByName.')
   else
   begin
@@ -901,7 +901,7 @@ procedure TCastleJoysticks.AssignJoystickLayoutByGuid(const Joy: TJoystick; cons
 var
   NewJoystickLayout: TJoystickLayout;
 begin
-  if not Joysticks.Initialized then
+  if not Initialized then
     WriteLnLog('Warning', 'Joysticks not initialized. Unable to AssignJoystickLayoutByGuid.')
   else
   begin
