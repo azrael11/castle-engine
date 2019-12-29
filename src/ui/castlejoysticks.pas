@@ -553,14 +553,8 @@ begin
 end;
 
 function TJoysticks.IndexOf(const Joy: TJoystick): Integer;
-var
-  I: Integer;
 begin
-  //Result := FList.IndexOf(Joy); //unaccessible private field
-  Result := -1;
-  for I := 0 to Pred(Joysticks.Count) do
-    if Items[I] = Joy then
-      Exit(I);
+  Result := FList.IndexOf(Joy);
 end;
 
 { temporary: to-do: move to CastleKeysMouse}
