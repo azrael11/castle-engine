@@ -132,6 +132,9 @@ const
   JOY_POVX   = 6;
   JOY_POVY   = 7;
 
+  JOY_NEWPOVX = 16;
+  JOY_NEWPOVY = 17;
+
 type
   TJoysticks = class;
 
@@ -700,7 +703,7 @@ procedure TCastleJoysticks.DoAxisMove(const Joy: TJoystick; const Axis: Byte; co
 var
   JEP: TJoystickEventPair;
 begin
-  if (Axis <> 6) and (Axis <> 7) then //if event is not D-Pad
+  if (Axis <> JOY_NEWPOVX) and (Axis <> JOY_NEWPOVY) then //if event is not D-Pad
   begin
     JEP := Joy.Layout.AxisEvent(Axis, Value);
     if JEP.Primary <> unknownAxisEvent then

@@ -152,7 +152,16 @@ begin
       case event.EventType of
         JS_EVENT_AXIS:
           begin
-            axis := JS_AXIS[ BackendInfo.AxesMap[ event.number ] ];
+            axis := {JS_AXIS[ BackendInfo.AxesMap[} event.number {] ]};
+
+            { Obsolete Linux backend reports POV as 16,17 axes
+              however "physically" they are located at the end of "real axes"
+              which forces us to use the provided BackendInfo.AxesMap }
+            if BackendInfo.AxesMap[event.number] = 16 then
+              axis := JOY_NEWPOVX;
+            if BackendInfo.AxesMap[event.number] = 17 then
+              axis := JOY_NEWPOVY;
+
             Value := event.value / 32767;
             Joystick.State.Axis[ axis ] := Value;
             if Assigned(EventContainer.OnAxisMove) then EventContainer.OnAxisMove(Joystick, axis, Value);

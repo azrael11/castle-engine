@@ -150,7 +150,7 @@ function JoystickEventToStr(const Event: TJoystickEvent): String;
 implementation
 uses
   Classes, SysUtils,
-  CastleLog, CastleUtils;
+  CastleLog, CastleUtils, CastleJoysticks;
 
 constructor TJoystickLayout.Create;
 begin
@@ -233,7 +233,7 @@ end;
 
 function TJoystickLayout.DPadEvent(const DPadAxis: Byte; const AxisValue: Single): TJoystickEventPair;
 begin
-  if DPadAxis = 6 then
+  if DPadAxis = JOY_NEWPOVX then
   begin
     //D-Pad X axis
     if AxisValue >= 0 then
@@ -246,7 +246,7 @@ begin
       Result.Inverse := dpadRight;
     end;
   end else
-  if DPadAxis = 7 then
+  if DPadAxis = JOY_NEWPOVY then
   begin
     //D-Pad Y axis
     if AxisValue >= 0 then
