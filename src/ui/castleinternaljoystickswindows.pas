@@ -139,7 +139,7 @@ begin
       NewJoystick.Info.Count.Buttons := NewJoystick.Capabilities.wNumButtons;
 
       WritelnLog('CastleJoysticks Init', 'Find joy: %s (ID: %d); Axes: %d; Buttons: %d',
-                 [NewJoystick.Info.Name, i, NewJoystick.Info.Count.Axes, NewJoystick.Info.Count.Buttons]);
+                 [NewJoystick.Info.Name, I, NewJoystick.Info.Count.Axes, NewJoystick.Info.Count.Buttons]);
 
       List.Add(NewJoystick);
     end else
@@ -216,18 +216,18 @@ begin
         Btn := State.wButtons and (1 shl Button);
         if (Joystick.State.BtnDown[Button]) and (Btn = 0) then
         begin
-          Joystick.State.BtnPress[Button] := False;
+          Joystick.State.BtnPress[Button] := false;
           if Assigned(EventContainer.OnButtonUp) then
             EventContainer.OnButtonUp(Joystick, Button);
-          Joystick.State.BtnCanPress[Button] := True;
+          Joystick.State.BtnCanPress[Button] := true;
         end;
 
         if (Joystick.State.BtnCanPress[Button]) and (not Joystick.State.BtnDown[Button]) and (Btn <> 0) then
         begin
-          Joystick.State.BtnPress[Button] := True;
+          Joystick.State.BtnPress[Button] := true;
           if Assigned(EventContainer.OnButtonPress) then
             EventContainer.OnButtonPress(Joystick, Button);
-          Joystick.State.BtnCanPress[Button] := False;
+          Joystick.State.BtnCanPress[Button] := false;
         end;
         Joystick.State.BtnDown[Button] := Btn <> 0;
         Joystick.State.BtnUp[Button] := Btn = 0;
