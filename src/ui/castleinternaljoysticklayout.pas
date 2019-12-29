@@ -329,21 +329,28 @@ function TJoystickLayout.LogJoystickFeatures: String;
     + [6, 7] used for D-Pad
       this limitation can be fixed in Linux and Windows backend
       We can extend the amount of available axes to 8 on Windows (now: 6)
-      and to 16 on Linux (now: 6)
+      and to 16 on Linux
       without rewriting the current backend
     however PS3 Controller has 14 axes
     by axes we understand not quantity of physical axes/sticks,
     but their backend number }
   function AxesExceedBackendCapabilities: Boolean;
+  const
+    MaxBackendAxes =
+      {$ifdef MSWINDOWS}5{$else}
+        {$ifdef LINUX}15{$else}
+          0
+        {$endif}
+      {$endif};
   var
     B: Byte;
   begin
     Result := false;
     for B in AxesPlus.Keys do
-      if B > 5 then
+      if B > MaxBackendAxes then
         Exit(true);
     for B in AxesMinus.Keys do
-      if B > 5 then
+      if B > MaxBackendAxes then
         Exit(true);
   end;
 
