@@ -89,7 +89,7 @@ type
     var
       FJoystickHasEvents: TSetOfJoystickEvents;
   public
-    { GUID of the joystick in the database, unused for now }
+    { GUID of the joystick in the database }
     Guid: String;
     { Which number of event (button/axis/pad) corresponds to which joystick event
       Note that some joysticks are tricky and have buttons assigned to axes
@@ -98,11 +98,9 @@ type
     Buttons, AxesPlus, AxesMinus, DPad: TJoystickDictionary;
     { List of axes that have to be inverted before further processing
       nil if no axes are inverted for this joystick layout (most frequent case)
-      @exclude}
+      @exclude }
     InvertAxes: TInvertAxes;
-    { Reported name of the joystick. Note, that currently our backend reports
-      different joystick names, especially on Windows, where it often simply
-      reports 'Microsoft PC-joystick driver' }
+    { Name of the joystick layout }
     JoystickName: String;
     { This joystick was reported as "buggy",
       sharing the same GUID with other joysticks with different axes/buttons layouts }
@@ -140,7 +138,7 @@ type
     { Detect JoystickEvents this joystick layout is capable of
       @exclude }
     procedure CacheJoystickEvents;
-    { Report which features (and problems) this joystick layout has }
+    { Report which features (and possible problems) this joystick layout has }
     function LogJoystickFeatures: String;
 
     constructor Create; //override;
