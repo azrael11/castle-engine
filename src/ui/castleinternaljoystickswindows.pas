@@ -241,21 +241,21 @@ begin
         Joystick.State.Axis[ a ] := _value;
       end;
 
-      FillChar( Joystick.State.Axis[ JOY_POVX ], 8, 0 );
+      FillChar( Joystick.State.Axis[ JOY_NEWPOVX ], 8, 0 ); //fills NEWPOVY too? As Single is 4 bytes long.
       if ( Joystick.Info.Caps and JOY_HAS_POV > 0 ) and ( state.dwPOV and $FFFF <> $FFFF ) then
       begin
         _value := Sin( DegToRad(state.dwPOV and $FFFF / 100.0) );
-        if Joystick.State.Axis[ JOY_POVX ] <> _value then
+        if Joystick.State.Axis[ JOY_NEWPOVX ] <> _value then
           if Assigned(EventContainer.OnAxisMove) then
-            EventContainer.OnAxisMove(Joystick, JOY_POVX, _value);
-        Joystick.State.Axis[ JOY_POVX ] := _value;
+            EventContainer.OnAxisMove(Joystick, JOY_NEWPOVX, _value);
+        Joystick.State.Axis[ JOY_NEWPOVX ] := _value;
 
         _value := -Cos( DegToRad(state.dwPOV and $FFFF / 100.0 ) );
         //_value := -_value;
-        if Joystick.State.Axis[ JOY_POVY ] <> _value then
+        if Joystick.State.Axis[ JOY_NEWPOVY ] <> _value then
           if Assigned(EventContainer.OnAxisMove) then
-            EventContainer.OnAxisMove(Joystick, JOY_POVY, _value);
-        Joystick.State.Axis[ JOY_POVY ] := _value;
+            EventContainer.OnAxisMove(Joystick, JOY_NEWPOVY, _value);
+        Joystick.State.Axis[ JOY_NEWPOVY ] := _value;
       end;
 
       for j := 0 to Joystick.Info.Count.Buttons - 1 do
