@@ -27,7 +27,7 @@ interface
 uses
   Generics.Collections, Classes,
   CastleVectors, CastleKeysMouse, CastleApplicationProperties,
-  CastleUiControls, CastleTimeUtils,
+  CastleUiControls, CastleTimeUtils, CastleUtils,
   CastleInternalJoystickLayout;
 
 const
@@ -373,7 +373,7 @@ implementation
 {$ifdef MSWINDOWS}{$define DatabaseLoaded}{$endif}
 
 uses SysUtils, Math,
-  CastleLog, CastleUtils,
+  CastleLog,
   {$ifdef LINUX} CastleInternalJoysticksLinux, CastleInternalJoystickDatabaseLinux, {$endif}
   {$ifdef MSWINDOWS} CastleInternalJoysticksWindows, CastleInternalJoystickDatabaseWindows, {$endif}
   {$ifndef DatabaseLoaded} CastleInternalJoystickDatabaseGeneric, {$endif}
