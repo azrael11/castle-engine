@@ -136,6 +136,7 @@ examples/images_videos/simple_video_editor
 examples/images_videos/test_castleimage_draw3x3
 examples/isometric_game/isometric_game
 examples/joystick/joystick_demo
+examples/joystick/joystick_demo_standalone
 examples/lazarus/load_model_and_camera_manually/lib/
 examples/lazarus/load_model_and_camera_manually/load_model_and_camera_manually
 examples/lazarus/load_model_and_camera_manually/load_model_and_camera_manually.res
@@ -228,6 +229,7 @@ tools/castle-editor/code/castle_editor.res
 tools/castle-engine
 tools/image-to-pascal/image-to-pascal
 tools/internal/generate-persistent-vectors/generate-persistent-vectors
+tools/internal/joystick-database-converter/joystick-database-converter
 tools/internal/teapot-to-pascal/teapot-to-pascal
 tools/internal/teapot-to-pascal/teapot-to-pascal.res
 tools/internal/x3d-nodes-to-pascal/code/x3d-nodes-to-pascal

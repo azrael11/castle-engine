@@ -4,24 +4,27 @@
     <Version Value="12"/>
     <General>
       <Flags>
-        <SaveClosedFiles Value="False"/>
-        <MainUnitHasUsesSectionForAllUnits Value="False"/>
         <MainUnitHasCreateFormStatements Value="False"/>
         <MainUnitHasTitleStatement Value="False"/>
-        <LRSInOutputDirectory Value="False"/>
-        <SaveJumpHistory Value="False"/>
-        <CompatibilityMode Value="True"/>
+        <MainUnitHasScaledStatement Value="False"/>
       </Flags>
+      <SessionStorage Value="InProjectDir"/>
+      <Title Value="joystick-database-converter"/>
+      <UseAppBundle Value="False"/>
+      <ResourceType Value="res"/>
     </General>
-    <VersionInfo>
-      <Language Value=""/>
-      <CharSet Value=""/>
-    </VersionInfo>
-    <BuildModes Count="3" Active="Debug">
-      <Item1 Name="default" Default="True"/>
-      <Item2 Name="Debug">
+    <BuildModes>
+      <Item Name="Default" Default="True"/>
+      <Item Name="Debug">
         <CompilerOptions>
           <Version Value="11"/>
+          <Target>
+            <Filename Value="joystick-database-converter"/>
+          </Target>
+          <SearchPaths>
+            <IncludeFiles Value="$(ProjOutDir)"/>
+            <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+          </SearchPaths>
           <Parsing>
             <SyntaxOptions>
               <IncludeAssertionCode Value="True"/>
@@ -44,16 +47,18 @@
               <UseExternalDbgSyms Value="True"/>
             </Debugging>
           </Linking>
-          <Other>
-            <Verbosity>
-              <ShowHints Value="False"/>
-            </Verbosity>
-          </Other>
         </CompilerOptions>
-      </Item2>
-      <Item3 Name="Release">
+      </Item>
+      <Item Name="Release">
         <CompilerOptions>
           <Version Value="11"/>
+          <Target>
+            <Filename Value="joystick-database-converter"/>
+          </Target>
+          <SearchPaths>
+            <IncludeFiles Value="$(ProjOutDir)"/>
+            <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+          </SearchPaths>
           <CodeGeneration>
             <SmartLinkUnit Value="True"/>
             <Optimizations>
@@ -66,67 +71,49 @@
             </Debugging>
             <LinkSmart Value="True"/>
           </Linking>
-          <Other>
-            <Verbosity>
-              <ShowHints Value="False"/>
-            </Verbosity>
-          </Other>
         </CompilerOptions>
-      </Item3>
+      </Item>
     </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
+      <UseFileFilters Value="True"/>
     </PublishOptions>
     <RunParams>
       <FormatVersion Value="2"/>
-      <Modes Count="1">
-        <Mode0 Name="default"/>
-      </Modes>
     </RunParams>
-    <RequiredPackages Count="2">
-      <Item1>
-        <PackageName Value="castle_window"/>
-      </Item1>
-      <Item2>
+    <RequiredPackages>
+      <Item>
         <PackageName Value="castle_base"/>
-      </Item2>
+      </Item>
     </RequiredPackages>
-    <Units Count="3">
-      <Unit0>
-        <Filename Value="joystick_demo_standalone.lpr"/>
+    <Units>
+      <Unit>
+        <Filename Value="joystick-database-converter.pas"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="25"/>
-        <Loaded Value="True"/>
-      </Unit0>
-      <Unit1>
-        <Filename Value="gameinitialize.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="GameInitialize"/>
-        <EditorIndex Value="1"/>
-        <TopLine Value="82"/>
-        <CursorPos X="76" Y="93"/>
-        <UsageCount Value="25"/>
-        <Loaded Value="True"/>
-      </Unit1>
-      <Unit2>
-        <Filename Value="gamestatemain.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="GameStateMain"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="2"/>
-        <TopLine Value="170"/>
-        <CursorPos X="59" Y="184"/>
-        <UsageCount Value="24"/>
-        <Loaded Value="True"/>
-      </Unit2>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
-    <Other>
-      <Verbosity>
-        <ShowHints Value="False"/>
-      </Verbosity>
-    </Other>
+    <Target>
+      <Filename Value="joystick-database-converter"/>
+    </Target>
+    <SearchPaths>
+      <IncludeFiles Value="$(ProjOutDir)"/>
+      <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+    </SearchPaths>
   </CompilerOptions>
+  <Debugging>
+    <Exceptions>
+      <Item>
+        <Name Value="EAbort"/>
+      </Item>
+      <Item>
+        <Name Value="ECodetoolError"/>
+      </Item>
+      <Item>
+        <Name Value="EFOpenError"/>
+      </Item>
+    </Exceptions>
+  </Debugging>
 </CONFIG>

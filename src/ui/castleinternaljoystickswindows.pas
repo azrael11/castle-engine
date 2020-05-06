@@ -20,7 +20,7 @@
 { Windows Joystick support. }
 unit CastleInternalJoysticksWindows;
 
-// TODO: only partially works on Windows (no support of new features); need to be ported to xinput library
+// TODO: only partially works on Windows (no support of new features); need to be ported to xinput/DirectInput library
 
 interface
 
@@ -60,9 +60,9 @@ type
   TJOYINFOEX = packed record
     dwSize: LongWord;
     dwFlags: LongWord;
-    wXpos: LongWord;
-    wYpos: LongWord;
-    wZpos: LongWord;
+    dwXpos: LongWord;
+    dwYpos: LongWord;
+    dwZpos: LongWord;
     dwRpos: LongWord;
     dwUpos: LongWord;
     dwVpos: LongWord;
@@ -108,16 +108,13 @@ const
 
   WINMMLIB = 'winmm.dll';
 
-  JS_AXIS : array[ 0..5 ] of LongWord = ( 17 {X}, 19 {Y}, 21 {Z}, 26 {R}, 28 {U}, 30 {V} );
-
-function joyGetNumDevs : LongWord; stdcall; external WINMMLIB name 'joyGetNumDevs';
-function joyGetDevCapsW( uJoyID : LongWord; lpCaps : PJOYCAPSW; uSize : LongWord ) : LongWord; stdcall; external WINMMLIB name 'joyGetDevCapsW';
-function joyGetPosEx( uJoyID : LongWord; lpInfo : PJOYINFOEX ) : LongWord; stdcall; external WINMMLIB name 'joyGetPosEx';
+function joyGetNumDevs: LongWord; stdcall; external WINMMLIB name 'joyGetNumDevs';
+function joyGetDevCapsW(uJoyID: LongWord; lpCaps: PJOYCAPSW; uSize: LongWord ): LongWord; stdcall; external WINMMLIB name 'joyGetDevCapsW';
+function joyGetPosEx(uJoyID: LongWord; lpInfo: PJOYINFOEX ): LongWord; stdcall; external WINMMLIB name 'joyGetPosEx';
 
 type
-  TWindowsJoystickBackendInfo = class
-    Caps    : TJOYCAPSW;
-    AxesMap : array[ 0..5 ] of Byte;
+  TWindowsJoystick = class(TJoystick)
+    Capabilities: TJOYCAPSW;
   end;
 
   TWindowsJoysticksBackend = class(TJoysticksBackend)
@@ -133,6 +130,7 @@ uses
 
 procedure TWindowsJoysticksBackend.Initialize(const List: TJoystickList);
 var
+{
   i, j : Integer;
   axis : Integer;
   caps : PLongWord;
@@ -143,62 +141,28 @@ var
   JoyError: LongWord;
 
   JoyCapsResult: LongWord;
+}
+  I: Integer;
+  NewJoystick: TWindowsJoystick;
 begin
-  j := joyGetNumDevs();
-  for i := 0 to j - 1 do
+  for I := 0 to joyGetNumDevs() - 1 do
   begin
-    NewJoystick := TJoystick.Create;
-    NewBackendInfo := TWindowsJoystickBackendInfo.Create;
-    NewJoystick.InternalBackendInfo := NewBackendInfo;
+    NewJoystick := TWindowsJoystick.Create;
 
-    JoyCapsResult := joyGetDevCapsW( i, @NewBackendInfo.Caps, SizeOf( TJOYCAPSW ) );
+    if joyGetDevCapsW(I, @NewJoystick.Capabilities, SizeOf(TJOYCAPSW)) = 0 then
     { Below we try to counter the WinAPI bug, when in case the application was run
       with no joysticks connected and this is the first call to joyGetDevCapsW
       after the joystick has been connected, the joyGetDevCapsW returns JOYERR_PARAMS = 165
       which is also returned for disconnected/unavailable joysticks.
       Here we just call joyGetDevCapsW the second time to get the new value. }
     if JoyCapsResult <> 0 then
-      JoyCapsResult := joyGetDevCapsW( i, @NewBackendInfo.Caps, SizeOf( TJOYCAPSW ) );
+      if joyGetDevCapsW(I, @NewJoystick.Capabilities, SizeOf(TJOYCAPSW)) = 0 then
 
     if JoyCapsResult = 0 then
     begin
-      NewJoystick.Info.Name          := NewBackendInfo.Caps.szPname;
-      NewJoystick.Info.Count.Axes    := NewBackendInfo.Caps.wNumAxes;
-      NewJoystick.Info.Count.Buttons := NewBackendInfo.Caps.wNumButtons;
-
-      caps  := @NewJoystick.Info.Caps;
-      NewBackendInfo.AxesMap[ 0 ] := JOY_AXIS_X;
-      NewBackendInfo.AxesMap[ 1 ] := JOY_AXIS_Y;
-      axis := 2;
-      if NewBackendInfo.Caps.wCaps and JOYCAPS_HASZ > 0 then
-      begin
-        caps^ := caps^ or JOY_HAS_Z;
-        NewBackendInfo.AxesMap[ axis ] := JOY_AXIS_Z;
-        Inc( axis );
-      end;
-      if NewBackendInfo.Caps.wCaps and JOYCAPS_HASR > 0 then
-      begin
-        caps^ := caps^ or JOY_HAS_R;
-        NewBackendInfo.AxesMap[ axis ] := JOY_AXIS_R;
-        Inc( axis );
-      end;
-      if NewBackendInfo.Caps.wCaps and JOYCAPS_HASU > 0 then
-      begin
-        caps^ := caps^ or JOY_HAS_U;
-        NewBackendInfo.AxesMap[ axis ] := JOY_AXIS_U;
-        Inc( axis );
-      end;
-      if NewBackendInfo.Caps.wCaps and JOYCAPS_HASV > 0 then
-      begin
-        caps^ := caps^ or JOY_HAS_V;
-        NewBackendInfo.AxesMap[ axis ] := JOY_AXIS_V;
-        //Inc( axis );
-      end;
-      if NewBackendInfo.Caps.wCaps and JOYCAPS_HASPOV > 0 then
-      begin
-        caps^ := caps^ or JOY_HAS_POV;
-        Inc( NewJoystick.Info.Count.Axes, 2 );
-      end;
+      NewJoystick.Info.Name          := NewJoystick.Capabilities.szPname;
+      NewJoystick.Info.Count.Axes    := NewJoystick.Capabilities.wNumAxes;
+      NewJoystick.Info.Count.Buttons := NewJoystick.Capabilities.wNumButtons;
 
       //workaround Windows reporting recently disconnected joysticks as connected
       state.dwSize := SizeOf( TJOYINFOEX );
@@ -209,8 +173,8 @@ begin
       //if no errors, then add this joystick
       if JoyError = JOYERR_NOERROR then
       begin
-        WriteLnLog('CastleJoysticks Init', 'Find joy: %s (ID: %d); Axes: %d; Buttons: %d',
-                   [NewJoystick.Info.Name, i, NewJoystick.Info.Count.Axes, NewJoystick.Info.Count.Buttons]);
+        WritelnLog('CastleJoysticks Init', 'Find joy: %s (ID: %d); Axes: %d; Buttons: %d',
+                   [NewJoystick.Info.Name, I, NewJoystick.Info.Count.Axes, NewJoystick.Info.Count.Buttons]);
 
         List.Add(NewJoystick);
       end else
@@ -231,100 +195,93 @@ end;
 procedure TWindowsJoysticksBackend.Poll(const List: TJoystickList;
   const EventContainer: TJoysticks);
 var
-  i : Integer;
-  _value: Single;
-  j, a  : Integer;
-  btn   : Integer;
-  state : TJOYINFOEX;
-  pcaps : PLongWord;
-  value : PLongWord;
-  vMin  : LongWord;
-  vMax  : LongWord;
-  Joystick: TJoystick;
-  BackendInfo: TWindowsJoystickBackendInfo;
   JoyError: LongWord;
   JoystickHasBeenDisconnected: Boolean;
+  I: Integer;
+  AxisValue: Single;
+  Axis: Integer;
+  Button: Integer;
+  Btn: Integer;
+  State: TJOYINFOEX;
+  Joystick: TWindowsJoystick;
 begin
   JoystickHasBeenDisconnected := false;
-  state.dwSize := SizeOf( TJOYINFOEX );
+  state.dwSize := SizeOf(TJOYINFOEX);
   for I := 0 to List.Count - 1 do
   begin
-    Joystick := List[I];
-    BackendInfo := Joystick.InternalBackendInfo as TWindowsJoystickBackendInfo;
+    Joystick := List[I] as TWindowsJoystick;
 
     state.dwFlags := JOY_RETURNALL or JOY_USEDEADZONE;
-    if BackendInfo.Caps.wCaps and JOYCAPS_POVCTS > 0 then
-      state.dwFlags := state.dwFlags or JOY_RETURNPOVCTS;
+    if Joystick.Capabilities.wCaps and JOYCAPS_POVCTS > 0 then
+      State.dwFlags := State.dwFlags or JOY_RETURNPOVCTS;
 
     JoyError := joyGetPosEx( i, @state );
     case JoyError of
       JOYERR_NOERROR:
         begin
-          for j := 0 to Joystick.Info.Count.Axes - 1 do
+          for Axis := 0 to Joystick.Info.Count.Axes - 1 do
           begin
-            //stop if joystick reported more axes than the backend can handle
-            if j > High(BackendInfo.AxesMap) then
-              Break;
-
-            // Say "no" to if's, and do everything trciky :)
-            a     := BackendInfo.AxesMap[ j ];
-            pcaps := @BackendInfo.Caps;
-            Inc( pcaps, JS_AXIS[ a ] );
-            vMin  := pcaps^;
-            Inc( pcaps );
-            vMax  := pcaps^;
-            value := @state;
-            Inc( value, 2 + a );
-
-            _value := value^ / ( vMax - vMin ) * 2 - 1;
-            { Y axis should be 1 when pointing up, -1 when pointing down.
-              This is consistent with CGE 2D coordinate system
-              (and standard math 2D coordinate system). }
-            if J = JOY_AXIS_Y then
-              _value := -_value;
-
-            if Joystick.State.Axis[ a ] <> _value then
-              if Assigned(EventContainer.OnAxisMove) then
-                EventContainer.OnAxisMove(Joystick, j, _value);
-            Joystick.State.Axis[ a ] := _value;
-          end;
-
-          FillChar( Joystick.State.Axis[ JOY_POVX ], 8, 0 );
-          if ( Joystick.Info.Caps and JOY_HAS_POV > 0 ) and ( state.dwPOV and $FFFF <> $FFFF ) then
-          begin
-            _value := Sin( DegToRad(state.dwPOV and $FFFF / 100.0) );
-            if Joystick.State.Axis[ JOY_POVX ] <> _value then
-              if Assigned(EventContainer.OnAxisMove) then
-                EventContainer.OnAxisMove(Joystick, JOY_POVX, _value);
-            Joystick.State.Axis[ JOY_POVX ] := _value;
-
-            _value := -Cos( DegToRad(state.dwPOV and $FFFF / 100.0 ) );
-            //_value := -_value;
-            if Joystick.State.Axis[ JOY_POVY ] <> _value then
-              if Assigned(EventContainer.OnAxisMove) then
-                EventContainer.OnAxisMove(Joystick, JOY_POVY, _value);
-            Joystick.State.Axis[ JOY_POVY ] := _value;
-          end;
-
-          for j := 0 to Joystick.Info.Count.Buttons - 1 do
-          begin
-            btn := state.wButtons and ( 1 shl j );
-            if ( Joystick.State.BtnDown[ j ] ) and ( btn = 0 ) then
-            begin
-              Joystick.State.BtnPress[ j ] := False;
-              if Assigned(EventContainer.OnButtonUp) then EventContainer.OnButtonUp(Joystick, j);
-              Joystick.State.BtnCanPress[ j ] := True;
+            case Axis of
+              JOY_AXIS_X: AxisValue := State.dwXpos / (Joystick.Capabilities.wXmax - Joystick.Capabilities.wXmin) * 2 - 1;
+              JOY_AXIS_Y: AxisValue := State.dwYpos / (Joystick.Capabilities.wYmax - Joystick.Capabilities.wYmin) * 2 - 1;
+              JOY_AXIS_Z: AxisValue := State.dwZpos / (Joystick.Capabilities.wZmax - Joystick.Capabilities.wZmin) * 2 - 1;
+              JOY_AXIS_R: AxisValue := State.dwRpos / (Joystick.Capabilities.wRmax - Joystick.Capabilities.wRmin) * 2 - 1;
+              JOY_AXIS_U: AxisValue := State.dwUpos / (Joystick.Capabilities.wUmax - Joystick.Capabilities.wUmin) * 2 - 1;
+              JOY_AXIS_V: AxisValue := State.dwVpos / (Joystick.Capabilities.wVmax - Joystick.Capabilities.wVmin) * 2 - 1;
+              else
+                AxisValue := 0;
             end;
 
-            if ( Joystick.State.BtnCanPress[ j ] ) and ( not Joystick.State.BtnDown[ j ] ) and ( btn <> 0 ) then
+            if Joystick.State.Axis[Axis] <> AxisValue then
+              if Assigned(EventContainer.OnAxisMove) then
+                EventContainer.OnAxisMove(Joystick, Axis, AxisValue);
+            Joystick.State.Axis[Axis] := AxisValue;
+          end;
+
+          if Joystick.Capabilities.wCaps and JOYCAPS_HASPOV > 0 then
+          begin
+            if State.dwPOV and $FFFF <> $FFFF then
+              AxisValue := Sin(DegToRad(State.dwPOV and $FFFF / 100.0))
+            else
+              AxisValue := 0;
+
+            if Joystick.State.Axis[JOY_NEWPOVX] <> AxisValue then
+              if Assigned(EventContainer.OnAxisMove) then
+                EventContainer.OnAxisMove(Joystick, JOY_NEWPOVX, AxisValue);
+            Joystick.State.Axis[JOY_NEWPOVX] := AxisValue;
+
+            if State.dwPOV and $FFFF <> $FFFF then
+              AxisValue := -Cos(DegToRad(State.dwPOV and $FFFF / 100.0) )
+            else
+              AxisValue := 0;
+            if Joystick.State.Axis[JOY_NEWPOVY] <> AxisValue then
+              if Assigned(EventContainer.OnAxisMove) then
+                EventContainer.OnAxisMove(Joystick, JOY_NEWPOVY, AxisValue);
+            Joystick.State.Axis[JOY_NEWPOVY] := AxisValue;
+          end;
+
+          for Button := 0 to Joystick.Info.Count.Buttons - 1 do
+          begin
+            Btn := State.wButtons and (1 shl Button);
+            if (Joystick.State.BtnDown[Button]) and (Btn = 0) then
             begin
-              Joystick.State.BtnPress   [ j ] := True;
-              if Assigned(EventContainer.OnButtonPress) then EventContainer.OnButtonPress(Joystick, j);
-              Joystick.State.BtnCanPress[ j ] := False;
+              Joystick.State.BtnPress[Button] := false;
+              if Assigned(EventContainer.OnButtonUp) then
+                EventContainer.OnButtonUp(Joystick, Button);
+              Joystick.State.BtnCanPress[Button] := true;
             end;
-            Joystick.State.BtnDown[ j ] := btn <> 0;
-            Joystick.State.BtnUp[ j ] := btn = 0;
-            if Assigned(EventContainer.OnButtonDown) and (btn <> 0) then EventContainer.OnButtonDown(Joystick, j);
+
+            if (Joystick.State.BtnCanPress[Button]) and (not Joystick.State.BtnDown[Button]) and (Btn <> 0) then
+            begin
+              Joystick.State.BtnPress[Button] := true;
+              if Assigned(EventContainer.OnButtonPress) then
+                EventContainer.OnButtonPress(Joystick, Button);
+              Joystick.State.BtnCanPress[Button] := false;
+            end;
+            Joystick.State.BtnDown[Button] := Btn <> 0;
+            Joystick.State.BtnUp[Button] := Btn = 0;
+            if Assigned(EventContainer.OnButtonDown) and (Btn <> 0) then
+              EventContainer.OnButtonDown(Joystick, Button);
           end;
         end;
       JOYERR_UNPLUGGED:

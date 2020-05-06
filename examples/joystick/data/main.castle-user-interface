@@ -1,0 +1,367 @@
+{
+  "ColorPersistent" : {
+    "Blue" : 1.5294118225574493E-001,
+    "Green" : 1.5294118225574493E-001,
+    "Red" : 1.5294118225574493E-001,
+    "$ClassName" : "TCastleColorPersistent"
+  },
+  "FullSize" : true,
+  "Name" : "RectangleControl1",
+  "$Children" : [
+    {
+      "Content" : {
+        "URL" : "castle-data:/gamepad/base_image.png",
+        "$ClassName" : "TCastleImagePersistent"
+      },
+      "HorizontalAnchorDelta" : -1.0000000000000000E+001,
+      "HorizontalAnchorParent" : "hpRight",
+      "HorizontalAnchorSelf" : "hpRight",
+      "Name" : "ImageBase",
+      "VerticalAnchorDelta" : 1.0000000000000000E+001,
+      "$Children" : [
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/a_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageSouth",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/b_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageEast",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/x_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageWest",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/y_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageNorth",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/start_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageStart",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/back_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageBack",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/guide_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageGuide",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/right_shoulder_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageRightShoulder",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/right_trigger_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageRightTrigger",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/right_stick_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageRightStick",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/left_shoulder_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageLeftShoulder",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/left_trigger_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageLeftTrigger",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/left_stick_press.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageLeftStick",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/dpad_right.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageDPadRight",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/dpad_left.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageDPadLeft",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/dpad_up.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageDPadUp",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Content" : {
+            "URL" : "castle-data:/gamepad/dpad_down.png",
+            "$ClassName" : "TCastleImagePersistent"
+          },
+          "Name" : "ImageDPadDown",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleImageControl"
+        },
+        {
+          "Height" : 1.7000000000000000E+002,
+          "HorizontalAnchorDelta" : 7.4000000000000000E+002,
+          "Name" : "RightStickAxis",
+          "VerticalAnchorDelta" : 4.1000000000000000E+002,
+          "Width" : 1.7000000000000000E+002,
+          "$Children" : [
+            {
+              "Content" : {
+                "URL" : "castle-data:/Axis.png",
+                "$ClassName" : "TCastleImagePersistent"
+              },
+              "HorizontalAnchorParent" : "hpMiddle",
+              "HorizontalAnchorSelf" : "hpMiddle",
+              "Name" : "ImageRightAxis",
+              "VerticalAnchorParent" : "vpMiddle",
+              "VerticalAnchorSelf" : "vpMiddle",
+              "$Children" : [
+              ],
+              "$ClassName" : "TCastleImageControl"
+            }
+          ],
+          "$ClassName" : "TCastleUserInterface"
+        },
+        {
+          "Height" : 1.7000000000000000E+002,
+          "HorizontalAnchorDelta" : 1.9400000000000000E+002,
+          "Name" : "LeftStickAxis",
+          "VerticalAnchorDelta" : 6.2800000000000000E+002,
+          "Width" : 1.7000000000000000E+002,
+          "$Children" : [
+            {
+              "Content" : {
+                "URL" : "castle-data:/Axis.png",
+                "$ClassName" : "TCastleImagePersistent"
+              },
+              "HorizontalAnchorParent" : "hpMiddle",
+              "HorizontalAnchorSelf" : "hpMiddle",
+              "Name" : "ImageLeftAxis",
+              "VerticalAnchorParent" : "vpMiddle",
+              "VerticalAnchorSelf" : "vpMiddle",
+              "$Children" : [
+              ],
+              "$ClassName" : "TCastleImageControl"
+            }
+          ],
+          "$ClassName" : "TCastleUserInterface"
+        },
+        {
+          "ColorPersistent" : {
+            "Blue" : 1.0000000000000000E+000,
+            "Green" : 1.0000000000000000E+000,
+            "Red" : 1.0000000000000000E+000,
+            "$ClassName" : "TCastleColorPersistent"
+          },
+          "FontSize" : 5.0000000000000000E+001,
+          "HorizontalAnchorParent" : "hpMiddle",
+          "HorizontalAnchorSelf" : "hpMiddle",
+          "Name" : "JoystickLayoutName",
+          "Text" : "JoystickLayoutName\n",
+          "$Children" : [
+            {
+              "ColorPersistent" : {
+                "Blue" : 1.0000000000000000E+000,
+                "Green" : 1.0000000000000000E+000,
+                "Red" : 1.0000000000000000E+000,
+                "$ClassName" : "TCastleColorPersistent"
+              },
+              "HorizontalAnchorParent" : "hpMiddle",
+              "HorizontalAnchorSelf" : "hpMiddle",
+              "Name" : "JoystickReportedName",
+              "Text" : "JoystickReportedName\n",
+              "VerticalAnchorDelta" : 1.0000000000000000E+001,
+              "VerticalAnchorParent" : "vpTop",
+              "$Children" : [
+              ],
+              "$ClassName" : "TCastleLabel"
+            }
+          ],
+          "$ClassName" : "TCastleLabel"
+        }
+      ],
+      "$ClassName" : "TCastleImageControl"
+    },
+    {
+      "ColorPersistent" : {
+        "Blue" : 1.0000000000000000E+000,
+        "Green" : 1.0000000000000000E+000,
+        "Red" : 1.0000000000000000E+000,
+        "$ClassName" : "TCastleColorPersistent"
+      },
+      "FontSize" : 4.0000000000000000E+001,
+      "HorizontalAnchorDelta" : 1.5000000000000000E+002,
+      "Name" : "LabelSelectJoystickLayout",
+      "Text" : "Select Joystick layout:\n",
+      "VerticalAnchorDelta" : 9.6000000000000000E+002,
+      "$Children" : [
+      ],
+      "$ClassName" : "TCastleLabel"
+    },
+    {
+      "EnableDragging" : true,
+      "Height" : 9.5000000000000000E+002,
+      "HorizontalAnchorDelta" : 1.0000000000000000E+001,
+      "Name" : "ScrollViewJoysticksNames",
+      "ScrollArea" : {
+        "AutoSizeToChildren" : true,
+        "HorizontalAnchorDelta" : 1.6000000000000000E+001,
+        "Name" : "ScrollArea",
+        "$Children" : [
+          {
+            "Name" : "VerticalGroupJoysticksNames",
+            "$Children" : [
+            ],
+            "$ClassName" : "TCastleVerticalGroup"
+          }
+        ],
+        "$ClassName" : "TInternalCastleScrollArea"
+      },
+      "ScrollBarLeft" : true,
+      "ScrollBarWidth" : 1.2000000000000000E+001,
+      "VerticalAnchorDelta" : 1.0000000000000000E+001,
+      "Width" : 7.5000000000000000E+002,
+      "$Children" : [
+      ],
+      "$ClassName" : "TCastleScrollView"
+    },
+    {
+      "HorizontalAnchorParent" : "hpMiddle",
+      "HorizontalAnchorSelf" : "hpMiddle",
+      "Name" : "HorizontalGroupDetectedJoysticks",
+      "Spacing" : 1.0000000000000000E+001,
+      "VerticalAnchorDelta" : -1.0000000000000000E+001,
+      "VerticalAnchorParent" : "vpTop",
+      "VerticalAnchorSelf" : "vpTop",
+      "$Children" : [
+      ],
+      "$ClassName" : "TCastleHorizontalGroup"
+    },
+    {
+      "ColorPersistent" : {
+        "Alpha" : 8.6666667461395264E-001,
+        "Blue" : 1.5294118225574493E-001,
+        "Green" : 1.5294118225574493E-001,
+        "Red" : 1.5294118225574493E-001,
+        "$ClassName" : "TCastleColorPersistent"
+      },
+      "FullSize" : true,
+      "HorizontalAnchorDelta" : 1.0200001525878906E+002,
+      "Name" : "RectangleControlNoJoysticksDetected",
+      "VerticalAnchorDelta" : 4.9221084594726562E+002,
+      "$Children" : [
+        {
+          "ColorPersistent" : {
+            "Blue" : 1.0000000000000000E+000,
+            "Green" : 1.0000000000000000E+000,
+            "Red" : 1.0000000000000000E+000,
+            "$ClassName" : "TCastleColorPersistent"
+          },
+          "FontSize" : 1.5000000000000000E+002,
+          "HorizontalAnchorParent" : "hpMiddle",
+          "HorizontalAnchorSelf" : "hpMiddle",
+          "Name" : "LabelNoJoysticksDetected",
+          "Text" : "No joysticks detected!\n",
+          "VerticalAnchorParent" : "vpMiddle",
+          "VerticalAnchorSelf" : "vpMiddle",
+          "$Children" : [
+          ],
+          "$ClassName" : "TCastleLabel"
+        }
+      ],
+      "$ClassName" : "TCastleRectangleControl"
+    }
+  ],
+  "$ClassName" : "TCastleRectangleControl"
+}

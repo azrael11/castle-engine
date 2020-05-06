@@ -84,50 +84,41 @@ end;
 
 procedure TLinuxJoysticksBackend.Initialize(const List: TJoystickList);
 var
-  i, j : Integer;
+  I, J: Integer;
   NewJoystick: TJoystick;
   NewBackendInfo: TLinuxJoystickBackendInfo;
 begin
-  for i := 0 to 15 do
+  for I := 0 to 15 do
   begin
     NewJoystick := TJoystick.Create;
     NewBackendInfo := TLinuxJoystickBackendInfo.Create;
     NewJoystick.InternalBackendInfo := NewBackendInfo;
 
-    NewBackendInfo.Device := FpOpen( '/dev/input/js' + IntToStr( i ), O_RDONLY or O_NONBLOCK );
+    NewBackendInfo.Device := FpOpen( '/dev/input/js' + IntToStr(I), O_RDONLY or O_NONBLOCK );
     if NewBackendInfo.Device < 0 then
-      NewBackendInfo.Device := FpOpen( '/dev/js' + IntToStr( i ), O_RDONLY or O_NONBLOCK );
+      NewBackendInfo.Device := FpOpen( '/dev/js' + IntToStr(I), O_RDONLY or O_NONBLOCK );
 
     if NewBackendInfo.Device > -1 then
     begin
       NewBackendInfo.DeviceInitialized := true;
-      SetLength( NewJoystick.Info.Name, 256 );
+      SetLength(NewJoystick.Info.Name, 256);
       { TODO: why is cast to TIOCtlRequest needed (with FPC 3.3.1-r43920),
         we should probably fix the definition of JSIOCGNAME etc. instead. }
-      FpIOCtl( NewBackendInfo.Device, TIOCtlRequest(JSIOCGNAME),    @NewJoystick.Info.Name[ 1 ] );
-      FpIOCtl( NewBackendInfo.Device, TIOCtlRequest(JSIOCGAXMAP),   @NewBackendInfo.AxesMap[ 0 ] );
-      FpIOCtl( NewBackendInfo.Device, TIOCtlRequest(JSIOCGAXES),    @NewJoystick.Info.Count.Axes );
-      FpIOCtl( NewBackendInfo.Device, TIOCtlRequest(JSIOCGBUTTONS), @NewJoystick.Info.Count.Buttons );
+      FpIOCtl(NewBackendInfo.Device, TIOCtlRequest(JSIOCGNAME),    @NewJoystick.Info.Name[1]);
+      FpIOCtl(NewBackendInfo.Device, TIOCtlRequest(JSIOCGAXMAP),   @NewBackendInfo.AxesMap[0]);
+      FpIOCtl(NewBackendInfo.Device, TIOCtlRequest(JSIOCGAXES),    @NewJoystick.Info.Count.Axes);
+      FpIOCtl(NewBackendInfo.Device, TIOCtlRequest(JSIOCGBUTTONS), @NewJoystick.Info.Count.Buttons);
 
-      for j := 0 to NewJoystick.Info.Count.Axes - 1 do
-        with NewJoystick.Info do
-          case NewBackendInfo.AxesMap[ j ] of
-            2, 6:   Caps := Caps or JOY_HAS_Z;
-            5, 7:   Caps := Caps or JOY_HAS_R;
-            3:      Caps := Caps or JOY_HAS_U;
-            4:      Caps := Caps or JOY_HAS_V;
-            16, 17: Caps := Caps or JOY_HAS_POV;
-          end;
-
-      for j := 1 to 255 do
-        if NewJoystick.Info.Name[ j ] = #0 then
+      for J := 1 to 255 do
+        if NewJoystick.Info.Name[J] = #0 then
           begin
-            SetLength( NewJoystick.Info.Name, j - 1 );
-            break;
+            SetLength(NewJoystick.Info.Name, J - 1);
+            Break;
           end;
 
       // Checking if joystick is a real one, because laptops with accelerometer can be detected as a joystick :)
-      if ( NewJoystick.Info.Count.Axes >= 2 ) and ( NewJoystick.Info.Count.Buttons > 0 ) then
+      // Note, that "030000000d0f00000d00000000010000,hori" doesn't have axes - only buttons and this condition will fail
+      if (NewJoystick.Info.Count.Axes >= 2) and (NewJoystick.Info.Count.Buttons > 0) then
       begin
         WritelnLog('CastleJoysticks Init', 'Find joy: %s (ID: %d); Axes: %d; Buttons: %d', [NewJoystick.Info.Name, I, NewJoystick.Info.Count.Axes, NewJoystick.Info.Count.Buttons]);
         List.Add(NewJoystick);
@@ -141,10 +132,10 @@ end;
 procedure TLinuxJoysticksBackend.Poll(const List: TJoystickList;
   const EventContainer: TJoysticks);
 var
-  i : Integer;
+  I: Integer;
   Value: Single;
-  axis: Byte;
-  event : TLinuxJsEvent;
+  Axis: Byte;
+  Event : TLinuxJsEvent;
   Joystick: TJoystick;
   BackendInfo: TLinuxJoystickBackendInfo;
   BytesRead: TSsize;
@@ -158,46 +149,54 @@ begin
     BytesRead := FpRead( BackendInfo.Device, event, 8 );
     if BytesRead = 8 then
       repeat
-        case event.EventType of
-          JS_EVENT_AXIS:
-            begin
-              axis := JS_AXIS[ BackendInfo.AxesMap[ event.number ] ];
-              Value := event.value / 32767;
-              { Y axis should be 1 when pointing up, -1 when pointing down.
-                This is consistent with CGE 2D coordinate system
-                (and standard math 2D coordinate system). }
-              if Axis = JOY_AXIS_Y then
-                Value := -Value;
-              Joystick.State.Axis[ axis ] := Value;
-              if Assigned(EventContainer.OnAxisMove) then EventContainer.OnAxisMove(Joystick, axis, Value);
-            end;
-          JS_EVENT_BUTTON:
-            case event.value of
-              0:
-                begin
-                  if Joystick.State.BtnDown[ event.number ] then
-                  begin
-                    Joystick.State.BtnUp[ event.number ] := True;
-                    Joystick.State.BtnPress   [ event.number ] := False;
-                    if Assigned(EventContainer.OnButtonUp) then EventContainer.OnButtonUp(Joystick, event.number);
-                    Joystick.State.BtnCanPress[ event.number ] := True;
-                  end;
+      case Event.EventType of
+        JS_EVENT_AXIS:
+          begin
+            Axis := Event.number;
 
-                  Joystick.State.BtnDown[ event.number ] := False;
-                end;
-              1:
+            { Obsolete Linux backend reports POV as 16,17 axes
+              however "physically" they are located at the end of "real axes"
+              which forces us to use the provided BackendInfo.AxesMap }
+            if BackendInfo.AxesMap[Event.number] = 16 then
+              Axis := JOY_NEWPOVX;
+            if BackendInfo.AxesMap[Event.number] = 17 then
+              Axis := JOY_NEWPOVY;
+
+            Value := Event.value / 32767;
+            Joystick.State.Axis[Axis] := Value;
+            if Assigned(EventContainer.OnAxisMove) then
+              EventContainer.OnAxisMove(Joystick, Axis, Value);
+          end;
+        JS_EVENT_BUTTON:
+          case Event.value of
+            0:
+              begin
+                if Joystick.State.BtnDown[Event.number] then
                 begin
-                  Joystick.State.BtnDown[ event.number ] := True;
-                  if Assigned(EventContainer.OnButtonDown) then EventContainer.OnButtonDown(Joystick, event.number);
-                  Joystick.State.BtnUp  [ event.number ] := False;
-                  if Joystick.State.BtnCanPress[ event.number ] then
-                    begin
-                      Joystick.State.BtnPress   [ event.number ] := True;
-                      if Assigned(EventContainer.OnButtonPress) then EventContainer.OnButtonPress(Joystick, event.number);
-                      Joystick.State.BtnCanPress[ event.number ] := False;
-                    end;
+                  Joystick.State.BtnUp[Event.number] := true;
+                  Joystick.State.BtnPress[Event.number] := false;
+                  if Assigned(EventContainer.OnButtonUp) then
+                    EventContainer.OnButtonUp(Joystick, Event.number);
+                  Joystick.State.BtnCanPress[Event.number] := true;
                 end;
-            end;
+
+                Joystick.State.BtnDown[Event.number] := false;
+              end;
+            1:
+              begin
+                Joystick.State.BtnDown[Event.number] := true;
+                if Assigned(EventContainer.OnButtonDown) then
+                  EventContainer.OnButtonDown(Joystick, Event.number);
+                Joystick.State.BtnUp[Event.number] := False;
+                if Joystick.State.BtnCanPress[Event.number] then
+                begin
+                  Joystick.State.BtnPress[Event.number] := true;
+                  if Assigned(EventContainer.OnButtonPress) then
+                    EventContainer.OnButtonPress(Joystick, Event.number);
+                  Joystick.State.BtnCanPress[Event.number] := false;
+                end;
+              end;
+          end;
         end;
         BytesRead := FpRead( BackendInfo.Device, event, 8 );
       until BytesRead <> 8
