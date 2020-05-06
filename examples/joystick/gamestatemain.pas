@@ -130,6 +130,7 @@ end;
 
 procedure TStateMain.JoystickConnected;
 begin
+  Joysticks.Initialize;
   DetectJoysticks;
   HideAllKeys;
   FillJoystickNames;
