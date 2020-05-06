@@ -60,6 +60,8 @@ type
     procedure RemoveFocusFromLayout(const AButton: TJoystickLayoutButton);
     procedure AddFocusToJoystick(const AButton: TJoystickSelectButton);
     procedure RemoveFocusFromJoystick(const AButton: TJoystickSelectButton);
+    procedure JoystickConnected;
+    procedure JoystickDisconnected;
   public
     procedure Start; override;
     procedure Update(const SecondsPassed: Single; var HandleInput: Boolean); override;
@@ -119,9 +121,24 @@ begin
 
   RectangleControlNoJoysticksDetected := UIOwner.FindRequiredComponent('RectangleControlNoJoysticksDetected') as TCastleRectangleControl;
 
+  Joysticks.OnConnect := @JoystickConnected;
+  Joysticks.OnDisconnect := @JoystickDisconnected;
   DetectJoysticks;
   HideAllKeys;
   FillJoystickNames;
+end;
+
+procedure TStateMain.JoystickConnected;
+begin
+  DetectJoysticks;
+  HideAllKeys;
+  FillJoystickNames;
+end;
+procedure TStateMain.JoystickDisconnected;
+begin
+ DetectJoysticks;
+ HideAllKeys;
+ FillJoystickNames;
 end;
 
 procedure TStateMain.DetectJoysticks;
