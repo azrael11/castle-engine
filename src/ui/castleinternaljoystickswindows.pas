@@ -128,20 +128,17 @@ implementation
 uses
   SysUtils, CastleLog, Math;
 
+type
+  TWindowsJoystickBackendInfo = class
+    Caps    : TJOYCAPSW;
+    AxesMap : array[ 0..5 ] of Byte;
+  end;
+
 procedure TWindowsJoysticksBackend.Initialize(const List: TJoystickList);
 var
-{
-  i, j : Integer;
-  axis : Integer;
-  caps : PLongWord;
-  NewJoystick: TJoystick;
-  NewBackendInfo: TWindowsJoystickBackendInfo;
-
-  state : TJOYINFOEX;
   JoyError: LongWord;
-
-  JoyCapsResult: LongWord;
-}
+  State: TJOYINFOEX;
+  NewBackendInfo: TWindowsJoystickBackendInfo;
   I: Integer;
   NewJoystick: TWindowsJoystick;
 begin
@@ -150,15 +147,6 @@ begin
     NewJoystick := TWindowsJoystick.Create;
 
     if joyGetDevCapsW(I, @NewJoystick.Capabilities, SizeOf(TJOYCAPSW)) = 0 then
-    { Below we try to counter the WinAPI bug, when in case the application was run
-      with no joysticks connected and this is the first call to joyGetDevCapsW
-      after the joystick has been connected, the joyGetDevCapsW returns JOYERR_PARAMS = 165
-      which is also returned for disconnected/unavailable joysticks.
-      Here we just call joyGetDevCapsW the second time to get the new value. }
-    if JoyCapsResult <> 0 then
-      if joyGetDevCapsW(I, @NewJoystick.Capabilities, SizeOf(TJOYCAPSW)) = 0 then
-
-    if JoyCapsResult = 0 then
     begin
       NewJoystick.Info.Name          := NewJoystick.Capabilities.szPname;
       NewJoystick.Info.Count.Axes    := NewJoystick.Capabilities.wNumAxes;
@@ -167,6 +155,7 @@ begin
       //workaround Windows reporting recently disconnected joysticks as connected
       state.dwSize := SizeOf( TJOYINFOEX );
       state.dwFlags := JOY_RETURNALL or JOY_USEDEADZONE;
+      NewBackendInfo := TWindowsJoystickBackendInfo.Create;
       if NewBackendInfo.Caps.wCaps and JOYCAPS_POVCTS > 0 then
         state.dwFlags := state.dwFlags or JOY_RETURNPOVCTS;
       JoyError := joyGetPosEx( i, @state );
