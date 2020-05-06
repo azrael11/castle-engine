@@ -41,15 +41,19 @@
     procedure BeforeTraverse(StateStack: TX3DGraphTraverseStateStack); override;
     procedure AfterTraverse(StateStack: TX3DGraphTraverseStateStack); override;
 
-    { Change State.Transform for children nodes.
+    { Change State.Transformation for children nodes.
 
       This should be done here, not in overriden BeforeTraverse.
       Reason: for storing ClipPlanes transformations, we need to know
       transformed matrix inside TAbstractGroupingNode.BeforeTraverse implementation.
       And we also do StateStack.Push inside TAbstractGroupingNode.BeforeTraverse
       implementation... So ApplyTransform must happen in the middle of
-      TAbstractGroupingNode.BeforeTraverse call. }
-    procedure ApplyTransform(State: TX3DGraphTraverseState); virtual;
+      TAbstractGroupingNode.BeforeTraverse call.
+
+      Almost all descendants should override only the overload changing
+      TTransformation. }
+    procedure ApplyTransform(const State: TX3DGraphTraverseState); virtual;
+    procedure ApplyTransform(var Transformation: TTransformation); virtual;
   public
     procedure CreateNode; override;
     destructor Destroy; override;
@@ -58,10 +62,8 @@
   { Basis for all node types that have bounds specified as part of the definition. }
   IAbstractBoundedObject = interface(IX3DNode)
   ['{0EF47711-754B-4BA8-97E5-0A9601E9C542}']
-    {$ifndef CASTLE_SLIM_NODES}
     property FdBboxCenter: TSFVec3f { read GetFdbboxCenter }; { }
     property FdBboxSize: TSFVec3f { read GetFdbboxSize }; { }
-    {$endif}
   end;
 
   { Base node that contains children nodes, in X3D and VRML 2.0. }
@@ -88,13 +90,13 @@
     strict private FFdChildren: TMFNode;
     public property FdChildren: TMFNode read FFdChildren;
 
-    {$ifndef CASTLE_SLIM_NODES}
     strict private FFdBboxCenter: TSFVec3f;
     public property FdBboxCenter: TSFVec3f read FFdBboxCenter;
 
     strict private FFdBboxSize: TSFVec3f;
     public property FdBboxSize: TSFVec3f read FFdBboxSize;
 
+    {$ifndef CASTLE_SLIM_NODES}
     strict private FFdRender: TSFBool;
     { This is an extension from InstantReality, see
       [http://instant-reality.com/documentation/nodetype/ChildGroup/].
@@ -160,7 +162,6 @@
     class function ForVRMLVersion(const Version: TX3DVersion): boolean;
       override;
 
-    class function URNMatching(const URN: string): boolean; override;
 
     {$I auto_generated_node_helpers/x3dnodes_group.inc}
   end;
@@ -219,7 +220,7 @@
       And this way VRML 1.0 WWWInline with separate=FALSE may also work too. }
     function SeparateGroup: boolean; override;
 
-    procedure ApplyTransform(State: TX3DGraphTraverseState); override;
+    procedure ApplyTransform(var Transformation: TTransformation); override;
   public
     ForceVersion: TX3DVersion;
 
@@ -318,18 +319,15 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdChildren: TMFNode;
     public property FdChildren: TMFNode read FFdChildren;
 
-    {$ifndef CASTLE_SLIM_NODES}
     strict private FFdBboxCenter: TSFVec3f;
     public property FdBboxCenter: TSFVec3f read FFdBboxCenter;
 
     strict private FFdBboxSize: TSFVec3f;
     public property FdBboxSize: TSFVec3f read FFdBboxSize;
-    {$endif}
 
     {$I auto_generated_node_helpers/x3dnodes_staticgroup.inc}
   end;
@@ -358,7 +356,6 @@
     class function ForVRMLVersion(const Version: TX3DVersion): boolean;
       override;
 
-    class function URNMatching(const URN: string): boolean; override;
 
     function TransformationChange: TNodeTransformationChange; override;
 
@@ -384,14 +381,13 @@
   protected
     { }
     function DirectEnumerateActive(Func: TEnumerateChildrenFunction): Pointer; override;
-    procedure ApplyTransform(State: TX3DGraphTraverseState); override;
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
     class function ForVRMLVersion(const Version: TX3DVersion): boolean;
       override;
     function TransformationChange: TNodeTransformationChange; override;
+    procedure ApplyTransform(var Transformation: TTransformation); override;
 
     strict private FFdCenter: TSFVec3f;
     public property FdCenter: TSFVec3f read FFdCenter;
@@ -435,8 +431,7 @@ begin
   if not WasPointingDeviceSensor then
   begin
     State.PointingDeviceSensors.Clear;
-    State.PointingDeviceSensors.Transform := State.Transform;
-    State.PointingDeviceSensors.InvertedTransform := State.InvertedTransform;
+    State.PointingDeviceSensors.Transformation := State.Transformation;
     WasPointingDeviceSensor := true;
   end;
 
@@ -519,7 +514,12 @@ begin
   end;
 end;
 
-procedure TAbstractGroupingNode.ApplyTransform(State: TX3DGraphTraverseState);
+procedure TAbstractGroupingNode.ApplyTransform(const State: TX3DGraphTraverseState);
+begin
+  ApplyTransform(State.Transformation);
+end;
+
+procedure TAbstractGroupingNode.ApplyTransform(var Transformation: TTransformation);
 begin
 end;
 
@@ -547,10 +547,9 @@ begin
   EventRemoveChildren.AddNotification({$ifdef CASTLE_OBJFPC}@{$endif} EventRemoveChildrenReceive);
 
   FFdChildren := TMFNode.Create(Self, true, 'children', IAbstractChildNode);
-   FdChildren.ChangesAlways := [chChildren];
+   FdChildren.ChangeAlways := chChildren;
   AddField(FFdChildren);
 
-  {$ifndef CASTLE_SLIM_NODES}
   FFdBboxCenter := TSFVec3f.Create(Self, false, 'bboxCenter', TVector3.Zero);
   AddField(FFdBboxCenter);
   { X3D specification comment: (-Inf,Inf) }
@@ -559,6 +558,7 @@ begin
   AddField(FFdBboxSize);
   { X3D specification comment: [0,Inf) or -1 -1 -1 }
 
+  {$ifndef CASTLE_SLIM_NODES}
   FFdRender := TSFBool.Create(Self, true, 'render', true);
   AddField(FFdRender);
   {$endif}
@@ -685,13 +685,6 @@ end;
 class function TGroupNode.ClassX3DType: string;
 begin
   Result := 'Group';
-end;
-
-class function TGroupNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNVRML97Nodes + ClassX3DType) or
-    (URN = URNX3DNodes + ClassX3DType);
 end;
 
 class function TGroupNode.ForVRMLVersion(const Version: TX3DVersion): boolean;
@@ -851,7 +844,7 @@ begin
       [Child.X3DType]));
 end;
 
-procedure TX3DRootNode.ApplyTransform(State: TX3DGraphTraverseState);
+procedure TX3DRootNode.ApplyTransform(var Transformation: TTransformation);
 var
   M, IM: TMatrix4;
 begin
@@ -860,9 +853,9 @@ begin
   if Scale <> 1 then
   begin
     ScalingMatrices(Vector3(Scale, Scale, Scale), true, M, IM);
-    State.Transform := State.Transform * M;
-    State.InvertedTransform := IM * State.InvertedTransform;
-    State.TransformScale := State.TransformScale * Scale;
+    Transformation.Transform := Transformation.Transform * M;
+    Transformation.InverseTransform := IM * Transformation.InverseTransform;
+    Transformation.Scale := Transformation.Scale * Scale;
   end;
 end;
 
@@ -895,10 +888,9 @@ begin
   inherited;
 
   FFdChildren := TMFNode.Create(Self, false, 'children', IAbstractChildNode);
-   FdChildren.ChangesAlways := [chChildren];
+   FdChildren.ChangeAlways := chChildren;
   AddField(FFdChildren);
 
-  {$ifndef CASTLE_SLIM_NODES}
   FFdBboxCenter := TSFVec3f.Create(Self, false, 'bboxCenter', Vector3(0, 0, 0));
   AddField(FFdBboxCenter);
   { X3D specification comment: (-Inf,Inf) }
@@ -906,7 +898,6 @@ begin
   FFdBboxSize := TSFVec3f.Create(Self, false, 'bboxSize', Vector3(-1, -1, -1));
   AddField(FFdBboxSize);
   { X3D specification comment: [0,Inf) or -1 -1 -1 }
-  {$endif}
 
   DefaultContainerField := 'children';
 end;
@@ -914,12 +905,6 @@ end;
 class function TStaticGroupNode.ClassX3DType: string;
 begin
   Result := 'StaticGroup';
-end;
-
-class function TStaticGroupNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNX3DNodes + ClassX3DType);
 end;
 
 function TStaticGroupNode.DirectEnumerateActive(Func: TEnumerateChildrenFunction): Pointer;
@@ -935,7 +920,7 @@ begin
   Fdchildren.AddAlternativeName('choice', 2);
 
   FFdWhichChoice := TSFInt32.Create(Self, true, 'whichChoice', -1);
-   FdWhichChoice.ChangesAlways := [chSwitch2];
+   FdWhichChoice.ChangeAlways := chSwitch2;
   AddField(FFdWhichChoice);
   { X3D specification comment: [-1,Inf) }
 
@@ -945,13 +930,6 @@ end;
 class function TSwitchNode.ClassX3DType: string;
 begin
   Result := 'Switch';
-end;
-
-class function TSwitchNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNVRML97Nodes + ClassX3DType) or
-    (URN = URNX3DNodes + ClassX3DType);
 end;
 
 class function TSwitchNode.ForVRMLVersion(const Version: TX3DVersion): boolean;
@@ -979,27 +957,27 @@ begin
   inherited;
 
   FFdCenter := TSFVec3f.Create(Self, true, 'center', Vector3(0, 0, 0));
-   FdCenter.ChangesAlways := [chTransform];
+   FdCenter.ChangeAlways := chTransform;
   AddField(FFdCenter);
   { X3D specification comment: (-Inf,Inf) }
 
   FFdRotation := TSFRotation.Create(Self, true, 'rotation', Vector3(0, 0, 1), 0);
-   FdRotation.ChangesAlways := [chTransform];
+   FdRotation.ChangeAlways := chTransform;
   AddField(FFdRotation);
   { X3D specification comment: [-1,1] or (-Inf,Inf) }
 
   FFdScale := TSFVec3f.Create(Self, true, 'scale', Vector3(1, 1, 1));
-   FdScale.ChangesAlways := [chTransform];
+   FdScale.ChangeAlways := chTransform;
   AddField(FFdScale);
   { X3D specification comment: (-Inf, Inf) }
 
   FFdScaleOrientation := TSFRotation.Create(Self, true, 'scaleOrientation', Vector3(0, 0, 1), 0);
-   FdScaleOrientation.ChangesAlways := [chTransform];
+   FdScaleOrientation.ChangeAlways := chTransform;
   AddField(FFdScaleOrientation);
   { X3D specification comment: [-1,1] or (-Inf,Inf) }
 
   FFdTranslation := TSFVec3f.Create(Self, true, 'translation', Vector3(0, 0, 0));
-   FdTranslation.ChangesAlways := [chTransform];
+   FdTranslation.ChangeAlways := chTransform;
   AddField(FFdTranslation);
   { X3D specification comment: (-Inf,Inf) }
 
@@ -1009,13 +987,6 @@ end;
 class function TTransformNode.ClassX3DType: string;
 begin
   Result := 'Transform';
-end;
-
-class function TTransformNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNVRML97Nodes + ClassX3DType) or
-    (URN = URNX3DNodes + ClassX3DType);
 end;
 
 class function TTransformNode.ForVRMLVersion(const Version: TX3DVersion): boolean;
@@ -1034,71 +1005,16 @@ begin
   Result := ntcTransform;
 end;
 
-procedure TransformState(State: TX3DGraphTraverseState;
-  const Center: TVector3;
-  const Rotation: TVector4;
-  const Scale: TVector3;
-  const ScaleOrientation: TVector4;
-  const Translation: TVector3);
-{ Workaround FPC 3.0.4 bug (internal error) on Darwin for AArch64
-  (not on other platforms):
-  x3dnodes_standard_grouping.inc(1035,3) Fatal: Internal error 2014121702
-}
-{$if defined(VER3_0) and defined(DARWIN) and defined(CPUAARCH64)}
-
-  type
-    TTransformData = record
-      Transform, InverseTransform: TMatrix4;
-      Center: TVector3;
-      Rotation: TVector4;
-      Scale: TVector3;
-      ScaleOrientation: TVector4;
-      Translation: TVector3;
-    end;
-
-  procedure TransformMatricesMultWorkaround(var TransformData: TTransformData);
-  begin
-    CastleTransform.TransformMatricesMult(
-      TransformData.Transform,
-      TransformData.InverseTransform,
-      TransformData.Center,
-      TransformData.Rotation,
-      TransformData.Scale,
-      TransformData.ScaleOrientation,
-      TransformData.Translation);
-  end;
-
-var
-  TransformData: TTransformData;
+procedure TTransformNode.ApplyTransform(var Transformation: TTransformation);
 begin
-  TransformData.Transform := State.Transform;
-  TransformData.InverseTransform := State.InvertedTransform;
-  TransformData.Center := Center;
-  TransformData.Rotation := Rotation;
-  TransformData.Scale := Scale;
-  TransformData.ScaleOrientation := ScaleOrientation;
-  TransformData.Translation := Translation;
+  // inherited; // no need to call, conserve speed in this critical place
 
-  // Doing it like this avoids
-  // Fatal: Internal error 2014121702
-  // from FPC 3.0.3 for 64-bit iPhone (Darwin for AArch64)
-  TransformMatricesMultWorkaround(TransformData);
-
-  State.Transform := TransformData.Transform;
-  State.InvertedTransform := TransformData.InverseTransform;
-{$else}
-begin
-  TransformMatricesMult(State.Transform, State.InvertedTransform,
-    Center, Rotation, Scale, ScaleOrientation, Translation);
-{$endif}
-  State.TransformScale := State.TransformScale * Approximate3DScale(Scale);
-end;
-
-procedure TTransformNode.ApplyTransform(State: TX3DGraphTraverseState);
-begin
-  inherited;
-  TransformState(State, Fdcenter.Value, Fdrotation.Value,
-    Fdscale.Value, FdscaleOrientation.Value, Fdtranslation.Value);
+  Transformation.Multiply(
+    Center,
+    Rotation,
+    Scale,
+    ScaleOrientation,
+    Translation);
 
   {
   if ((Fdscale.Value[0] < 0) or

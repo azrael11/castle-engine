@@ -19,9 +19,9 @@
   TPointingDeviceSensorList = class(TX3DNodeList)
   public
     { Transformation (and inverse) of all the sensors on this list.
-      VRML/X3D specification guarantees that all sensors within a single state
+      X3D specification guarantees that all sensors within a single state
       have the same transform. }
-    Transform, InvertedTransform: TMatrix4;
+    Transformation: TTransformation;
 
     function EnabledCount: Integer;
     function Enabled(Index: Integer): boolean;
@@ -147,7 +147,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdAxisRotation: TSFRotation;
     public property FdAxisRotation: TSFRotation read FFdAxisRotation;
@@ -200,7 +199,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdAxisRotation: TSFRotation;
     public property FdAxisRotation: TSFRotation read FFdAxisRotation;
@@ -246,7 +244,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdOffset: TSFRotation;
     public property FdOffset: TSFRotation read FFdOffset;
@@ -269,7 +266,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     { Event out } { }
     strict private FEventHitNormal_changed: TSFVec3fEvent;
@@ -311,8 +307,7 @@ end;
 procedure TPointingDeviceSensorList.Assign(Source: TPointingDeviceSensorList);
 begin
   inherited Assign(Source);
-  Transform := Source.Transform;
-  InvertedTransform := Source.InvertedTransform;
+  Transformation := Source.Transformation;
 end;
 
 { Rest of nodes -------------------------------------------------------------- }
@@ -357,7 +352,7 @@ begin
   FEventTrackPoint_changed := TSFVec3fEvent.Create(Self, 'trackPoint_changed', false);
   AddEvent(FEventTrackPoint_changed);
 
-  Fdenabled.ChangesAlways := FdEnabled.ChangesAlways + [chDragSensorEnabled];
+  FdEnabled.ChangeAlways := chDragSensorEnabled;
 end;
 
 procedure TAbstractDragSensorNode.Drag(const Time: TX3DTime; const RayOrigin, RayDirection: TVector3);
@@ -413,13 +408,6 @@ end;
 class function TCylinderSensorNode.ClassX3DType: string;
 begin
   Result := 'CylinderSensor';
-end;
-
-class function TCylinderSensorNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNVRML97Nodes + ClassX3DType) or
-    (URN = URNX3DNodes + ClassX3DType);
 end;
 
 procedure TCylinderSensorNode.Activate(const Time: TX3DTime;
@@ -547,13 +535,6 @@ end;
 class function TPlaneSensorNode.ClassX3DType: string;
 begin
   Result := 'PlaneSensor';
-end;
-
-class function TPlaneSensorNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNVRML97Nodes + ClassX3DType) or
-    (URN = URNX3DNodes + ClassX3DType);
 end;
 
 procedure TPlaneSensorNode.Activate(const Time: TX3DTime;
@@ -703,13 +684,6 @@ begin
   Result := 'SphereSensor';
 end;
 
-class function TSphereSensorNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNVRML97Nodes + ClassX3DType) or
-    (URN = URNX3DNodes + ClassX3DType);
-end;
-
 procedure TSphereSensorNode.Activate(const Time: TX3DTime;
   const ATransform, AInvertedTransform: TMatrix4;
   const OverPoint: TVector3);
@@ -797,13 +771,6 @@ end;
 class function TTouchSensorNode.ClassX3DType: string;
 begin
   Result := 'TouchSensor';
-end;
-
-class function TTouchSensorNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNVRML97Nodes + ClassX3DType) or
-    (URN = URNX3DNodes + ClassX3DType);
 end;
 
 procedure RegisterPointingDeviceSensorNodes;

@@ -17,9 +17,9 @@
 
 {$ifdef read_interface}
 
-{ Multiline string describing attributes of current OpenGL
-  library. This simply queries OpenGL using glGet* functions
-  about many things. Does not change OpenGL state in any way.
+{ Multiline string describing attributes of current OpenGL(ES)
+  library. This simply queries OpenGL(ES) using glGet* functions
+  about many things. Does not change OpenGL(ES) state in any way.
 
   Note that the last line of returned string does not terminate
   with a newline character (so e.g. you may want to do
@@ -47,10 +47,15 @@ const
 
   function VersionReport(Version: TGenericGLVersion): string;
   begin
-    Result := Format('  Version parsed: major: %d, minor: %d, release exists: %s, ' +
-      'release: %d, vendor-specific information: "%s"',
-      [ Version.Major, Version.Minor, BoolToStr(Version.ReleaseExists, true),
-        Version.Release, Version.VendorInfo ]);
+    Result := Format(
+      '  Version parsed: major: %d, minor: %d, release exists: %s, ' +
+      'release: %d, vendor-specific information: "%s"', [
+        Version.Major,
+        Version.Minor,
+        BoolToStr(Version.ReleaseExists, true),
+        Version.Release,
+        Version.VendorVersion
+      ]);
   end;
 
   function VendorReport(Version: TGLVersion): string;
@@ -155,7 +160,8 @@ const
 
 begin
   Result:=
-    'OpenGL information (detected by ' + ApplicationName +'):' + NL +
+    {$ifdef OpenGLES} 'OpenGLES' {$else} 'OpenGL' {$endif} +
+    ' information (detected by ' + ApplicationName +'):' + NL +
     NL +
 
     '--------' + NL +
@@ -168,7 +174,7 @@ begin
     {$ifndef OpenGLES}
     '------------------------' + NL +
     'Real versions available:' + NL +
-    '(checks both version string and actual functions availability in GL library, to secure from buggy OpenGL implementations)' + NL +
+    '(checks both version string and actual functions availability in GL library, to secure from buggy implementations)' + NL +
     NL +
     '  1.2: ' + BoolToStr(GLFeatures.Version_1_2, true) + NL +
     '  1.3: ' + BoolToStr(GLFeatures.Version_1_3, true) + NL +
@@ -238,7 +244,7 @@ begin
       +GetInteger(GL_ACCUM_ALPHA_BITS) + NL +
     '  Double buffer: ' + GetBoolean(GL_DOUBLEBUFFER) + NL +
     {$endif}
-    '  Multisampling (full-screen antialiasing): ' + BoolToStr(GLFeatures.Multisample, true) + NL +
+    '  Multi-sampling (full-screen anti-aliasing) possible: ' + BoolToStr(GLFeatures.Multisample, true) + NL +
     '    Current: ' + IntToStr(GLFeatures.CurrentMultiSampling) + ' samples per pixel' + NL +
     NL +
 

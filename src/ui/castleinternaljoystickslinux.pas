@@ -47,6 +47,8 @@ const
   JSIOCGAXES    = -2147390959;
   JSIOCGBUTTONS = -2147390958;
 
+  EAGAIN = 11; //Error: "there is no data available right now, try again later"
+
   JS_AXIS : array[ 0..17 ] of Byte = ( JOY_AXIS_X, JOY_AXIS_Y, JOY_AXIS_Z, JOY_AXIS_U, JOY_AXIS_V, JOY_AXIS_R, JOY_AXIS_Z, JOY_AXIS_R, 0, 0, 0, 0, 0, 0, 0, 0, JOY_POVX, JOY_POVY );
 
 type
@@ -100,10 +102,12 @@ begin
     begin
       NewBackendInfo.DeviceInitialized := true;
       SetLength(NewJoystick.Info.Name, 256);
-      FpIOCtl(NewBackendInfo.Device, JSIOCGNAME,    @NewJoystick.Info.Name[1]);
-      FpIOCtl(NewBackendInfo.Device, JSIOCGAXMAP,   @NewBackendInfo.AxesMap[0]);
-      FpIOCtl(NewBackendInfo.Device, JSIOCGAXES,    @NewJoystick.Info.Count.Axes);
-      FpIOCtl(NewBackendInfo.Device, JSIOCGBUTTONS, @NewJoystick.Info.Count.Buttons);
+      { TODO: why is cast to TIOCtlRequest needed (with FPC 3.3.1-r43920),
+        we should probably fix the definition of JSIOCGNAME etc. instead. }
+      FpIOCtl(NewBackendInfo.Device, TIOCtlRequest(JSIOCGNAME),    @NewJoystick.Info.Name[1]);
+      FpIOCtl(NewBackendInfo.Device, TIOCtlRequest(JSIOCGAXMAP),   @NewBackendInfo.AxesMap[0]);
+      FpIOCtl(NewBackendInfo.Device, TIOCtlRequest(JSIOCGAXES),    @NewJoystick.Info.Count.Axes);
+      FpIOCtl(NewBackendInfo.Device, TIOCtlRequest(JSIOCGBUTTONS), @NewJoystick.Info.Count.Buttons);
 
       for J := 1 to 255 do
         if NewJoystick.Info.Name[J] = #0 then
@@ -134,12 +138,17 @@ var
   Event : TLinuxJsEvent;
   Joystick: TJoystick;
   BackendInfo: TLinuxJoystickBackendInfo;
+  BytesRead: TSsize;
+  JoystickHasBeenDisconnected: Boolean;
 begin
+  JoystickHasBeenDisconnected := false;
   for I := 0 to List.Count - 1 do
   begin
     Joystick := List[I];
     BackendInfo := Joystick.InternalBackendInfo as TLinuxJoystickBackendInfo;
-    while FpRead(BackendInfo.Device, Event, 8) = 8 do
+    BytesRead := FpRead( BackendInfo.Device, event, 8 );
+    if BytesRead = 8 then
+      repeat
       case Event.EventType of
         JS_EVENT_AXIS:
           begin
@@ -180,16 +189,27 @@ begin
                   EventContainer.OnButtonDown(Joystick, Event.number);
                 Joystick.State.BtnUp[Event.number] := False;
                 if Joystick.State.BtnCanPress[Event.number] then
-                  begin
-                    Joystick.State.BtnPress[Event.number] := true;
-                    if Assigned(EventContainer.OnButtonPress) then
-                      EventContainer.OnButtonPress(Joystick, Event.number);
-                    Joystick.State.BtnCanPress[Event.number] := false;
-                  end;
+                begin
+                  Joystick.State.BtnPress[Event.number] := true;
+                  if Assigned(EventContainer.OnButtonPress) then
+                    EventContainer.OnButtonPress(Joystick, Event.number);
+                  Joystick.State.BtnCanPress[Event.number] := false;
+                end;
               end;
           end;
+        end;
+        BytesRead := FpRead( BackendInfo.Device, event, 8 );
+      until BytesRead <> 8
+    else
+      if fpgeterrno <> EAGAIN then
+      begin
+        WritelnLog('Joystick error: possibly "%s" was disconnected.', [Joystick.Info.Name]);
+        JoystickHasBeenDisconnected := true;
       end;
   end;
+  if JoystickHasBeenDisconnected then
+    if Assigned(Joysticks.OnDisconnect) then
+      Joysticks.OnDisconnect;
 end;
 
 end.

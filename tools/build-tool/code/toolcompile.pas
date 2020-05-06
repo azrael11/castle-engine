@@ -34,6 +34,11 @@ procedure Compile(const OS: TOS; const CPU: TCPU; const Plugin: boolean;
   const SearchPaths, LibraryPaths: TStrings;
   const ExtraOptions: TStrings);
 
+{ Compile with lazbuild. }
+procedure CompileLazbuild(const OS: TOS; const CPU: TCPU;
+  const Mode: TCompilationMode;
+  const WorkingDirectory, LazarusProjectFile: string);
+
 { Output path, where temporary things like units (and iOS stuff)
   are placed. }
 function CompilationOutputPath(const OS: TOS; const CPU: TCPU;
@@ -156,6 +161,28 @@ begin
   finally FreeAndNil(Helper) end;
 end;
 
+{ Writeln a message that FPC/Lazarus crashed and we will retry,
+  and clean compilation leftover files. }
+procedure FpcLazarusCrashRetry(const WorkingDirectory, ToolName, ProjectName: String);
+begin
+  Writeln('-------------------------------------------------------------');
+  Writeln('It seems ' + ToolName + ' crashed. If you can reproduce this problem, please report it to http://bugs.freepascal.org/ ! We want to help ' + ProjectName + ' developers to fix this problem, and the only way to do it is to report it. If you need help creating a good bugreport, speak up on the ' + ProjectName + ' or Castle Game Engine mailing list.');
+  Writeln;
+  Writeln('As a workaround, right now we''ll clean your project, and (if we have permissions) the Castle Game Engine units, and try compiling again.');
+  Writeln('-------------------------------------------------------------');
+  { when we're called to compile a project, WorkingDirectory is the project path }
+  CleanDirectory(WorkingDirectory);
+  CleanDirectory(TempOutputPath(WorkingDirectory, false));
+  if CastleEnginePath <> '' then
+  begin
+    { Compiling project using build tool (through FPC or lazbuild)
+      should *not* leave any file in src/ .
+      But, just to be safe, try to clear it if possible. }
+    CleanDirectory(CastleEnginePath + 'src' + PathDelim);
+    CleanDirectory(CastleEnginePath + 'packages' + PathDelim + 'lib' + PathDelim);
+  end;
+end;
+
 procedure Compile(const OS: TOS; const CPU: TCPU; const Plugin: boolean;
   const Mode: TCompilationMode; const WorkingDirectory, CompileFile: string;
   const SearchPaths, LibraryPaths, ExtraOptions: TStrings);
@@ -196,12 +223,12 @@ var
       AddEnginePath('window/unix');
       AddEnginePath('images');
       AddEnginePath('images/opengl');
-      AddEnginePath('images/opengl/glsl');
+      AddEnginePath('images/opengl/glsl/generated-pascal');
       AddEnginePath('3d');
       AddEnginePath('3d/opengl');
       AddEnginePath('x3d');
       AddEnginePath('x3d/opengl');
-      AddEnginePath('x3d/opengl/glsl');
+      AddEnginePath('x3d/opengl/glsl/generated-pascal');
       AddEnginePath('audio');
       AddEnginePath('audio/fmod');
       AddEnginePath('audio/openal');
@@ -408,13 +435,22 @@ begin
       FpcOptions.Add('-vm5071');
     end;
 
-    if FpcVer.AtLeast(3, 3, 1) then
+    if FpcVer.AtLeast(3, 2, 0) then
     begin
       // do not show
-      // Note:  Call to subroutine "function TGenericVector3.Length:Single;" marked as inline is not inlined
-      // (In FPC 3.3.1, not in FPC 3.1.1 rev 38027)
-      FpcOptions.Add('-vm6058');
+      // Warning: function result variable of a managed type does not seem to be initialized
+      // (a lot of false warnings since FPC 3.3.1)
+      FpcOptions.Add('-vm5093');
 
+      // do not show
+      // Note: Call to subroutine "$1" marked as inline is not inlined
+      // (In FPC 3.3.1, not in FPC 3.1.1 rev 38027)
+      // (flood of notes after using Generics.Collections)
+      FpcOptions.Add('-vm6058');
+    end;
+
+    if FpcVer.AtLeast(3, 3, 1) then
+    begin
       // do not show
       // Warning: Local variable "$1" of a managed type does not seem to be initialized
       // (a lot of false warnings since FPC 3.3.1)
@@ -424,11 +460,6 @@ begin
       // Warning: Variable "OutputFace" of a managed type does not seem to be initialized
       // (3 false warnings since FPC 3.3.1 in Kraft)
       FpcOptions.Add('-vm5090');
-
-      // do not show
-      // Warning: function result variable of a managed type does not seem to be initialized
-      // (a lot of false warnings since FPC 3.3.1)
-      FpcOptions.Add('-vm5093');
     end;
 
     FpcOptions.Add('-T' + OSToString(OS));
@@ -594,16 +625,7 @@ begin
       if (Pos('Fatal: Internal error', FpcOutput) <> 0) or
          (Pos('Error: Compilation raised exception internally', FpcOutput) <> 0) then
       begin
-        Writeln('-------------------------------------------------------------');
-        Writeln('It seems FPC crashed with a compiler error (Internal error). If you can reproduce this problem, please report it to http://bugs.freepascal.org/ ! We want to help FPC developers to fix this problem, and the only way to do it is to report it. If you need help creating a good bugreport, speak up on the FPC or Castle Game Engine mailing list.');
-        Writeln;
-        Writeln('As a workaround, right now we''ll clean your project, and (if we have permissions) the Castle Game Engine units, and try compiling again.');
-        Writeln('-------------------------------------------------------------');
-        { when we're called to compile a project, WorkingDirectory is the project path }
-        CleanDirectory(WorkingDirectory);
-        CleanDirectory(TempOutputPath(WorkingDirectory, false));
-        if CastleEngineSrc <> '' then
-          CleanDirectory(CastleEngineSrc);
+        FpcLazarusCrashRetry(WorkingDirectory, 'FPC', 'FPC');
         RunCommandIndirPassthrough(WorkingDirectory, FpcExe, FpcOptions.ToArray, FpcOutput, FpcExitStatus);
         if FpcExitStatus <> 0 then
           { do not retry compiling in a loop, give up }
@@ -612,6 +634,87 @@ begin
         raise Exception.Create('Failed to compile');
     end;
   finally FreeAndNil(FpcOptions) end;
+end;
+
+procedure CompileLazbuild(const OS: TOS; const CPU: TCPU;
+  const Mode: TCompilationMode;
+  const WorkingDirectory, LazarusProjectFile: string);
+var
+  LazbuildExe: String;
+  LazbuildOptions: TCastleStringList;
+
+  procedure RunLazbuild;
+  var
+    LazbuildOutput: String;
+    LazbuildExitStatus: Integer;
+  begin
+    RunCommandIndirPassthrough(WorkingDirectory,
+      LazbuildExe, LazbuildOptions.ToArray, LazbuildOutput, LazbuildExitStatus);
+    if LazbuildExitStatus <> 0 then
+    begin
+      { Old lazbuild can fail with exception like this:
+
+          An unhandled exception occurred at $0000000000575F5F:
+          EAccessViolation: Access violation
+            $0000000000575F5F line 590 of exttools.pas
+            $000000000057A027 line 1525 of exttools.pas
+            $000000000057B231 line 1814 of exttools.pas
+
+        Simply retrying works.
+      }
+      if (Pos('Fatal: Internal error', LazbuildOutput) <> 0) or
+         (Pos('EAccessViolation: Access violation', LazbuildOutput) <> 0) then
+      begin
+        FpcLazarusCrashRetry(WorkingDirectory, 'Lazarus (lazbuild)', 'Lazarus');
+        RunCommandIndirPassthrough(WorkingDirectory,
+          LazbuildExe, LazbuildOptions.ToArray, LazbuildOutput, LazbuildExitStatus);
+        if LazbuildExitStatus <> 0 then
+          { do not retry compiling in a loop, give up }
+          raise Exception.Create('Failed to compile');
+      end else
+        raise Exception.Create('Failed to compile');
+    end;
+  end;
+
+begin
+  LazbuildExe := FindExeLazarus('lazbuild');
+  if LazbuildExe = '' then
+    raise EExecutableNotFound.Create('Cannot find "lazbuild" program. Make sure it is installed, and available on environment variable $PATH. If you use the CGE editor, you can also set Lazarus location in "Preferences".');
+
+  LazbuildOptions := TCastleStringList.Create;
+  try
+    // register CGE packages first
+    if CastleEnginePath <> '' then
+    begin
+      LazbuildOptions.Clear;
+      LazbuildOptions.Add('--add-package-link');
+      LazbuildOptions.Add(CastleEnginePath + 'packages' + PathDelim + 'castle_base.lpk');
+      RunLazbuild;
+
+      LazbuildOptions.Clear;
+      LazbuildOptions.Add('--add-package-link');
+      LazbuildOptions.Add(CastleEnginePath + 'packages' + PathDelim + 'castle_window.lpk');
+      RunLazbuild;
+
+      LazbuildOptions.Clear;
+      LazbuildOptions.Add('--add-package-link');
+      LazbuildOptions.Add(CastleEnginePath + 'packages' + PathDelim + 'castle_components.lpk');
+      RunLazbuild;
+    end;
+
+    LazbuildOptions.Clear;
+    LazbuildOptions.Add('--os=' + OSToString(OS));
+    LazbuildOptions.Add('--cpu=' + CPUToString(CPU));
+    { // Do not pass --build-mode, as project may not have it defined.
+    if Mode = cmDebug then
+      LazbuildOptions.Add('--build-mode=Debug')
+    else
+      LazbuildOptions.Add('--build-mode=Release');
+    }
+    LazbuildOptions.Add(LazarusProjectFile);
+
+    RunLazbuild;
+  finally FreeAndNil(LazbuildOptions) end;
 end;
 
 function CompilationOutputPath(const OS: TOS; const CPU: TCPU;

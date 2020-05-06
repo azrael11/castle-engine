@@ -42,14 +42,23 @@ public
 private
   FScreenWidth, FScreenHeight: Integer;
   FScreenStatusBarHeight: Cardinal;
-  procedure WarningToCallback(Sender: TObject; const Category, S: string);
+  procedure WarningToCallback(const Category, S: string);
 {$endif read_application_interface}
 
 {$ifdef read_global_interface}
 
-// Call CGEApp_Initialize / CGEApp_Finalize only once during the entire application.
+{ Initialize / Finalize set up some global things.
+  Call CGEApp_Initialize / CGEApp_Finalize once and only once during the entire application. }
 procedure CGEApp_Initialize(ApplicationConfigDirectory: PChar); cdecl;
 procedure CGEApp_Finalize; cdecl;
+
+{ Used by the external process to ask for context properties from CGE
+  (whether to use alpha channel, depth buffer etc.).
+  CGE answers looking at Application.MainWindow properties. }
+procedure CGEApp_ContextProperties(RedBits, GreenBits, BlueBits, AlphaBits, DepthBits, StencilBits: PCInt); cdecl; export;
+
+{ Notifications from the external process about various events:
+  rendering context was opened, closed, resized etc. }
 procedure CGEApp_Open(InitialWidth, InitialHeight, InitialStatusBarHeight, ADpi: cUInt32); cdecl;
 procedure CGEApp_Close(QuitWhenLastWindowClosed: CBool); cdecl;
 procedure CGEApp_Resize(uiViewWidth, uiViewHeight, uiStatusBarHeight: cUInt32); cdecl;
@@ -315,7 +324,7 @@ begin
   Result := 'Library (Using Existing OpenGL Context)';
 end;
 
-procedure TCastleApplication.WarningToCallback(Sender: TObject; const Category, S: string);
+procedure TCastleApplication.WarningToCallback(const Category, S: string);
 var
   sMsg: string;
   szBuffer: PChar;
@@ -379,6 +388,32 @@ begin
     ApplicationProperties.OnWarning.Remove(@Application.WarningToCallback);
   except
     on E: TObject do WritelnWarning('CGEApp_Finalize', ExceptMessage(E));
+  end;
+end;
+
+procedure CGEApp_ContextProperties(RedBits, GreenBits, BlueBits, AlphaBits, DepthBits, StencilBits: PCInt); cdecl;
+var
+  W: TCastleWindowBase;
+begin
+  try
+    CheckMainWindow;
+    W := Application.MainWindow;
+    RedBits    ^ := Max(1, W.RedBits  );
+    GreenBits  ^ := Max(1, W.GreenBits);
+    BlueBits   ^ := Max(1, W.BlueBits );
+    AlphaBits  ^ := W.AlphaBits  ;
+    DepthBits  ^ := W.DepthBits  ;
+    StencilBits^ := W.StencilBits;
+    WritelnLog('Rendering context will be initialized with these (minimal) buffer sizes: red %d, green %d, blue %d, alpha %d, depth %d, stencil %d', [
+      RedBits    ^,
+      GreenBits  ^,
+      BlueBits   ^,
+      AlphaBits  ^,
+      DepthBits  ^,
+      StencilBits^
+    ]);
+  except
+    on E: TObject do WritelnWarning('CGEApp_ContextProperties', ExceptMessage(E));
   end;
 end;
 

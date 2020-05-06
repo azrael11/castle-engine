@@ -31,7 +31,7 @@
     Name: string;
     Node: TTransformNode;
     NodeUsedAsChild: boolean;
-    Material: TMaterialNode; //< initialized together with Node, always inside
+    Material: TUnlitMaterialNode; //< initialized together with Node, always inside
     destructor Destroy; override;
     procedure Parse(const Json: TJSONObject; const Bones: TBoneList); virtual;
     { Create and parse correct TAttachment descendant.
@@ -58,9 +58,8 @@
   end;
 
   TAbstractMeshAttachment = class(TRegionAttachment)
-  strict protected
-    Coord: TCoordinateNode;
   public
+    Coord: TCoordinateNode;
     UVs: TVector2List;
     Triangles: TLongIntList;
     Vertices: TVector2List;
@@ -254,12 +253,12 @@ begin
   if Shape.Appearance.Texture <> nil then
     Shape.Geometry := BuildGeometry(BaseUrl, TexCoord, TexRect, TexRotated);
 
-  Shape.Material := TMaterialNode.Create(
+  Material := TUnlitMaterialNode.Create(
     Format('Material_Slot_%s_Attachment_%s', [SlotName, Name]),
     BaseUrl);
-  Shape.Material.ForcePureEmissive;
-  Shape.Material.EmissiveColor := Vector3(1, 1, 1);
-  Material := Shape.Material;
+  Material.EmissiveColor := Vector3(1, 1, 1);
+
+  Shape.Material := Material;
 end;
 
 function TRegionAttachment.BuildGeometry(const BaseUrl: string;
@@ -278,7 +277,9 @@ begin
   Faces.Solid := false;
   Faces.SetCoordIndex([0, 1, 2, 3]);
 
-  Coord := TCoordinateNode.Create('', Faces.BaseUrl);
+  Coord := TCoordinateNode.Create(
+    Format('Coordinate_Slot_%s_Attachment_%s', [SlotName, Name]), // name it, as ROUTE may lead to it
+    Faces.BaseUrl);
   Rect[0] := Vector2(
     MapRange(TexRect[0][0], 0, 1, -Width / 2, Width / 2),
     MapRange(TexRect[0][1], 0, 1, -Height / 2, Height / 2));
@@ -355,7 +356,9 @@ begin
   Faces.Solid := false;
   Faces.SetIndex(Triangles);
 
-  Coord := TCoordinateNode.Create('', Faces.BaseUrl);
+  Coord := TCoordinateNode.Create(
+    Format('Coordinate_Slot_%s_Attachment_%s', [SlotName, Name]), // name it, as ROUTE may lead to it
+    Faces.BaseUrl);
   for I := 0 to Vertices.Count - 1 do
     Coord.FdPoint.Items.Add(Vector3(Vertices[I][0], Vertices[I][1], 0));
   Faces.Coord := Coord;
@@ -590,13 +593,13 @@ begin
   Shape := TShapeNode.Create('', BaseUrl);
   Node.AddChildren(Shape);
 
-  Shape.Material := TMaterialNode.Create(
+  Material := TUnlitMaterialNode.Create(
     Format('Material_Slot_%s_Attachment_%s', [SlotName, Name]),
     BaseUrl);
-  Shape.Material.ForcePureEmissive;
-  Shape.Material.EmissiveColor := WhiteRGB;
+  Material.EmissiveColor := WhiteRGB;
+  Shape.Material := Material;
+
   Shape.Render := false;
-  Material := Shape.Material;
 
   ControlPoints := TCoordinateNode.Create('', BaseUrl);
   { we ignore first and last Vertices, they are only handles outside of
@@ -623,6 +626,8 @@ end;
 destructor TClippingAttachment.Destroy;
 begin
   FreeAndNil(Vertices);
+  // If you didn't call VisualizeClipPolygon in BuildNodes, Material node remains unused
+  FreeIfUnusedAndNil(Material);
   inherited;
 end;
 
@@ -648,6 +653,7 @@ procedure TClippingAttachment.BuildNodes(const BaseUrl: string;
     I: Integer;
   begin
     Shape := TShapeNode.Create('', BaseUrl);
+    Shape.Material := Material;
     Node.AddChildren(Shape);
 
     Faces := TIndexedFaceSetNode.Create('', BaseUrl);
@@ -691,6 +697,11 @@ begin
   Node := TTransformNode.Create(
     Format('Slot_%s_Attachment_%s', [SlotName, Name]),
     BaseUrl);
+
+  Material := TUnlitMaterialNode.Create(
+    Format('Material_Slot_%s_Attachment_%s', [SlotName, Name]),
+    BaseUrl);
+  Material.EmissiveColor := WhiteRGB;
 
   // debug
   //VisualizeClipPolygon;

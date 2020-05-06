@@ -204,7 +204,7 @@ function CheckMenu(const Entry: TMenuEntry; out EntryLCL: Menus.TMenuItem): bool
 begin
   EntryLCL := Menus.TMenuItem(Entry.Handle);
   Result := EntryLCL <> nil;
-  if (not Result) and Log and
+  if (not Result) and
      ((Entry.CorrectParentWindow = nil) or Entry.CorrectParentWindow.MainMenuVisible) then
     WritelnWarning('Menu', 'Menu entry has Handle = nil (this means that corresponding LCL menu item object was not created, but it should)');
 end;
@@ -699,6 +699,7 @@ procedure TCastleWindowBase.OpenGLControlKeyUp(Sender: TObject; var Key: Word;
 var
   MyKey: TKey;
 begin
+  FKeyPressHandler.BeforeKeyUp(Key, Shift);
   MyKey := KeyLCLToCastle(Key, Shift);
   if MyKey <> K_None then
     DoKeyUp(MyKey);
@@ -725,7 +726,7 @@ end;
 { Since LCL event loop may become clogged when dragging with mouse
   (like when using mouse look), force doing update and (if needed) redraw
   from time to time.
-  See TCastleControl implementation for analogous AggressiveUpdate
+  See TCastleControlBase implementation for analogous AggressiveUpdate
   procedure with detailed discussion about why this is needed. }
 procedure TCastleWindowBase.AggressiveUpdate;
 var

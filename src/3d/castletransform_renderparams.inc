@@ -17,8 +17,8 @@
 {$ifdef read_interface}
 
   { Statistics about what was rendered during last frame.
-    You will usually access this by scene manager property,
-    see @link(TCastleAbstractViewport.Statistics). }
+    You will usually access this by viewport property,
+    see @link(TCastleViewport.Statistics). }
   TRenderStatistics = record
     { How many shapes were rendered (send to OpenGL)
       versus all shapes that were potentially visible.
@@ -98,7 +98,7 @@
     This is interesting to you only if you write custom rendering code.
 
     In normal applications, you shoud only get/set camera using TCastleCamera
-    descendants, through TCastleAbstractViewport.Camera and related properties.
+    descendants, through @link(TCastleViewport.Camera) and related properties.
     Do not use the TRenderingCamera class in normal applications. }
   TRenderingCamera = class
   strict private
@@ -176,9 +176,7 @@
     procedure Assign(const Source: TRenderingCamera);
   end;
 
-  { @exclude Internal.
-
-    Information that a TCastleTransform object needs to render.
+  { Information that a TCastleTransform object needs to render.
     Read-only for @link(TCastleTransform.LocalRender)
     (except @link(Statistics), which should be updated during rendering).
 

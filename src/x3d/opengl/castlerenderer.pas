@@ -124,7 +124,7 @@ uses Classes, SysUtils, Generics.Collections,
   CastleUtils, CastleVectors, X3DFields, X3DNodes, CastleColors,
   CastleInternalX3DLexer, CastleImages, CastleGLUtils, CastleRendererInternalLights,
   CastleGLShaders, CastleGLImages, CastleTextureImages, CastleVideos, X3DTime,
-  CastleShapes, CastleGLCubeMaps, CastleClassUtils, CastleCompositeImage, Castle3D,
+  CastleShapes, CastleGLCubeMaps, CastleClassUtils, CastleCompositeImage,
   CastleGeometryArrays, CastleArraysGenerator, CastleRendererInternalShader,
   CastleRendererInternalTextureEnv, CastleBoxes, CastleTransform;
 
@@ -452,6 +452,7 @@ type
     property SeparateDiffuseTexture: boolean
       read FSeparateDiffuseTexture
       write FSeparateDiffuseTexture default false;
+      deprecated 'rendering always behaves as if this was true now, with Phong shading';
   end;
 
   TRenderingAttributesClass = class of TRenderingAttributes;
@@ -549,6 +550,7 @@ type
     Vbo: TVboArrays;
     VboAllocatedUsage: TGLenum;
     VboAllocatedSize: array [TVboType] of Cardinal;
+    VboCoordinatePreserveGeometryOrder: Boolean; //< copied from TGeometryArrays.CoordinatePreserveGeometryOrder
 
     { Like TX3DRendererShape.LoadArraysToVbo,
       but takes explicit DynamicGeometry. }
@@ -560,6 +562,13 @@ type
     procedure FreeArrays(const Changed: TVboTypes);
     { Debug description of this shape cache. }
     function ToString: String; override;
+    { If possible, update the coordinate/normal data in VBO fast.
+
+      This is carefully implemented to do a specific case of TShapeCache.LoadArraysToVbo.
+      It optimizes the case of animating coordinates/normals using CoordinateInterpolator,
+      which is very important to optimize, since that's how glTF skinned animations
+      are done. }
+    function FastCoordinateNormalUpdate(const Coords, Normals: TVector3List): Boolean;
   end;
 
   TShapeCacheList = {$ifdef CASTLE_OBJFPC}specialize{$endif} TObjectList<TShapeCache>;
@@ -1008,7 +1017,7 @@ type
     { Update generated texture for this shape.
 
       The given camera position, direction, up should be in world space
-      (that is, in TCastleSceneManager space,
+      (that is, in TCastleRootTransform space,
       not in space local to this TCastleScene).
 
       This does not change current viewport or projection matrix. }
@@ -2258,6 +2267,8 @@ begin
   else
     DataUsage := GL_STATIC_DRAW;
 
+  VboCoordinatePreserveGeometryOrder := Arrays.CoordinatePreserveGeometryOrder;
+
   BufferData(vtCoordinate, GL_ARRAY_BUFFER,
     Arrays.Count * Arrays.CoordinateSize, Arrays.CoordinateArray);
 
@@ -2277,6 +2288,55 @@ begin
     work even if you call FreeArrays multiple times, the needed updates
     are summed). }
   VboToReload := [];
+end;
+
+function TShapeCache.FastCoordinateNormalUpdate(const Coords, Normals: TVector3List): Boolean;
+type
+  TCoordinateNormal = packed record
+    Coord, Normal: TVector3;
+  end;
+var
+  NewCoordinates: array of TCoordinateNormal;
+  Count, Size: Cardinal;
+  I: Integer;
+begin
+  Result := false;
+
+  if { VBO of coordinates was initialized.
+       This also means that Arrays.FreeData was called, as LoadArraysToVbo does it. }
+     (Vbo[vtCoordinate] <> 0) and
+     VboCoordinatePreserveGeometryOrder and
+     (Normals.Count = Coords.Count) then
+  begin
+    Count := Coords.Count;
+    Size := Count * SizeOf(TCoordinateNormal);
+    if (VboAllocatedUsage = GL_STREAM_DRAW) and
+       { Comparing the byte sizes also makes sure that previous and new coordinates
+         count stayed the same.
+         Right now we always pack into TCoordinateNormal record (2 vectors, 3x floats)
+         so VboAllocatedSize[vtCoordinate] just determines the count.
+       }
+       (VboAllocatedSize[vtCoordinate] = Size) then
+    begin
+      Result := true;
+      if Count <> 0 then
+      begin
+        VboToReload := VboToReload + [vtCoordinate];
+
+        // calculate NewCoordinates
+        SetLength(NewCoordinates, Count);
+        for I := 0 to Count - 1 do
+        begin
+          NewCoordinates[I].Coord := Coords.List^[I];
+          NewCoordinates[I].Normal := Normals.List^[I];
+        end;
+
+        // load NewCoordinates to GPU
+        glBindBuffer(GL_ARRAY_BUFFER, Vbo[vtCoordinate]);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, Size, Pointer(NewCoordinates));
+      end;
+    end;
+  end;
 end;
 
 function TShapeCache.ToString: String;
@@ -2736,7 +2796,20 @@ end;
 
 procedure TGLRenderer.RenderShape(const Shape: TX3DRendererShape);
 
-  function ShapeMaybeUsesShadowMaps(Shape: TX3DRendererShape): boolean;
+  function ShapeUsesEnvironmentLight(const Shape: TX3DRendererShape): boolean;
+  var
+    I: Integer;
+    Lights: TLightInstancesList;
+  begin
+    Lights := Shape.State.Lights;
+    if Lights <> nil then
+      for I := 0 to Lights.Count - 1 do
+        if Lights.L[I].Node is TEnvironmentLightNode then
+          Exit(true);
+    Result := false;
+  end;
+
+  function ShapeMaybeUsesShadowMaps(const Shape: TX3DRendererShape): boolean;
   var
     Tex, SubTexture: TX3DNode;
     I: Integer;
@@ -2762,6 +2835,15 @@ procedure TGLRenderer.RenderShape(const Shape: TX3DRendererShape);
     end;
   end;
 
+  function ShapeMaterialRequiresPhongShading(const Shape: TX3DRendererShape): boolean;
+  begin
+    Result :=
+      (Shape.Node <> nil) and
+      ( (Shape.Node.Material is TTwoSidedMaterialNode) or
+        (Shape.Node.Material is TPhysicalMaterialNode)
+      );
+  end;
+
 var
   PhongShading: boolean;
   Shader: TShader;
@@ -2769,7 +2851,6 @@ begin
   { instead of TShader.Create, reuse existing PreparedShader for speed }
   Shader := PreparedShader;
   Shader.Clear;
-  Shader.SeparateDiffuseTexture := Attributes.SeparateDiffuseTexture;
   Shader.RenderingCamera := RenderingCamera;
 
   { calculate PhongShading }
@@ -2782,8 +2863,11 @@ begin
     if Shape.Node.Shading = shGouraud then
       PhongShading := false;
   { if some feature requires PhongShading, make it true }
-  if ShapeMaybeUsesPhongSurfaceTexture(Shape) or
-     ShapeMaybeUsesShadowMaps(Shape) then
+  if ShapeMaybeUsesSurfaceTexture(Shape) or
+     ShapeMaybeUsesShadowMaps(Shape) or
+     ShapeMaterialRequiresPhongShading(Shape) or
+     ShapeUsesEnvironmentLight(Shape) or
+     (not Shape.Geometry.Solid) { two-sided lighting required by solid=FALSE } then
     PhongShading := true;
 
   Shader.Initialize(PhongShading);
@@ -3095,9 +3179,12 @@ begin
           By the way, we don't do any texture transform if Texture = nil,
           since then no texture is used anyway.
 
-          TODO: what to do with CommonSurfaceShader ? }
-        if (State.DiffuseAlphaTexture <> nil) and
-           (not (State.DiffuseAlphaTexture is TMultiTextureNode)) then
+          TODO: what to do with CommonSurfaceShader ?
+
+          TODO: fix for new texture channels, where one TextureTransform
+          should work like MultiTextureTransform with one item. }
+        if (State.MainTexture <> nil) and
+           (not (State.MainTexture is TMultiTextureNode)) then
         begin
           if FirstTexUnit < GLFeatures.MaxTextureUnits then
           begin
@@ -3216,11 +3303,11 @@ begin
   if GLFeatures.EnableFixedFunction then
   begin
     glPushMatrix;
-      glMultMatrix(Shape.State.Transform);
+      glMultMatrix(Shape.State.Transformation.Transform);
   end;
   {$endif}
 
-    Shape.ModelView := Shape.ModelView * Shape.State.Transform;
+    Shape.ModelView := Shape.ModelView * Shape.State.Transformation.Transform;
     RenderShapeCreateMeshRenderer(Shape, Shader, MaterialOpacity, Lighting);
 
   {$ifndef OpenGLES}
@@ -3436,6 +3523,7 @@ procedure TGLRenderer.RenderShapeTextures(const Shape: TX3DRendererShape;
     AlphaTest: boolean;
     FontTextureNode: TAbstractTexture2DNode;
     GLFontTextureNode: TGLTextureNode;
+    MainTextureMapping: Integer;
   begin
     TexCoordsNeeded := 0;
     BoundTextureUnits := 0;
@@ -3445,10 +3533,12 @@ procedure TGLRenderer.RenderShapeTextures(const Shape: TX3DRendererShape;
 
     AlphaTest := false;
 
-    TextureNode := Shape.State.DiffuseAlphaTexture;
+    TextureNode := Shape.State.MainTexture(MainTextureMapping);
     GLTextureNode := GLTextureNodes.TextureNode(TextureNode);
     { assert we never have non-nil GLTextureNode and nil TextureNode }
     Assert((GLTextureNode = nil) or (TextureNode <> nil));
+
+    Shader.MainTextureMapping := MainTextureMapping;
 
     FontTextureNode := Shape.OriginalGeometry.FontTextureNode;
     GLFontTextureNode := GLTextureNodes.TextureNode(FontTextureNode);
@@ -3479,11 +3569,12 @@ procedure TGLRenderer.RenderShapeTextures(const Shape: TX3DRendererShape;
          (Shape.Node.Appearance.Texture <> nil) and
          (TextureNode <> Shape.Node.Appearance.Texture) then
       begin
-        { This means that Shape.State.DiffuseAlphaTexture comes
-          from CommonSurfaceShader (or a weird mix of VRML 1.0 and X3D which
-          is undefined).
+        { This means that Shape.State.MainTexture comes
+          from CommonSurfaceShader or X3Dv4 Material or PhysicalMaterial.
           Make sure to still enable shadow maps from Shape.Appearance.Texture
-          then. }
+          then.
+          TODO: shadow maps should be placed in some special slot,
+          dedicated for them. }
         EnableShadowMaps(Shape.Node.Appearance.Texture, TexCoordsNeeded, Shader);
       end;
 
@@ -3719,13 +3810,13 @@ var
   begin
     if CheckUpdate(TexNode.GeneratedTextureHandler) then
     begin
-      if TexNode.FdLight.Value is TAbstractLightNode then
+      if TexNode.FdLight.Value is TAbstractPunctualLightNode then
       begin
         GLNode := TGLGeneratedShadowMap(GLTextureNodes.TextureNode(TexNode));
         if GLNode <> nil then
         begin
           GLNode.Update(Render, ProjectionNear, ProjectionFar,
-            TAbstractLightNode(TexNode.FdLight.Value));
+            TAbstractPunctualLightNode(TexNode.FdLight.Value));
 
           PostUpdate;
 
@@ -3758,7 +3849,7 @@ var
           CurrentViewpoint, CameraViewKnown,
           CameraPosition, CameraDirection, CameraUp,
           Shape.BoundingBox,
-          Shape.State.Transform,
+          Shape.State.Transformation.Transform,
           GeometryCoords,
           Shape.MirrorPlaneUniforms);
 

@@ -12,8 +12,8 @@ type
   strict private
     SearchingForDescription: string;
     function SearchingForDescriptionCallback(Node: TX3DNode): Pointer;
-    procedure NodeMultipleTimesWarning(Sender: TObject; const Category, S: string);
-    procedure OnWarningRaiseException(Sender: TObject; const Category, S: string);
+    procedure NodeMultipleTimesWarning(const Category, S: string);
+    procedure OnWarningRaiseException(const Category, S: string);
   published
     procedure TestBorderManifoldEdges;
     procedure TestIterator;
@@ -156,6 +156,9 @@ begin
 
   // This once failed to be read, as the Spine has DefaultSkin = nil
   CheckIterator('data/spine/empty_spine.json');
+
+  // This once failed with access violation because TClippingAttachment.BuildNodes didn't assign Material
+  CheckIterator('data/spine/clip_region/skeleton.json');
 end;
 
 procedure TTestSceneCore.TestFind;
@@ -280,7 +283,7 @@ end;
 type
   ENodeMultipleTimes = class(Exception);
 
-procedure TTestSceneCore.NodeMultipleTimesWarning(Sender: TObject; const Category, S: string);
+procedure TTestSceneCore.NodeMultipleTimesWarning(const Category, S: string);
 begin
   if Pos('is already part of another TCastleScene instance', S) <> 0 then
     raise ENodeMultipleTimes.Create('We want this warning, good: ' + S)
@@ -384,7 +387,7 @@ begin
   end;
 end;
 
-procedure TTestSceneCore.OnWarningRaiseException(Sender: TObject; const Category, S: string);
+procedure TTestSceneCore.OnWarningRaiseException(const Category, S: string);
 begin
   raise Exception.CreateFmt('TTestSceneCore made a warning, and any warning here is an error: %s: %s', [Category, S]);
 end;

@@ -382,7 +382,7 @@
     procedure Update(
       const Render: TRenderFromViewFunction;
       const ProjectionNear, ProjectionFar: Single;
-      Light: TAbstractLightNode);
+      const Light: TAbstractPunctualLightNode);
 
     { Check would we use Variance Shadow Maps with current ARenderer
       attributes and OpenGL version/extensions. }
@@ -394,6 +394,7 @@
     class function IsClassForTextureNode(ANode: TAbstractTextureNode): boolean; override;
     procedure PrepareCore(State: TX3DGraphTraverseState); override;
   public
+    function TextureNode: TShaderTextureNode;
     procedure Unprepare; override;
     function Bind(const TextureUnit: Cardinal): boolean; override;
     function Enable(const TextureUnit: Cardinal;
@@ -2068,7 +2069,7 @@ end;
 procedure TGLGeneratedShadowMap.Update(
   const Render: TRenderFromViewFunction;
   const ProjectionNear, ProjectionFar: Single;
-  Light: TAbstractLightNode);
+  const Light: TAbstractPunctualLightNode);
 var
   NewProjectionMatrix, SavedProjectionMatrix: TMatrix4;
   SavedViewport: TRectangle;
@@ -2178,6 +2179,11 @@ begin
   if not Result then Exit;
 
   Shader.EnableTexture(TextureUnit, ttShader, TextureNode, Env);
+end;
+
+function TGLShaderTexture.TextureNode: TShaderTextureNode;
+begin
+  Result := TShaderTextureNode(inherited TextureNode);
 end;
 
 {$endif read_implementation}

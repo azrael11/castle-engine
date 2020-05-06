@@ -26,7 +26,7 @@ uses
   StdCtrls, OpenGLContext, Controls, Forms, LCLVersion, LCLType,
   CastleRectangles, CastleVectors, CastleKeysMouse, CastleUtils, CastleTimeUtils,
   CastleUIControls, CastleCameras, X3DNodes, CastleScene, CastleLevels,
-  CastleImages, CastleGLVersion, CastleSceneManager, CastleLCLUtils,
+  CastleImages, CastleGLVersion, CastleLCLUtils, CastleViewport,
   CastleGLImages, CastleGLContainer, Castle2DSceneManager,
   CastleApplicationProperties;
 
@@ -42,15 +42,13 @@ const
 
 type
   { Control to render everything (3D or 2D) with Castle Game Engine.
-    Add the user-interface controls to the
-    @link(Controls) property, in particular
-    you can add there scene manager instances (like @link(TCastleSceneManager)
-    and @link(TCastle2DSceneManager)) to render 3D or 2D game worlds.
-    Use events like @link(OnUpdate) to process your game world.
 
-    You can use a descendant of this called TCastleControl to have even
-    more comfort: TCastleControl gives you a ready
-    @link(TCastleControl.SceneManager) for your world.
+    Add the user-interface controls to the @link(Controls) property.
+    User-interface controls are any @link(TCastleUserInterface) descendants,
+    like @link(TCastleImageControl) or @link(TCastleButton) or @link(TCastleViewport).
+
+    Use events like @link(OnPress) to react to events.
+    Use event @link(OnUpdate) to do something continuously.
 
     By default, the control is filled with simple color from
     @link(TUIContainer.BackgroundColor Container.BackgroundColor).
@@ -58,7 +56,7 @@ type
   TCastleControlBase = class(TCustomOpenGLControl)
   private
     type
-      { Non-abstact implementation of TUIContainer that cooperates with
+      { Non-abstract implementation of TUIContainer that cooperates with
         TCastleControlBase. }
       TContainer = class(TUIContainer)
       private
@@ -112,9 +110,10 @@ type
 
       To counteract this, call this method when Shift state is known,
       to update Pressed when needed. }
+    procedure UpdateShiftState(const Shift: TShiftState);
+
     procedure KeyPressHandlerPress(Sender: TObject;
       const Event: TInputPressRelease);
-    procedure UpdateShiftState(const Shift: TShiftState);
 
     procedure SetMousePosition(const Value: TVector2);
     procedure SetAutoRedisplay(const Value: boolean);
@@ -218,7 +217,7 @@ type
 
     { List of user-interface controls currently active.
       You can add your TCastleUserInterface instances
-      (like TCastleSceneManager, TCastleButton and much more) to this list.
+      (like TCastleViewport, TCastleButton and much more) to this list.
       We will pass events to these controls, draw them etc.
       See @link(TUIContainer.Controls) for details. }
     function Controls: TChildrenControls;
@@ -378,8 +377,7 @@ type
       Note that calling Invalidate while in EventRender (OnRender) is not ignored.
       It instructs to call EventRender (OnRender) again, as soon as possible.
 
-      When you have some controls on the @link(Controls) list
-      (in particular, the @link(TCastleControl.SceneManager) is also on this list),
+      When you have some controls on the @link(Controls) list,
       the OnRender event is done @bold(last).
       So here you can draw on top of the existing UI controls.
       To draw something underneath the existing controls, create a new TCastleUserInterface
@@ -388,15 +386,7 @@ type
     property OnRender: TNotifyEvent read FOnRender write FOnRender;
 
     { Called when the control size (@code(Width), @code(Height)) changes.
-      It's also guaranteed to be called
-      right after the OnOpen event.
-
-      Our OpenGL context is already "current" when this event is called
-      (MakeCurrent is done right before), like for other events.
-      This is a good place to set OpenGL viewport and projection matrix.
-
-      In the usual case, the SceneManager takes care of setting appropriate
-      OpenGL projection, so you don't need to do anything here. }
+      It's also guaranteed to be called right after the OnOpen event. }
     property OnResize: TNotifyEvent read FOnResize write FOnResize;
 
     { Called when user presses a key or mouse button or moves mouse wheel. }
@@ -540,15 +530,15 @@ type
     property OnCameraChanged: TNotifyEvent
       read GetOnCameraChanged write SetOnCameraChanged;
 
-    { See TCastleAbstractViewport.ShadowVolumes. }
+    { See @link(TCastleViewport.ShadowVolumes). }
     property ShadowVolumes: boolean
       read GetShadowVolumes write SetShadowVolumes
-      default TCastleAbstractViewport.DefaultShadowVolumes;
+      default TCastleViewport.DefaultShadowVolumes;
 
-    { See TCastleAbstractViewport.ShadowVolumesRender. }
+    { See @link(TCastleViewport.ShadowVolumesRender). }
     property ShadowVolumesRender: boolean
       read GetShadowVolumesRender write SetShadowVolumesRender default false;
-  end;
+  end deprecated 'use TCastleControlBase and create instance of TCastleViewport explicitly';
 
   { Same as TCastle2DSceneManager, redefined only to work as a sub-component
     of TCastleControl, otherwise Lazarus fails to update the uses clause
@@ -558,10 +548,10 @@ type
   end;
 
   { Control to render 2D games with Castle Game Engine,
-    with a default @link(TCastle2DSceneManager) instance already created for you.
+    with a default @code(TCastle2DSceneManager) instance already created for you.
     This is the simplest way to render a game world with 2D controls above.
     Add your
-    game stuff (like @link(TCastle2DScene))
+    game stuff (like @code(TCastle2DScene))
     to the scene manager
     available in @link(SceneManager) property. Add the rest (like 2D user-inteface)
     to the @link(TCastleControlBase.Controls) property (from ancestor TCastleControlBase).
@@ -573,8 +563,8 @@ type
     of this class.
 
     The difference between this and @link(TCastleControl) is that this provides
-    a scene manager descending from @link(TCastle2DSceneManager), which is a little more
-    comfortable for typical 2D games. See @link(TCastle2DSceneManager) description
+    a scene manager descending from @code(TCastle2DSceneManager), which is a little more
+    comfortable for typical 2D games. See @code(TCastle2DSceneManager) description
     for details. But in principle, you can use any of these control classes
     to develop any mix of 3D or 2D game. }
   TCastle2DControl = class(TCastleControlBase)
@@ -584,7 +574,7 @@ type
     constructor Create(AOwner: TComponent); override;
   published
     property SceneManager: TControl2DSceneManager read FSceneManager;
-  end;
+  end deprecated 'use TCastleControlBase and create instance of TCastleViewport explicitly';
 
 procedure Register;
 
@@ -610,11 +600,15 @@ uses Math, Contnrs, LazUTF8, Clipbrd,
 procedure Register;
 begin
   RegisterComponents('Castle', [
-    { We hesitated whether to publish TCastleControlBase for a while.
-      Eventually, it seems useful enough to be published. }
-    TCastleControlBase,
+    TCastleControlBase
+  ]);
+  // register deprecated components in a way that they can be serialized, but are not visible on LCL palette
+  RegisterNoIcon([
+    {$warnings off}
     TCastleControl,
-    TCastle2DControl]);
+    TCastle2DControl
+    {$warnings on}
+  ]);
 end;
 
 var
@@ -1070,6 +1064,10 @@ var
   MyKey: TKey;
   MyKeyString: String;
 begin
+  { Do this before anything else, in particular before even Pressed.KeyUp below.
+    This may call OnPress (which sets Pressed to true). }
+  FKeyPressHandler.BeforeKeyUp(Key, Shift);
+
   MyKey := KeyLCLToCastle(Key, Shift);
   if MyKey <> keyNone then
     Pressed.KeyUp(MyKey, MyKeyString);
@@ -1297,35 +1295,40 @@ end;
 
 procedure TCastleControl.Load(const SceneURL: string);
 begin
+  {$warnings off} // using one deprecated from another
   Load(LoadNode(SceneURL), true);
+  {$warnings on}
 end;
 
 procedure TCastleControl.Load(ARootNode: TX3DRootNode; const OwnsRootNode: boolean);
 begin
-  { destroy MainScene and Camera, we will recreate them }
-  SceneManager.MainScene.Free;
-  SceneManager.MainScene := nil;
+  { destroy MainScene and clear cameras, we will recreate it }
+  SceneManager.Items.MainScene.Free;
+  SceneManager.Items.MainScene := nil;
   SceneManager.Items.Clear;
+  {$warnings off} // using one deprecated from another
   SceneManager.ClearCameras;
-  Assert(SceneManager.Camera = nil);
+  {$warnings on}
+  Assert(SceneManager.Navigation = nil);
 
-  SceneManager.MainScene := TCastleScene.Create(Self);
-  SceneManager.MainScene.Load(ARootNode, OwnsRootNode);
-  SceneManager.Items.Add(SceneManager.MainScene);
+  SceneManager.Items.MainScene := TCastleScene.Create(Self);
+  SceneManager.Items.MainScene.Load(ARootNode, OwnsRootNode);
+  SceneManager.Items.Add(SceneManager.Items.MainScene);
 
   { initialize octrees titles }
-  MainScene.TriangleOctreeProgressTitle := 'Building triangle octree';
-  MainScene.ShapeOctreeProgressTitle := 'Building shape octree';
+  SceneManager.Items.MainScene.TriangleOctreeProgressTitle := 'Building triangle octree';
+  SceneManager.Items.MainScene.ShapeOctreeProgressTitle := 'Building shape octree';
 
-  { For backward compatibility, to make our Navigation always non-nil. }
-  {$warnings off} // using deprecated in deprecated
-  SceneManager.RequiredNavigation;
-  {$warnings on}
+  { Adjust SceneManager.Navigation and SceneManager.Camera to latest scene }
+  SceneManager.AssignDefaultCamera;
+  SceneManager.AssignDefaultNavigation;
+  // AssignDefaultNavigation should satisfy this, and we need it for backward compatibility
+  Assert(SceneManager.Navigation <> nil);
 end;
 
 function TCastleControl.MainScene: TCastleScene;
 begin
-  Result := SceneManager.MainScene;
+  Result := SceneManager.Items.MainScene;
 end;
 
 function TCastleControl.Camera: TCastleCamera;
@@ -1408,7 +1411,7 @@ end;
 initialization
   ControlsList := TComponentList.Create(false);
   InitializeClipboard;
-  OnMainContainer := @TCastleControl(nil).GetMainContainer;
+  OnMainContainer := @TCastleControlBase(nil).GetMainContainer;
 finalization
   OnMainContainer := nil;
   FreeAndNil(ControlsList);

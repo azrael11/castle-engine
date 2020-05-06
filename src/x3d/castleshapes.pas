@@ -117,10 +117,10 @@ type
     function ShapeNode: TAbstractShapeNode;
 
     { X3D material node of this triangle. May be @nil in case material is not set,
-      or in VRML 1.0. }
-    function Material: TMaterialNode;
-
-    function MaterialNode: TMaterialNode; deprecated 'use Material';
+      or is VRML 1.0 node, or is TCommonSurfaceShaderNode,
+      or is TTwoSidedMaterialNode. }
+    function Material: TMaterialNode; deprecated 'use MaterialInfo';
+    function MaterialNode: TMaterialNode; deprecated 'use MaterialInfo';
 
     { Material information for the material of this triangle.
       See TMaterialInfo for usage description.
@@ -128,7 +128,7 @@ type
       (which indicates white unlit look).
 
       Returned TMaterialInfo is valid only as long as the underlying
-      Material or CommonSurfaceShader node exists.
+      node (Material, TwoSidedMaterial, CommonSurfaceShader) exists.
       Do not free it yourself, it will be automatically freed. }
     function MaterialInfo: TMaterialInfo;
 
@@ -192,8 +192,7 @@ type
       const OnlyVisible: boolean;
       const OnlyCollidable: boolean); virtual; abstract;
     procedure FastTransformUpdateCore(var AnythingChanged: Boolean;
-      const ParentTransform, ParentInvertedTransform: TMatrix4;
-      const ParentTransformScale: Single); virtual; abstract;
+      const ParentTransformation: TTransformation); virtual; abstract;
   public
     constructor Create(const AParentScene: TX3DEventsEngine);
     destructor Destroy; override;
@@ -250,16 +249,9 @@ type
     { Enumerate all single texture nodes (possibly) used by the shapes.
       This looks into all shapes (not only active, so e.g. it looks into all
       Switch/LOD children, not only the chosen one).
-
-      This looks into the
-
-      @unorderedList(
-        @itemSpacing Compact
-        @item(Appearance.texture field (and if it's MultiTexture,
-          looks into it's children))
-        @item Into shaders textures (GLSL shaders, CommonSurfaceShader...).
-        @item For VRML 1.0, it also looks into VRML1State.Texture2.
-      )
+      This checks all possible ways how a texture may be used by a shape,
+      so it looks at material fields,
+      shaders (ComposedShader, CommonSurfaceShader) and more.
 
       If Enumerate callbacks returns non-nil for some texture, returns it immediately,
       and stops further processing. }
@@ -281,6 +273,7 @@ type
         TShapeNode,
         TAbstractGeometryNode,
         TCoordinateNode (anything that can be inside TAbstractGeometryNode.CoordField),
+        TNormalNode (anything that can be inside TAbstractGeometryNode.CoordField),
         TColorNode, TColorRGBANode  (anything that can be inside TAbstractGeometryNode.ColorField),
         TMaterialNode (anything that can be in TShapeNode.Material),
         TTextureCoordinateNode and other stuff that can be inside TAbstractGeometryNode.InternalTexCoord,
@@ -359,9 +352,6 @@ type
     CachedMaterialProperty: TMaterialProperty;
 
     FShadowVolumes: TShapeShadowVolumes;
-
-    { TODO: expose as public property, if needed, some day. }
-    CollideAsBox: Boolean;
 
     { Just like Geometry() and State(), except return @nil if no proxy available
       (when Geometry would return the same thing as OriginalGeometry).
@@ -446,8 +436,7 @@ type
       const OnlyVisible: boolean = false;
       const OnlyCollidable: boolean = false); override;
     procedure FastTransformUpdateCore(var AnythingChanged: Boolean;
-      const ParentTransform, ParentInvertedTransform: TMatrix4;
-      const ParentTransformScale: Single); override;
+      const ParentTransformation: TTransformation); override;
   public
     { Constructor.
       @param(ParentInfo Recursive information about parents,
@@ -545,25 +534,6 @@ type
       EqualsNoTransform). }
     procedure Changed(const InactiveOnly: boolean;
       const Changes: TX3DChanges); virtual;
-
-    { @exclude
-      Called when local geometry changed. Internally used to communicate
-      between TCastleSceneCore and TShape.
-
-      "Local" means that we're concerned here about changes visible
-      in shape local coordinate system. E.g. things that only change our
-      transformation (State.Transform) do not cause "local" geometry changes.
-
-      "Geometry" means that we're concerned only about changes to topology
-      --- vertexes, edges, faces, how they connect each other.
-      Things that affect only appearance (e.g. whole Shape.appearance content
-      in stuff for VRML >= 2.0) is not relevant here. E.g. changing
-      material color does not cause "local" geometry changes.
-
-      This frees the octree (will be recreated on Octree* call).
-      Also removes cached normals.
-      Also notifies parent scene about this change (unless CalledFromParentScene). }
-    procedure LocalGeometryChanged(const CalledFromParentScene, ChangedOnlyCoord: boolean);
 
     { The dynamic octree containing all triangles.
       It contains only triangles within this shape.
@@ -793,8 +763,7 @@ type
       const OnlyVisible: boolean = false;
       const OnlyCollidable: boolean = false); override;
     procedure FastTransformUpdateCore(var AnythingChanged: Boolean;
-      const ParentTransform, ParentInvertedTransform: TMatrix4;
-      const ParentTransformScale: Single); override;
+      const ParentTransformation: TTransformation); override;
   public
     constructor Create(const AParentScene: TX3DEventsEngine);
     destructor Destroy; override;
@@ -857,8 +826,7 @@ type
     procedure SetTransformNode(const Value: TX3DNode);
   private
     procedure FastTransformUpdateCore(var AnythingChanged: Boolean;
-      const ParentTransform, ParentInvertedTransform: TMatrix4;
-      const ParentTransformScale: Single); override;
+      const ParentTransformation: TTransformation); override;
   public
     constructor Create(const AParentScene: TX3DEventsEngine);
     destructor Destroy; override;
@@ -887,7 +855,7 @@ type
 
     To choose which child is active we need to know the LOD node,
     with it's transformation in VRML graph.
-    This information is in LODNode and LODInvertedTransform properties.
+    This information is in LODNode and LODInverseTransform properties.
 
     Also, we need to know the current camera position.
     This is passed as CameraPosition to CalculateLevel.
@@ -899,7 +867,7 @@ type
   TShapeTreeLOD = class(TShapeTreeGroup)
   strict private
     FLODNode: TAbstractLODNode;
-    FLODInvertedTransform: TMatrix4;
+    FLODInverseTransform: TMatrix4;
     FLevel: Cardinal;
     FWasLevel_ChangedSend: boolean;
   private
@@ -909,7 +877,7 @@ type
       const OnlyCollidable: boolean = false); override;
   public
     property LODNode: TAbstractLODNode read FLODNode write FLODNode;
-    function LODInvertedTransform: PMatrix4;
+    function LODInverseTransform: PMatrix4;
 
     { Calculate @link(Level). This only calculates level, doesn't
       assign @link(Level) property or send level_changed event. }
@@ -945,10 +913,9 @@ type
       const OnlyVisible: boolean = false;
       const OnlyCollidable: boolean = false); override;
     procedure FastTransformUpdateCore(var AnythingChanged: Boolean;
-      const ParentTransform, ParentInvertedTransform: TMatrix4;
-      const ParentTransformScale: Single); override;
+      const ParentTransformation: TTransformation); override;
   public
-    InvertedTransform: TMatrix4;
+    InverseTransform: TMatrix4;
     IsActive: boolean;
 
     property Node: TProximitySensorNode read FNode write FNode;
@@ -967,8 +934,7 @@ type
       const OnlyVisible: boolean = false;
       const OnlyCollidable: boolean = false); override;
     procedure FastTransformUpdateCore(var AnythingChanged: Boolean;
-      const ParentTransform, ParentInvertedTransform: TMatrix4;
-      const ParentTransformScale: Single); override;
+      const ParentTransformation: TTransformation); override;
   public
     { Bounding box of this visibility sensor instance,
       already transformed to global VRML/X3D scene coordinates.
@@ -1043,9 +1009,7 @@ var
   DisableAutoDynamicGeometry: Cardinal;
 
   { Log various information about shapes. This displays quite a lot of non-critical
-    information when opening non-trivial models.
-
-    Meaningful only if you initialized log (see CastleLog unit) by InitializeLog first. }
+    information when opening non-trivial models. }
   LogShapes: boolean = false;
 
 type
@@ -1072,7 +1036,7 @@ type
     So just don't use shapes with multiple materials if this shape
     may be meaningful for a placeholder.
 
-    This is used only by TGameSceneManager.LoadLevel placeholders.
+    This is used only by TLevel.Load placeholders.
     Ultimately, this should be something that is easy to set when creating
     a 3D model in given external modeler.
     @italic(Nothing else in our engine depends on a particular modeler
@@ -1126,7 +1090,7 @@ end;
 
 procedure TTriangleHelper.UpdateWorld;
 begin
-  World.Triangle := Local.Triangle.Transform(State.Transform);
+  World.Triangle := Local.Triangle.Transform(State.Transformation.Transform);
   {$ifndef CONSERVE_TRIANGLE_MEMORY_MORE}
   World.Plane := World.Triangle.NormalizedPlane;
   World.Area := World.Triangle.Area;
@@ -1143,15 +1107,17 @@ var
   S: TAbstractShapeNode;
 begin
   S := ShapeNode;
-  if S <> nil then
-    Result := S.Material
+  if (S <> nil) and (S.Material is TMaterialNode) then
+    Result := TMaterialNode(S.Material)
   else
     Result := nil;
 end;
 
 function TTriangleHelper.MaterialNode: TMaterialNode;
 begin
+  {$warnings off} // using deprecated in deprecated
   Result := Material;
+  {$warnings on}
 end;
 
 function TTriangleHelper.MaterialInfo: TMaterialInfo;
@@ -1197,7 +1163,7 @@ end;
 {$ifndef CONSERVE_TRIANGLE_MEMORY}
 function TTriangleHelper.INormalWorldSpace(const Point: TVector3): TVector3;
 begin
-  Result := State.Transform.MultDirection(INormalCore(Point)).Normalize;
+  Result := State.Transformation.Transform.MultDirection(INormalCore(Point)).Normalize;
 end;
 {$endif not CONSERVE_TRIANGLE_MEMORY}
 
@@ -1401,8 +1367,11 @@ begin
 end;
 
 procedure TShapeTree.FastTransformUpdate(var AnythingChanged: Boolean);
+var
+  T: TTransformation;
 begin
-  FastTransformUpdateCore(AnythingChanged, TMatrix4.Identity, TMatrix4.Identity, 1);
+  T.Init;
+  FastTransformUpdateCore(AnythingChanged, T);
 end;
 
 { TShape -------------------------------------------------------------- }
@@ -1472,6 +1441,9 @@ begin
     if (AGeometry.CoordField <> nil) and
        (AGeometry.CoordField.Value <> nil) then
       AssociateNode(AGeometry.CoordField.Value);
+    if (AGeometry.NormalField <> nil) and
+       (AGeometry.NormalField.Value <> nil) then
+      AssociateNode(AGeometry.NormalField.Value);
     if (AGeometry.TexCoordField <> nil) and
        (AGeometry.TexCoordField.Value <> nil) and
        { TODO: This workarounds assertion failure in UnAssociateNode
@@ -1521,6 +1493,9 @@ begin
     if (AGeometry.CoordField <> nil) and
        (AGeometry.CoordField.Value <> nil) then
       UnAssociateNode(AGeometry.CoordField.Value);
+    if (AGeometry.NormalField <> nil) and
+       (AGeometry.NormalField.Value <> nil) then
+      UnAssociateNode(AGeometry.NormalField.Value);
     if (AGeometry.TexCoordField <> nil) and
        (AGeometry.TexCoordField.Value <> nil) and
        (not (AGeometry.TexCoordField.Value is TMultiTextureCoordinateNode)) then
@@ -1699,14 +1674,13 @@ var
   S: TX3DGraphTraverseState;
 
   function MaterialOpacity: Single;
+  var
+    MatInfo: TMaterialInfo;
   begin
-    // TODO: maybe this should take S.ShapeNode.CommonSurfaceShader into account?
-    // And just use S.MaterialInfo or such?
-    if G is TAbstractGeometryNode_1 then
-      Result := S.VRML1State.Material.MaterialInfo(0).Opacity else
-    if (S.ShapeNode <> nil) and
-       (S.ShapeNode.Material <> nil) then
-      Result := S.ShapeNode.Material.Opacity else
+    MatInfo := S.MaterialInfo;
+    if MatInfo <> nil then
+      Result := MatInfo.Opacity
+    else
       Result := 1;
   end;
 
@@ -1714,8 +1688,11 @@ var
   var
     Tex: TAbstractTextureNode;
     SurfaceShader: TCommonSurfaceShaderNode;
+    MatPhong: TMaterialNode;
+    MatPhysical: TPhysicalMaterialNode;
+    MatOne: TAbstractOneSidedMaterialNode;
   begin
-    Tex := S.DiffuseAlphaTexture;
+    Tex := S.MainTexture;
 
     if Tex is TMultiTextureNode then
       Result := TMultiTextureNode(Tex).FdTexture.Count
@@ -1731,9 +1708,15 @@ var
        (S.ShapeNode.Appearance <> nil) then
     begin
       // CommonSurfaceShader can only be non-nil if Appearance is non-nil
+      {$warnings off} // using deprecated to keep backward compatibility
       SurfaceShader := S.ShapeNode.CommonSurfaceShader;
+      {$warnings on}
       if SurfaceShader <> nil then
       begin
+        if SurfaceShader.MultiDiffuseAlphaTexture <> nil then
+          MaxVar(Result, SurfaceShader.DiffuseTextureCoordinatesId + 1); // TODO test X3DOM/InstantReality are they using DiffuseTextureCoordinatesId in this case
+        if SurfaceShader.DiffuseTexture <> nil then
+          MaxVar(Result, SurfaceShader.DiffuseTextureCoordinatesId + 1);
         if SurfaceShader.NormalTexture <> nil then
           MaxVar(Result, SurfaceShader.NormalTextureCoordinatesId + 1);
         if SurfaceShader.AmbientTexture <> nil then
@@ -1743,8 +1726,38 @@ var
         if SurfaceShader.ShininessTexture <> nil then
           MaxVar(Result, SurfaceShader.ShininessTextureCoordinatesId + 1);
       end else
-      if S.ShapeNode.Appearance.NormalMap <> nil then
-        MaxVar(Result, 1);
+      begin
+        if S.ShapeNode.Appearance.NormalMap <> nil then
+          MaxVar(Result, 1);
+        if S.ShapeNode.Appearance.Material is TAbstractOneSidedMaterialNode then
+        begin
+          MatOne := TAbstractOneSidedMaterialNode(S.ShapeNode.Appearance.Material);
+          if MatOne.EmissiveTexture <> nil then
+            MaxVar(Result, MatOne.EmissiveTextureChannel + 1);
+          if MatOne.NormalTexture <> nil then
+            MaxVar(Result, MatOne.NormalTextureChannel + 1);
+        end;
+        if S.ShapeNode.Appearance.Material is TMaterialNode then
+        begin
+          MatPhong := TMaterialNode(S.ShapeNode.Appearance.Material);
+          if MatPhong.AmbientTexture <> nil then
+            MaxVar(Result, MatPhong.AmbientTextureChannel + 1);
+          if MatPhong.DiffuseTexture <> nil then
+            MaxVar(Result, MatPhong.DiffuseTextureChannel + 1);
+          if MatPhong.ShininessTexture <> nil then
+            MaxVar(Result, MatPhong.ShininessTextureChannel + 1);
+          if MatPhong.SpecularTexture <> nil then
+            MaxVar(Result, MatPhong.SpecularTextureChannel + 1);
+        end;
+        if S.ShapeNode.Appearance.Material is TPhysicalMaterialNode then
+        begin
+          MatPhysical := TPhysicalMaterialNode(S.ShapeNode.Appearance.Material);
+          if MatPhysical.BaseTexture <> nil then
+            MaxVar(Result, MatPhysical.BaseTextureChannel + 1);
+          if MatPhysical.MetallicRoughnessTexture <> nil then
+            MaxVar(Result, MatPhysical.MetallicRoughnessTextureChannel + 1);
+        end;
+      end;
     end;
 
     if OriginalGeometry.FontTextureNode <> nil then
@@ -1855,6 +1868,70 @@ end;
 
 procedure TShape.Changed(const InactiveOnly: boolean;
   const Changes: TX3DChanges);
+
+  { Called when local geometry changed.
+
+    "Local" means that we're concerned here about changes visible
+    in shape local coordinate system. E.g. things that only change our
+    transformation (State.Transform) do not cause "local" geometry changes.
+
+    "Geometry" means that we're concerned only about changes to topology
+    --- vertexes, edges, faces, how they connect each other.
+    Things that affect only appearance (e.g. whole Shape.appearance content
+    in stuff for VRML >= 2.0) is not relevant here. E.g. changing
+    material color does not cause "local" geometry changes.
+
+    This frees the octree (will be recreated on Octree* call).
+    Also removes cached normals.
+    Also notifies parent scene about this change. }
+  procedure LocalGeometryChanged(const ChangedOnlyCoord: boolean);
+  begin
+    if FLocalGeometryChangedCount <> 0 then
+    begin
+      if DisableAutoDynamicGeometry = 0 then
+        FDynamicGeometry := true;
+    end else
+      Inc(FLocalGeometryChangedCount); // for now, only increase FLocalGeometryChangedCount to 1
+
+    if (FOctreeTriangles <> nil) and
+       { Do not recreate octree if it's based only on our bounding box,
+         and our bounding box is stored in TShapeNode.Box (so it doesn't change when
+         geometry changes).
+         This is the case with glTF skinned animation. }
+       not (
+         (Node <> nil) and
+         (Node.Collision = scBox) and
+         (not Node.BBox.IsEmpty)
+       ) then
+      FreeOctreeTriangles;
+
+    { Remove cached normals }
+    FreeAndNil(FNormals);
+    Exclude(Validities, svNormals);
+
+    { Remove from Validities things that depend on geometry.
+      Local geometry change means that also global (world-space) geometry changed. }
+    Validities := Validities - [svLocalBBox, svBBox,
+      svVerticesCountNotOver,  svVerticesCountOver,
+      svTrianglesCountNotOver, svTrianglesCountOver,
+      svBoundingSphere,
+      svNormals];
+
+    { Clear variables after removing fvTrianglesList* }
+    FShadowVolumes.InvalidateTrianglesListShadowCasters;
+
+    { Edges topology possibly changed. }
+    if not ChangedOnlyCoord then
+      { When ChangedOnlyCoord, we don't do InvalidateManifoldAndBorderEdges,
+        and this an important optimization (makes mesh deformation cheaper). }
+      FShadowVolumes.InvalidateManifoldAndBorderEdges;
+
+    if ChangedOnlyCoord then
+      TCastleSceneCore(ParentScene).DoGeometryChanged(gcLocalGeometryChangedCoord, Self)
+    else
+      TCastleSceneCore(ParentScene).DoGeometryChanged(gcLocalGeometryChanged, Self);
+  end;
+
 begin
   { Remember to code everything here to act only when some stuff
     is included inside Changed value. For example, when
@@ -1863,7 +1940,7 @@ begin
   { When Proxy needs to be recalculated.
     Include chVisibleVRML1State, since even MaterialBinding may change VRML 1.0
     proxies. }
-  if Changes * [chCoordinate, chVisibleVRML1State, chGeometryVRML1State,
+  if Changes * [chCoordinate, chNormal, chVisibleVRML1State, chGeometryVRML1State,
     chTextureCoordinate, chGeometry, chWireframe] <> [] then
     FreeProxy;
 
@@ -1877,10 +1954,17 @@ begin
 
   if chCoordinate in Changes then
     { Coordinate changes actual geometry. }
-    LocalGeometryChanged(false, true);
+    LocalGeometryChanged(true);
 
   if Changes * [chGeometry, chGeometryVRML1State, chWireframe] <> [] then
-    LocalGeometryChanged(false, false);
+    LocalGeometryChanged(false);
+
+  if Changes * [chBBox] <> [] then
+  begin
+    Validities := Validities - [svLocalBBox, svBBox];
+    if (Node <> nil) and (Node.Collision = scBox) then
+      FreeOctreeTriangles; // bbox changed, so simple octree based on bbox also changed
+  end;
 
   if not InactiveOnly then
     TCastleSceneCore(ParentScene).VisibleChangeHere([vcVisibleGeometry, vcVisibleNonGeometry]);
@@ -1962,7 +2046,7 @@ function TShape.CreateTriangleOctree(
 
   procedure LocalTriangulateBox(const Box: TBox3D);
 
-    procedure LocalTriangulateRect(constCoord: integer;
+    procedure LocalTriangulateRect(const constCoord: integer;
       const constCoordValue, x1, y1, x2, y2: Single);
     var
       Position, Normal: TTriangle3;
@@ -2004,12 +2088,16 @@ function TShape.CreateTriangleOctree(
       LocalTriangulateRect(I, Box.Data[0][I], Box.Data[0][XCoord], Box.Data[0][YCoord], Box.Data[1][XCoord], Box.Data[1][YCoord]);
       LocalTriangulateRect(I, Box.Data[1][I], Box.Data[0][XCoord], Box.Data[0][YCoord], Box.Data[1][XCoord], Box.Data[1][YCoord]);
     end;
+    { We have 12 triangles, DefTriangleOctreeLeafCapacity should be at least 12,
+      and tree root should remain leaf.
+      This should be a simple tree. }
+    Assert(Result.TreeRoot.IsLeaf);
   end;
 
 begin
   Result := TTriangleOctree.Create(ALimits, LocalBoundingBox);
   try
-    if CollideAsBox then
+    if (Node <> nil) and (Node.Collision = scBox) then
     begin
       { Add 12 triangles for 6 cube (LocalBoundingBox) sides.
         No point in progress here, as this is always fast. }
@@ -2061,48 +2149,6 @@ begin
   end;
 end;
 
-procedure TShape.LocalGeometryChanged(
-  const CalledFromParentScene, ChangedOnlyCoord: boolean);
-begin
-  if FLocalGeometryChangedCount <> 0 then
-  begin
-    if DisableAutoDynamicGeometry = 0 then
-      FDynamicGeometry := true;
-  end else
-    Inc(FLocalGeometryChangedCount); // for now, only increase FLocalGeometryChangedCount to 1
-
-  if FOctreeTriangles <> nil then
-    FreeOctreeTriangles;
-
-  { Remove cached normals }
-  FreeAndNil(FNormals);
-  Exclude(Validities, svNormals);
-
-  { Remove from Validities things that depend on geometry.
-    Local geometry change means that also global (world-space) geometry changed. }
-  Validities := Validities - [svLocalBBox, svBBox,
-    svVerticesCountNotOver,  svVerticesCountOver,
-    svTrianglesCountNotOver, svTrianglesCountOver,
-    svBoundingSphere,
-    svNormals];
-
-  { Clear variables after removing fvTrianglesList* }
-  FShadowVolumes.InvalidateTrianglesListShadowCasters;
-
-  { Edges topology possibly changed. }
-  if not ChangedOnlyCoord then
-    { When ChangedOnlyCoord, we don't do InvalidateManifoldAndBorderEdges,
-      and this an important optimization (makes mesh deformation cheaper). }
-    FShadowVolumes.InvalidateManifoldAndBorderEdges;
-
-  if not CalledFromParentScene then
-  begin
-    if ChangedOnlyCoord then
-      TCastleSceneCore(ParentScene).DoGeometryChanged(gcLocalGeometryChangedCoord, Self) else
-      TCastleSceneCore(ParentScene).DoGeometryChanged(gcLocalGeometryChanged, Self);
-  end;
-end;
-
 function TShape.Transparent: boolean;
 begin
   Result := AlphaChannel = acBlending;
@@ -2139,21 +2185,13 @@ function TShape.AlphaChannel: TAlphaChannel;
     end;
 
   var
-    SurfaceShader: TCommonSurfaceShaderNode;
-    M: TMaterialNode;
+    M: TMaterialInfo;
     Tex: TAbstractTextureNode;
   begin
     if State.ShapeNode <> nil then
     begin
-      SurfaceShader := State.ShapeNode.CommonSurfaceShader;
-      if SurfaceShader <> nil then
-      begin
-        Result := SurfaceShader.Transparency > SingleEpsilon;
-      end else
-      begin
-        M := State.ShapeNode.Material;
-        Result := (M <> nil) and (M.FdTransparency.Value > SingleEpsilon);
-      end;
+      M := State.MaterialInfo;
+      Result := (M <> nil) and (M.Transparency > SingleEpsilon);
     end else
       { For VRML 1.0, there may be multiple materials on a node.
         Some of them may be transparent, some not --- we arbitrarily
@@ -2181,7 +2219,7 @@ function TShape.AlphaChannel: TAlphaChannel;
       Note that State.Texture may be TMultiTextureNode --- that's Ok,
       it has AlphaChannel = atFullRange
       if any child has atFullRange. So it automatically works Ok too. }
-    Tex := State.DiffuseAlphaTexture;
+    Tex := State.MainTexture;
     if (Tex <> nil) and (Tex.AlphaChannelFinal = acBlending) then
       Result := true;
 
@@ -2196,7 +2234,7 @@ function TShape.AlphaChannel: TAlphaChannel;
     FontTextureNode: TAbstractTexture2DNode;
     TexturesAlphaChannel: TAlphaChannel;
   begin
-    TextureNode := State.DiffuseAlphaTexture;
+    TextureNode := State.MainTexture;
     FontTextureNode := OriginalGeometry.FontTextureNode;
 
     { This works also for TextureNode being TMultiTextureNode,
@@ -2239,12 +2277,9 @@ begin
 end;
 
 procedure TShape.FastTransformUpdateCore(var AnythingChanged: Boolean;
-  const ParentTransform, ParentInvertedTransform: TMatrix4;
-  const ParentTransformScale: Single);
+  const ParentTransformation: TTransformation);
 begin
-  State.Transform := ParentTransform;
-  State.InvertedTransform := ParentInvertedTransform;
-  State.TransformScale := ParentTransformScale;
+  State.Transformation := ParentTransformation;
 
   // Changed(false, [chTransform]);
   // a bit faster:
@@ -2453,6 +2488,8 @@ end;
 
 function TShape.EnumerateTextures(const Enumerate: TEnumerateShapeTexturesFunction): Pointer;
 
+  { Handle Tex being any TAbstractSingleTextureNode.
+    Ignores Tex = nil. }
   function HandleSingleTextureNode(Tex: TX3DNode): Pointer;
   begin
     if Tex is TAbstractTextureNode then
@@ -2487,6 +2524,8 @@ function TShape.EnumerateTextures(const Enumerate: TEnumerateShapeTexturesFuncti
     end;
   end;
 
+  { Handle Tex being any TAbstractTextureNode.
+    Ignores Tex = nil case. }
   function HandleTextureNode(Tex: TX3DNode): Pointer;
   var
     I: Integer;
@@ -2495,9 +2534,12 @@ function TShape.EnumerateTextures(const Enumerate: TEnumerateShapeTexturesFuncti
 
     if Tex is TAbstractTextureNode then
     begin
-      { Texture node may use more texture nodes through it's "effects" field. }
-      Result := HandleIDecls(TAbstractTextureNode(Tex).FdEffects);
-      if Result <> nil then Exit;
+      if Tex is TAbstractSingleTextureNode then
+      begin
+        { Texture node may use more texture nodes through it's "effects" field. }
+        Result := HandleIDecls(TAbstractSingleTextureNode(Tex).FdEffects);
+        if Result <> nil then Exit;
+      end;
 
       if Tex is TMultiTextureNode then
       begin
@@ -2512,6 +2554,14 @@ function TShape.EnumerateTextures(const Enumerate: TEnumerateShapeTexturesFuncti
       end else
         Result := HandleSingleTextureNode(Tex);
     end;
+  end;
+
+  procedure HandleEnvironmentLight(const EnvLight: TEnvironmentLightNode);
+  begin
+    Result := HandleSingleTextureNode(EnvLight.FdDiffuseTexture.Value);
+    if Result <> nil then Exit;
+    Result := HandleSingleTextureNode(EnvLight.FdSpecularTexture.Value);
+    if Result <> nil then Exit;
   end;
 
   { Scan IDecls for SFNode and MFNode fields, handling texture nodes inside. }
@@ -2581,6 +2631,34 @@ function TShape.EnumerateTextures(const Enumerate: TEnumerateShapeTexturesFuncti
     if Result <> nil then Exit;
   end;
 
+  function HandleOneSidedMaterial(const Mat: TAbstractOneSidedMaterialNode): Pointer;
+  begin
+    Result := HandleTextureNode(Mat.FdEmissiveTexture.Value);
+    if Result <> nil then Exit;
+    Result := HandleTextureNode(Mat.FdNormalTexture.Value);
+    if Result <> nil then Exit;
+  end;
+
+  function HandleMaterial(const Mat: TMaterialNode): Pointer;
+  begin
+    Result := HandleTextureNode(Mat.FdAmbientTexture.Value);
+    if Result <> nil then Exit;
+    Result := HandleTextureNode(Mat.FdDiffuseTexture.Value);
+    if Result <> nil then Exit;
+    Result := HandleTextureNode(Mat.FdShininessTexture.Value);
+    if Result <> nil then Exit;
+    Result := HandleTextureNode(Mat.FdSpecularTexture.Value);
+    if Result <> nil then Exit;
+  end;
+
+  function HandlePhysicalMaterial(const Mat: TPhysicalMaterialNode): Pointer;
+  begin
+    Result := HandleTextureNode(Mat.FdBaseTexture.Value);
+    if Result <> nil then Exit;
+    Result := HandleTextureNode(Mat.FdMetallicRoughnessTexture.Value);
+    if Result <> nil then Exit;
+  end;
+
 var
   SurfaceShader: TCommonSurfaceShaderNode;
   I: Integer;
@@ -2595,6 +2673,24 @@ begin
   begin
     App := State.ShapeNode.Appearance;
 
+    if App.FdMaterial.Value is TAbstractOneSidedMaterialNode then
+    begin
+      Result := HandleOneSidedMaterial(TAbstractOneSidedMaterialNode(App.FdMaterial.Value));
+      if Result <> nil then Exit;
+    end;
+
+    if App.FdMaterial.Value is TMaterialNode then
+    begin
+      Result := HandleMaterial(TMaterialNode(App.FdMaterial.Value));
+      if Result <> nil then Exit;
+    end;
+
+    if App.FdMaterial.Value is TPhysicalMaterialNode then
+    begin
+      Result := HandlePhysicalMaterial(TPhysicalMaterialNode(App.FdMaterial.Value));
+      if Result <> nil then Exit;
+    end;
+
     Result := HandleTextureNode(App.FdTexture.Value);
     if Result <> nil then Exit;
 
@@ -2605,7 +2701,9 @@ begin
     HandleIDecls(App.FdEffects);
 
     { CommonSurfaceShader can be non-nil only when App is non-nil }
+    {$warnings off} // using deprecated to keep backward compatibility
     SurfaceShader := State.ShapeNode.CommonSurfaceShader;
+    {$warnings on}
     if SurfaceShader <> nil then
     begin
       HandleCommonSurfaceShader(SurfaceShader);
@@ -2617,6 +2715,12 @@ begin
   if Lights <> nil then
     for I := 0 to Lights.Count - 1 do
     begin
+      if Lights.L[I].Node is TEnvironmentLightNode then
+      begin
+        HandleEnvironmentLight(TEnvironmentLightNode(Lights.L[I].Node));
+        if Result <> nil then Exit;
+      end;
+
       Result := HandleIDecls(Lights.L[I].Node.FdEffects);
       if Result <> nil then Exit;
     end;
@@ -2903,7 +3007,7 @@ var
 begin
   TR := TTriangulateRedirect.Create;
   try
-    TR.Transform := @(State.Transform);
+    TR.Transform := @(State.Transformation.Transform);
     TR.TriangleEvent := TriangleEvent;
     LocalTriangulate(OverTriangulate, @TR.LocalNewTriangle);
   finally FreeAndNil(TR) end;
@@ -3008,14 +3112,12 @@ begin
 end;
 
 procedure TShapeTreeGroup.FastTransformUpdateCore(var AnythingChanged: Boolean;
-  const ParentTransform, ParentInvertedTransform: TMatrix4;
-  const ParentTransformScale: Single);
+  const ParentTransformation: TTransformation);
 var
   I: Integer;
 begin
   for I := 0 to FChildren.Count - 1 do
-    FChildren.Items[I].FastTransformUpdateCore(AnythingChanged,
-      ParentTransform, ParentInvertedTransform, ParentTransformScale);
+    FChildren.Items[I].FastTransformUpdateCore(AnythingChanged, ParentTransformation);
 end;
 
 function TShapeTreeGroup.MaxShapesCountCore: Integer;
@@ -3140,56 +3242,41 @@ end;
 
 procedure TShapeTreeTransform.FastTransformUpdate(var AnythingChanged: Boolean);
 begin
-  FastTransformUpdateCore(AnythingChanged,
-    FTransformState.Transform,
-    FTransformState.InvertedTransform,
-    FTransformState.TransformScale
-  );
+  FastTransformUpdateCore(AnythingChanged, FTransformState.Transformation);
 end;
 
 procedure TShapeTreeTransform.FastTransformUpdateCore(var AnythingChanged: Boolean;
-  const ParentTransform, ParentInvertedTransform: TMatrix4;
-  const ParentTransformScale: Single);
+  const ParentTransformation: TTransformation);
 var
-  NewTransform, NewInvertedTransform: TMatrix4;
-  NewTransformScale: Single;
-  T: TTransformNode;
+  NewTransformation: TTransformation;
 begin
-  NewTransform := ParentTransform;
-  NewInvertedTransform := ParentInvertedTransform;
-  NewTransformScale := ParentTransformScale;
+  NewTransformation := ParentTransformation;
 
   { Keep FTransformState up-to-date.
     This is not necessary when OptimizeExtensiveTransformations = true,
-    so we don't do it to converve speed. }
+    so we don't do it to conserve speed. }
   if not OptimizeExtensiveTransformations then
   begin
-    FTransformState.Transform := ParentTransform;
-    FTransformState.InvertedTransform := ParentInvertedTransform;
-    FTransformState.TransformScale := ParentTransformScale;
+    FTransformState.Transformation := ParentTransformation;
   end;
+
+  // TODO: use TransformFunctionality to handle this nicely
+  // and ApplyTransform should remain private then
 
   if FTransformNode is TTransformNode then
-  begin
-    T := TTransformNode(FTransformNode);
-    TransformMatricesMult(NewTransform, NewInvertedTransform,
-      T.Center,
-      T.Rotation,
-      T.Scale,
-      T.ScaleOrientation,
-      T.Translation);
-    NewTransformScale := NewTransformScale * Approximate3DScale(T.Scale);
-  end;
+    TTransformNode(FTransformNode).ApplyTransform(NewTransformation)
+  else
+  if FTransformNode is TMatrixTransformNode then
+    TMatrixTransformNode(FTransformNode).ApplyTransform(NewTransformation);
 
-  inherited FastTransformUpdateCore(AnythingChanged,
-    NewTransform, NewInvertedTransform, NewTransformScale);
+  inherited FastTransformUpdateCore(AnythingChanged, NewTransformation);
 end;
 
 { TShapeTreeLOD ------------------------------------------------------- }
 
-function TShapeTreeLOD.LODInvertedTransform: PMatrix4;
+function TShapeTreeLOD.LODInverseTransform: PMatrix4;
 begin
-  Result := @FLODInvertedTransform;
+  Result := @FLODInverseTransform;
 end;
 
 function TShapeTreeLOD.CalculateLevel(const CameraPosition: TVector3): Cardinal;
@@ -3202,7 +3289,7 @@ begin
     Result := 0 else
   begin
     try
-      Camera := LODInvertedTransform^.MultPoint(CameraPosition);
+      Camera := LODInverseTransform^.MultPoint(CameraPosition);
       Result := KeyRange(LODNode.FdRange.Items,
         PointsDistance(Camera, LODNode.FdCenter.Value), Dummy);
       { Now we know Result is between 0..LODNode.FdRange.Count.
@@ -3269,8 +3356,7 @@ begin
 end;
 
 procedure TProximitySensorInstance.FastTransformUpdateCore(var AnythingChanged: Boolean;
-  const ParentTransform, ParentInvertedTransform: TMatrix4;
-  const ParentTransformScale: Single);
+  const ParentTransformation: TTransformation);
 begin
   { Nothing to do: This is not a TShape instance, and has no TShape children. }
 end;
@@ -3295,8 +3381,7 @@ begin
 end;
 
 procedure TVisibilitySensorInstance.FastTransformUpdateCore(var AnythingChanged: Boolean;
-  const ParentTransform, ParentInvertedTransform: TMatrix4;
-  const ParentTransformScale: Single);
+  const ParentTransformation: TTransformation);
 begin
   { Nothing to do: This is not a TShape instance, and has no TShape children. }
 end;
@@ -3619,7 +3704,15 @@ begin
       Note that we assume X3D exporter from Blender >= 2.57.
       Earlier Blender X3D exporters were a little different (it seems,
       probably because of mesh splitting added in 2.57),
-      we don't handle them. }
+      we don't handle them.
+
+      This also works for glTF exporter in Blender 2.82a,
+      imported to X3D nodes by CGE.
+      In this case, the name comes from Blender mesh name (not Blender object name),
+      and has no prefixes/suffixes.
+      It is still in GeometryGrandGrandParentNodeName, because of how
+      X3DLoadInternalGltf organizes data.
+    }
 
     // not needed:
     // BlenderMeshName := PrefixRemove('ME_', GeometryGrandParentNodeName, false);

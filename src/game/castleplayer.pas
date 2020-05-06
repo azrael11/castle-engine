@@ -23,24 +23,30 @@ interface
 uses Classes,
   CastleBoxes, CastleCameras, CastleItems, CastleVectors, CastleInputs,
   CastleKeysMouse, CastleShapes, CastleMaterialProperties, CastleSoundEngine,
-  Castle3D, CastleGLUtils, CastleColors, CastleFrustum, CastleTriangles,
-  CastleTimeUtils, CastleScene, CastleDebugTransform, X3DNodes, CastleTransform;
+  CastleTransformExtra, CastleGLUtils, CastleColors, CastleFrustum, CastleTriangles,
+  CastleTimeUtils, CastleScene, CastleDebugTransform, X3DNodes, CastleTransform,
+  CastleResources;
 
 type
-  TPlayerSwimming = (psNo,
-    { Player is floating on the water.
-      Not falling down, but also not drowning.
-      This means that player head is above the water surface
-      but his feet are in the water. In some sense he/she is swimming,
-      in some not. }
+  TPlayerSwimming = (
+    { Not swimming. }
+    psNo,
+
+    { Swimming on the water surface.
+      Conceptually, avatar is submerged in water, but has head above the water. }
     psAboveWater,
-    psUnderWater);
+
+    { Swimming under the water surface.
+      Conpeptually, avatar is fully submerged in water, and may have trouble
+      breathing. Games may simulate lack of oxygen, drowning etc. in this case. }
+    psUnderWater
+  );
 
   { Player, 3D object controlling the camera, main enemy of hostile creatures,
     carries a backpack, may cause fadeout effects on screen and such.
 
     Note that you can operate on player even before level is loaded,
-    before TCastleSceneManager and such are initialized.
+    before TLevel or TCastleViewport are initialized.
     This allows to create player before level is started
     (create it from scratch, or by loading from save game),
     and "carry" the same player instance across various loaded levels.
@@ -191,10 +197,11 @@ type
     procedure Fall(const FallHeight: Single); override;
     procedure ChangedTransform; override;
   public
-    { Various navigation properties that may depend on loaded level. }
-    DefaultMoveHorizontalSpeed: Single;
-    DefaultMoveVerticalSpeed: Single;
-    DefaultPreferredHeight: Single;
+    var
+      { Various navigation properties that may depend on loaded level. }
+      DefaultMoveHorizontalSpeed: Single;
+      DefaultMoveVerticalSpeed: Single;
+      DefaultPreferredHeight: Single;
 
     const
       DefaultLife = 100;
@@ -206,11 +213,17 @@ type
       DefaultDrownDamageConst = 5.0;
       DefaultDrownDamageRandom = 10.0;
       DefaultSwimSoundPause = 3.11111111;
+      { TPlayer.FallMinHeightToSound is larger than
+        TCreature.FallMinHeightToSound,
+        to avoid making "fall" sound when player merely jumps or walks down a steep
+        hill. No such need for creature. }
+      DefaultFallMinHeightToSound = 4.0;
+      DefaultFallSoundName = 'player_fall';
 
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    procedure PrepareResources(const Options: TPrepareResourcesOptions;
-      const ProgressStep: boolean; const Params: TPrepareParams); override;
+    procedure Render(const Params: TRenderParams); override;
+    function Press(const Event: TInputPressRelease): Boolean; override;
 
     { Flying.
       How it interacts with FlyingTimeout: Setting this property
@@ -284,9 +297,8 @@ type
     { @noAutoLinkHere }
     procedure Attack; virtual;
 
-    { You should set this property as appropriate.
-      This object will just use this property (changing it's @link(Navigation)
-      properties etc.). }
+    { TLevel sets this property automatically, based on the water volume.
+      @exclude }
     property Swimming: TPlayerSwimming read FSwimming write SetSwimming;
 
     { Load various player properties from an XML file.
@@ -361,7 +373,7 @@ type
       default DefaultRenderOnTop;
 
     property FallMinHeightToSound: Single
-      read FFallMinHeightToSound write FFallMinHeightToSound default DefaultPlayerFallMinHeightToSound;
+      read FFallMinHeightToSound write FFallMinHeightToSound default DefaultFallMinHeightToSound;
     property FallMinHeightToDamage: Single
       read FFallMinHeightToDamage write FFallMinHeightToDamage default DefaultFallMinHeightToDamage;
     property FallDamageScaleMin: Single
@@ -411,9 +423,9 @@ type
 
     { Navigation synchronized with this player instance.
 
-      You can use this navigation as @link(TCastleAbstractViewport.Navigation)
+      You can use this navigation as @link(TCastleViewport.Navigation)
       to allow user to directly control this player in first-person game.
-      @link(TGameSceneManager.LoadLevel) sets this automatically.
+      @link(TLevel.Load) sets this automatically.
 
       The view vectors (position, direction and up), @link(TCastleWalkNavigation.Gravity),
       and various navigation inputs are automatically adjusted based on the current
@@ -452,6 +464,8 @@ var
   AutoOpenInventory: boolean = DefaultAutoOpenInventory;
 
 var
+  { Player inputs that handle navigation.
+    @groupBegin }
   PlayerInput_Forward: TInputShortcut;
   PlayerInput_Backward: TInputShortcut;
   PlayerInput_LeftRot: TInputShortcut;
@@ -463,13 +477,25 @@ var
   PlayerInput_GravityUp: TInputShortcut;
   PlayerInput_Jump: TInputShortcut;
   PlayerInput_Crouch: TInputShortcut;
+  { @groupEnd }
+
+  { Player inputs that deal with items.
+    @groupBegin }
+  PlayerInput_Attack: TInputShortcut;
+  PlayerInput_InventoryShow: TInputShortcut; //< No key/mouse associated by default.
+  PlayerInput_InventoryPrevious: TInputShortcut;
+  PlayerInput_InventoryNext: TInputShortcut;
+  PlayerInput_UseItem: TInputShortcut;
+  PlayerInput_DropItem: TInputShortcut; //< No key/mouse associated by default.
+  PlayerInput_CancelFlying: TInputShortcut; //< No key/mouse associated by default.
+  { @groupEnd }
 
 implementation
 
 uses Math, SysUtils, CastleClassUtils, CastleUtils, CastleControls,
   CastleImages, CastleFilesUtils, CastleUIControls, CastleLog,
   CastleGLBoxes, CastleGameNotifications, CastleXMLConfig,
-  CastleGLImages, CastleConfig, CastleResources;
+  CastleGLImages, CastleConfig;
 
 { TPlayer.TBox ----------------------------------------------------------------- }
 
@@ -533,11 +559,11 @@ begin
   DefaultMoveVerticalSpeed := 1.0;
   DefaultPreferredHeight := 0.0;
   RenderOnTop := DefaultRenderOnTop;
-  FFallMinHeightToSound := DefaultPlayerFallMinHeightToSound;
+  FFallMinHeightToSound := DefaultFallMinHeightToSound;
   FFallMinHeightToDamage := DefaultFallMinHeightToDamage;
   FFallDamageScaleMin := DefaultFallDamageScaleMin;
   FFallDamageScaleMax := DefaultFallDamageScaleMax;
-  FFallSound := SoundEngine.SoundFromName(DefaultPlayerFallSoundName, false);
+  FFallSound := SoundEngine.SoundFromName(DefaultFallSoundName, false);
   KnockBackSpeed := DefaultPlayerKnockBackSpeed;
   FSickProjectionSpeed := DefaultSickProjectionSpeed;
   FSwimBreath := DefaultSwimBreath;
@@ -746,7 +772,7 @@ begin
     Navigation.Camera.SetView(P, D, U);
   except
     on EViewportNotAssigned do
-      WritelnWarning('Changing TCastlePlayer transformation (like position) before the TCastlePlayer.Navigation is assigned as SceneManager.Navigation is ignored');
+      WritelnWarning('Changing TCastlePlayer transformation (like position) before the TCastlePlayer.Navigation is assigned as TCastleViewport.Navigation is ignored');
   end;
 end;
 
@@ -762,7 +788,7 @@ begin
     Dec(InsideSynchronizeFromNavigation);
   except
     on EViewportNotAssigned do
-      WritelnWarning('Adjusting TCastlePlayer transformation (like position) in PrepareResources is aborted if SceneManager.Navigation is not yet associated with TCastlePlayer.Navigation');
+      WritelnWarning('Adjusting TCastlePlayer transformation (like position) in PrepareResources is aborted if TCastleViewport.Navigation is not yet associated with TCastlePlayer.Navigation');
   end;
 end;
 
@@ -773,17 +799,6 @@ begin
   SynchronizeToNavigation;
 end;
 
-procedure TPlayer.PrepareResources(const Options: TPrepareResourcesOptions;
-  const ProgressStep: boolean; const Params: TPrepareParams);
-begin
-  inherited;
-  { Do this before rendering (not in TPlayer.UpdateNavigation)
-    makes the player's weapon always correctly rendered, without any delay.
-    (Testcase: move/rotate using touch control
-    in fps_game when you have shooting_eye.) }
-  SynchronizeFromNavigation;
-end;
-
 procedure TPlayer.UpdateNavigation;
 var
   NormalNavigationInput: TNavigationInputs;
@@ -791,7 +806,7 @@ begin
   Navigation.Gravity := (not Blocked) and (not Flying);
   { Note that when not Navigation.Gravity then FallingEffect will not
     work anyway. }
-  Navigation.FallingEffect := FallingEffect and (Swimming = psNo);
+  Navigation.FallingEffect := FallingEffect and (FSwimming = psNo);
 
   if Blocked then
   begin
@@ -873,7 +888,7 @@ begin
       Navigation.MoveHorizontalSpeed := DefaultMoveHorizontalSpeed;
       Navigation.MoveVerticalSpeed := DefaultMoveVerticalSpeed;
     end else
-    if Swimming <> psNo then
+    if FSwimming <> psNo then
     begin
       Navigation.PreferGravityUpForMoving := false;
       Navigation.PreferGravityUpForRotations := true;
@@ -950,21 +965,9 @@ procedure TPlayer.Update(const SecondsPassed: Single; var RemoveMe: TRemoveType)
 
   { Perform various things related to player swimming. }
   procedure UpdateSwimming;
-  var
-    NewSwimming: TPlayerSwimming;
   begin
-    { update Swimming }
-    NewSwimming := psNo;
-    if World <> nil then
-    begin
-      if World.Water.Contains(Translation) then
-        NewSwimming := psUnderWater else
-      if World.Water.Contains(Translation - World.GravityUp * Navigation.PreferredHeight) then
-        NewSwimming := psAboveWater;
-    end;
-    Swimming := NewSwimming;
-
-    if Swimming = psUnderWater then
+    { Swimming possibly was changed by TLevel update }
+    if FSwimming = psUnderWater then
     begin
       { Take care of drowning. }
       if not Dead then
@@ -1167,8 +1170,9 @@ begin
   if FFadeOutIntensity > 0 then
     FFadeOutIntensity -= FadeOutSpeed * SecondsPassed;
 
-  if EquippedWeapon <> nil then
-    EquippedWeapon.EquippedUpdate(LifeTime);
+  if (EquippedWeapon <> nil) and
+     (InternalLevel <> nil) then
+    EquippedWeapon.EquippedUpdate(InternalLevel, LifeTime);
 
   UpdateIsOnTheGround;
   UpdateToxic;
@@ -1192,10 +1196,10 @@ procedure TPlayer.Fall(const FallHeight: Single);
 begin
   inherited;
 
-  if (Swimming = psNo) and (FallHeight > FallMinHeightToSound) then
+  if (FSwimming = psNo) and (FallHeight > FallMinHeightToSound) then
     SoundEngine.Sound(FallSound);
 
-  if (Swimming = psNo) and (FallHeight > FallMinHeightToDamage) then
+  if (FSwimming = psNo) and (FallHeight > FallMinHeightToDamage) then
     Life := Life - Max(0, FallHeight *
       MapRange(Random, 0.0, 1.0, FallDamageScaleMin, FallDamageScaleMax));
 end;
@@ -1227,8 +1231,10 @@ end;
 
 procedure TPlayer.Attack;
 begin
-  if EquippedWeapon <> nil then
-    EquippedWeapon.EquippedAttack(LifeTime) else
+  if (EquippedWeapon <> nil) and
+     (InternalLevel <> nil) then
+    EquippedWeapon.EquippedAttack(InternalLevel, LifeTime)
+  else
     { TODO: allow to do some "punch" / "kick" here easily }
     Notifications.Show('No weapon equipped');
 end;
@@ -1266,7 +1272,7 @@ begin
 
     FSwimming := Value;
 
-    if Swimming = psUnderWater then
+    if FSwimming = psUnderWater then
     begin
       SwimBeginTime := LifeTime;
       SwimLastDrownTime := 0.0;
@@ -1309,11 +1315,11 @@ begin
     Navigation.HeadBobbingTime := Config.GetFloat('head_bobbing_time', TCastleWalkNavigation.DefaultHeadBobbingTime);
     HeadBobbing := Config.GetFloat('head_bobbing', TCastleWalkNavigation.DefaultHeadBobbing);
     SickProjectionSpeed := Config.GetFloat('sick_projection_speed', DefaultSickProjectionSpeed);
-    FallMinHeightToSound := Config.GetFloat('fall/sound/min_height', DefaultPlayerFallMinHeightToSound);
+    FallMinHeightToSound := Config.GetFloat('fall/sound/min_height', DefaultFallMinHeightToSound);
     FallMinHeightToDamage := Config.GetFloat('fall/damage/min_height', DefaultFallMinHeightToDamage);
     FallDamageScaleMin := Config.GetFloat('fall/damage/scale_min', DefaultFallDamageScaleMin);
     FallDamageScaleMax := Config.GetFloat('fall/damage/scale_max', DefaultFallDamageScaleMax);
-    FallSound := SoundEngine.SoundFromName(Config.GetValue('fall/sound/name', DefaultPlayerFallSoundName), false);
+    FallSound := SoundEngine.SoundFromName(Config.GetValue('fall/sound/name', DefaultFallSoundName), false);
     FSwimBreath := Config.GetFloat('swim/breath', DefaultSwimBreath);
     FSwimSoundPause := Config.GetFloat('swim/sound_pause', DefaultSwimSoundPause);
     FDrownPause := Config.GetFloat('drown/pause', DefaultDrownPause);
@@ -1401,6 +1407,70 @@ begin
   AboveGround := nil;
 end;
 
+function TPlayer.Press(const Event: TInputPressRelease): Boolean;
+begin
+  Result := inherited;
+  if Result then Exit;
+
+  if not (Blocked or Dead) then
+  begin
+    if PlayerInput_Attack.IsEvent(Event) then
+    begin
+      Attack;
+      Exit(true);
+    end;
+
+    if PlayerInput_CancelFlying.IsEvent(Event) then
+    begin
+      Flying := false;
+      Exit(true);
+    end;
+
+    if PlayerInput_InventoryShow.IsEvent(Event) then
+    begin
+      InventoryVisible := not InventoryVisible;
+      Exit(true);
+    end;
+
+    if PlayerInput_InventoryPrevious.IsEvent(Event) then
+    begin
+      ChangeInventoryCurrentItem(-1);
+      Exit(true);
+    end;
+
+    if PlayerInput_InventoryNext.IsEvent(Event) then
+    begin
+      ChangeInventoryCurrentItem(+1);
+      Exit(true);
+    end;
+
+    if PlayerInput_DropItem.IsEvent(Event) then
+    begin
+      DropCurrentItem;
+      Exit(true);
+    end;
+
+   if PlayerInput_UseItem.IsEvent(Event) then
+    begin
+      UseCurrentItem;
+      Exit(true);
+    end;
+  end;
+end;
+
+procedure TPlayer.Render(const Params: TRenderParams);
+begin
+  { Do this before rendering, otherwise we could display weapon in unsynchronized
+    position/orientation.
+    That's because Navigation could be changed after our Update,
+    but before rendering.
+    (Testcase: move/rotate using touch control
+    in fps_game when you have shooting_eye.) }
+  SynchronizeFromNavigation;
+
+  inherited;
+end;
+
 procedure TPlayer.LocalRender(const Params: TRenderParams);
 begin
   { TODO: This implementation is a quick hack, that depends on the fact
@@ -1481,4 +1551,20 @@ initialization
   PlayerInput_Jump.Assign(K_Space);
   PlayerInput_Crouch := TInputShortcut.Create(nil, 'Crouch (or fly/swim down)', 'move_down', igBasic);
   PlayerInput_Crouch.Assign(K_C);
+
+  PlayerInput_Attack := TInputShortcut.Create(nil, 'Attack', 'attack', igBasic);
+  PlayerInput_Attack.Assign(K_Ctrl, K_None, '', false, mbLeft);
+  PlayerInput_Attack.GroupOrder := -100; { before other (player) shortcuts }
+  PlayerInput_InventoryShow := TInputShortcut.Create(nil, 'Inventory show / hide', 'inventory_toggle', igItems);
+  PlayerInput_InventoryShow.Assign(K_None, K_None, '', false, mbLeft);
+  PlayerInput_InventoryPrevious := TInputShortcut.Create(nil, 'Select previous item', 'inventory_previous', igItems);
+  PlayerInput_InventoryPrevious.Assign(K_LeftBracket, K_None, '', false, mbLeft, mwUp);
+  PlayerInput_InventoryNext := TInputShortcut.Create(nil, 'Select next item', 'inventory_next', igItems);
+  PlayerInput_InventoryNext.Assign(K_RightBracket, K_None, '', false, mbLeft, mwDown);
+  PlayerInput_UseItem := TInputShortcut.Create(nil, 'Use (or equip) selected item', 'item_use', igItems);
+  PlayerInput_UseItem.Assign(K_Enter, K_None, '', false, mbLeft);
+  PlayerInput_DropItem := TInputShortcut.Create(nil, 'Drop selected item', 'item_drop', igItems);
+  PlayerInput_DropItem.Assign(K_None, K_None, '', false, mbLeft);
+  PlayerInput_CancelFlying := TInputShortcut.Create(nil, 'Cancel flying spell', 'cancel_flying', igOther);
+  PlayerInput_CancelFlying.Assign(K_None, K_None, '', false, mbLeft);
 end.

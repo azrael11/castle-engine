@@ -495,7 +495,7 @@ uses {$define read_interface_uses}
   CastleCameras, CastleInternalPk3DConnexion, CastleParameters, CastleSoundEngine,
   CastleApplicationProperties,
   { Castle Game Engine units depending on VRML/X3D stuff }
-  X3DNodes, CastleScene, CastleSceneManager, CastleLevels;
+  X3DNodes, CastleScene, CastleViewport, CastleLevels;
 
 {$define read_interface}
 
@@ -587,7 +587,7 @@ type
 
   TCaptionPart = (cpPublic, cpFps);
 
-  { Non-abstact implementation of TUIContainer that cooperates with
+  { Non-abstract implementation of TUIContainer that cooperates with
     TCastleWindowBase. }
   TWindowContainer = class(TUIContainer)
   private
@@ -617,10 +617,13 @@ type
   {$undef read_interface_types}
 
   { Window to render everything (3D or 2D) with Castle Game Engine.
-    Add the user-interface controls to the
-    @link(TCastleWindowBase.Controls) property, in particular
-    you can add there scene manager instances (like @link(TCastleSceneManager)
-    and @link(TCastle2DSceneManager)) to render 3D or 2D game worlds.
+
+    Add the user-interface controls to the @link(Controls) property.
+    User-interface controls are any @link(TCastleUserInterface) descendants,
+    like @link(TCastleImageControl) or @link(TCastleButton) or @link(TCastleViewport).
+
+    Use events like @link(OnPress) to react to events.
+    Use event @link(OnUpdate) to do something continuously.
 
     By default, the window is filled with simple color from
     @link(TUIContainer.BackgroundColor Container.BackgroundColor).
@@ -1653,8 +1656,7 @@ type
       Note that calling Invalidate while in EventRender (OnRender) is not ignored.
       It instructs to call EventRender (OnRender) again, as soon as possible.
 
-      When you have some controls on the @link(Controls) list
-      (in particular, the @link(TCastleWindow.SceneManager) is also on this list),
+      When you have some controls on the @link(Controls) list,
       the OnRender event is done @bold(last).
       So here you can draw on top of the existing controls.
       To draw something underneath the existing controls, create a new TCastleUserInterface
@@ -1683,15 +1685,7 @@ type
     { Called when the window size (@link(Width), @link(Height)) changes.
       It's also guaranteed to be called during @link(Open),
       right after the EventOpen (OnOpen) event.
-
-      Our OpenGL context is already "current" when this event is called
-      (MakeCurrent is done right before), like for other events.
-      This is a good place to set OpenGL viewport and projection matrix.
-
-      See also ResizeAllowed.
-
-      In the usual case, the SceneManager takes care of setting appropriate
-      OpenGL projection, so you don't need to do anything here. }
+      @seealso ResizeAllowed }
     property OnResize: TContainerEvent read GetOnResize write SetOnResize;
 
     { Called when the window is closed, right before the OpenGL context
@@ -1771,6 +1765,11 @@ type
       mouse position, while callback parameter NewMousePosition gives
       the @italic(new) mouse position. }
     property OnMotion: TInputMotionEvent read GetOnMotion write SetOnMotion;
+
+    { Send fake motion event, without actually moving the mouse through the backend.
+      This is useful only for automatic tests.
+      @exclude }
+    procedure InternalFakeMotion(const Event: TInputMotion);
 
     { Continuously occuring event, called for all open windows.
       This event is called at least as regularly as redraw,
@@ -1960,7 +1959,7 @@ type
         @item(Create OpenGL context associated with it's OpenGL area.)
         @item(Show the window.)
         @item(Call GLInformationInitialize to initialize GLVersion,
-          GLUVersion, GLFeatures.)
+          GLUVersion, GLFeatures, show them in log.)
 
         @item(Initial events called:
           @unorderedList(
@@ -2401,7 +2400,9 @@ type
     see @link(TCastleControl) component. }
   TCastleWindow = class(TCastleWindowBase)
   private
+    {$warnings off} // using deprecated in deprecated
     FSceneManager: TGameSceneManager;
+    {$warnings on}
 
     function GetShadowVolumes: boolean;
     function GetShadowVolumesRender: boolean;
@@ -2429,30 +2430,26 @@ type
     procedure Load(ARootNode: TX3DRootNode; const OwnsRootNode: boolean);
       deprecated 'create TCastleScene and load using TCastleScene.Load; this method is an inflexible shortcut for this';
     function MainScene: TCastleScene;
-      deprecated 'use SceneManager.MainScene';
+      deprecated 'create TCastleViewport and use TCastleViewport.Items.MainScene';
 
     property SceneManager: TGameSceneManager read FSceneManager;
 
-    { See TCastleAbstractViewport.ShadowVolumes. }
+    { See @link(TCastleViewport.ShadowVolumes). }
     property ShadowVolumes: boolean
       read GetShadowVolumes write SetShadowVolumes
-      default TCastleAbstractViewport.DefaultShadowVolumes;
-      deprecated 'use SceneManager.ShadowVolumes';
+      default TCastleViewport.DefaultShadowVolumes;
+      deprecated 'create TCastleViewport and use TCastleViewport.ShadowVolumes';
 
-    { See TCastleAbstractViewport.ShadowVolumesRender. }
+    { See @link(TCastleViewport.ShadowVolumesRender). }
     property ShadowVolumesRender: boolean
       read GetShadowVolumesRender write SetShadowVolumesRender default false;
-      deprecated 'use SceneManager.ShadowVolumesRender';
+      deprecated 'create TCastleViewport and use TCastleViewport.ShadowVolumesRender';
 
-    { Navigation type of the main camera associated with the default SceneManager.
-      Note that this may not be the only camera used for rendering,
-      it may not even be used at all (you can do all rendering using
-      @link(TCastleAbstractViewport)s.
-      So use this property only if you use only a single default viewport. }
+    { Navigation type of the main camera associated with the default SceneManager. }
     property NavigationType: TNavigationType
       read GetNavigationType write SetNavigationType;
-      deprecated 'use SceneManager.NavigationType';
-  end;
+      deprecated 'create TCastleViewport and use TCastleViewport.NavigationType';
+  end deprecated 'use TCastleWindowBase and create instance of TCastleViewport explicitly';
 
   TWindowList = class(specialize TObjectList<TCastleWindowBase>)
   private
@@ -3172,13 +3169,11 @@ procedure TCastleWindowBase.OpenCore;
 
     GLInformationInitialize;
 
-    WritelnLogMultiline('OpenGL context initialization', GLInformationString);
-
     if GLVersion.BuggyDepth32 and
       (glGetInteger(GL_DEPTH_BITS) >= 32) and
       (StencilBits = 0) then
     begin
-      WritelnLog('OpenGL context initialization',
+      WritelnLog('Rendering Context Initialization',
         'Got >= 32-bit depth buffer, unfortunately it is known to be buggy on this OpenGL implementation. We will try to force 24-bit depth buffer by forcing stencil buffer.');
       { Close the window, increase StencilBits to try to force 24-bit
         depth buffer, and call ourselves again.
@@ -3409,7 +3404,7 @@ const
   { Note: when new GPUs appear that support more samples,
     - extend the TAntiAliasing type and related arrays (just recompile to see
       where you need to change),
-    - extend the src/x3d/opengl/glsl/screen_effect_library.glsl
+    - extend the src/x3d/opengl/glsl/source/screen_effect_library.glsl
     - extend the check for samples in ScreenEffectLibrary in CastleScreenEffects
       (this must be synchronized with screen_effect_library.glsl implementation).
   }
@@ -3602,6 +3597,11 @@ begin
     MakeCurrent;
     Container.EventRelease(InputKey(MousePosition, Key, KeyString, ModifiersDown(Container.Pressed)));
   end;
+end;
+
+procedure TCastleWindowBase.InternalFakeMotion(const Event: TInputMotion);
+begin
+  DoMotion(Event);
 end;
 
 procedure TCastleWindowBase.DoMotion(const Event: TInputMotion);
@@ -4644,8 +4644,10 @@ procedure TWindowSceneManager.BoundNavigationInfoChanged;
 begin
   { Owner will be automatically switched to nil when freeing us
     by TComponent ownership mechanism (TComponent.Remove). }
+  {$warnings off} // this code is only to keep deprecated working
   if Owner <> nil then
     (Owner as TCastleWindow).NavigationInfoChanged;
+  {$warnings on}
   inherited;
 end;
 
@@ -4673,30 +4675,33 @@ end;
 
 procedure TCastleWindow.Load(ARootNode: TX3DRootNode; const OwnsRootNode: boolean);
 begin
-  { destroy MainScene and Camera, we will recreate them }
-  SceneManager.MainScene.Free;
-  SceneManager.MainScene := nil;
+  { destroy MainScene and clear cameras, we will recreate it }
+  SceneManager.Items.MainScene.Free;
+  SceneManager.Items.MainScene := nil;
   SceneManager.Items.Clear;
+  {$warnings off} // using one deprecated from another
   SceneManager.ClearCameras;
-  Assert(SceneManager.Camera = nil);
+  {$warnings on}
+  Assert(SceneManager.Navigation = nil);
 
-  SceneManager.MainScene := TCastleScene.Create(Self);
-  SceneManager.MainScene.Load(ARootNode, OwnsRootNode);
-  SceneManager.Items.Add(SceneManager.MainScene);
+  SceneManager.Items.MainScene := TCastleScene.Create(Self);
+  SceneManager.Items.MainScene.Load(ARootNode, OwnsRootNode);
+  SceneManager.Items.Add(SceneManager.Items.MainScene);
 
   { initialize octrees titles }
-  SceneManager.MainScene.TriangleOctreeProgressTitle := 'Building triangle octree';
-  SceneManager.MainScene.ShapeOctreeProgressTitle := 'Building shape octree';
+  SceneManager.Items.MainScene.TriangleOctreeProgressTitle := 'Building triangle octree';
+  SceneManager.Items.MainScene.ShapeOctreeProgressTitle := 'Building shape octree';
 
-  { For backward compatibility, to make our Navigation always non-nil. }
-  {$warnings off} // using deprecated in deprecated
-  SceneManager.RequiredNavigation;
-  {$warnings on}
+  { Adjust SceneManager.Navigation and SceneManager.Camera to latest scene }
+  SceneManager.AssignDefaultCamera;
+  SceneManager.AssignDefaultNavigation;
+  // AssignDefaultNavigation should satisfy this, and we need it for backward compatibility
+  Assert(SceneManager.Navigation <> nil);
 end;
 
 function TCastleWindow.MainScene: TCastleScene;
 begin
-  Result := SceneManager.MainScene;
+  Result := SceneManager.Items.MainScene;
 end;
 
 function TCastleWindow.GetShadowVolumes: boolean;

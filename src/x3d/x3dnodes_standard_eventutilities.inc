@@ -96,7 +96,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     { Event in } { }
     strict private FEventSet_boolean: TSFBoolEvent;
@@ -125,7 +124,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdKeyValue: TMFBool;
     public property FdKeyValue: TMFBool read FFdKeyValue;
@@ -145,7 +143,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     { Event in } { }
     strict private FEventSet_boolean: TSFBoolEvent;
@@ -165,7 +162,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     { Event in } { }
     strict private FEventSet_triggerTime: TSFTimeEvent;
@@ -188,7 +184,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdKeyValue: TMFInt32;
     public property FdKeyValue: TMFInt32 read FFdKeyValue;
@@ -208,7 +203,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     { Event in } { }
     strict private FEventSet_boolean: TSFBoolEvent;
@@ -232,7 +226,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     { Event in } { }
     strict private FEventSet_boolean: TSFBoolEvent;
@@ -243,6 +236,16 @@
     public property EventTriggerTime: TSFTimeEvent read FEventTriggerTime;
 
     {$I auto_generated_node_helpers/x3dnodes_timetrigger.inc}
+  end;
+
+  { Generate events upon receiving a boolean TRUE value. }
+  TValueTriggerNode = class(TAbstractTriggerNode)
+  strict private
+    procedure EventTriggerReceive(Event: TX3DEvent; Value: TX3DField;
+      const Time: TX3DTime);
+  public
+    constructor Create(const AX3DName: string = ''; const ABaseUrl: string = ''); override;
+    {$I auto_generated_node_helpers/x3dnodes_valuetrigger.inc}
   end;
 
 {$endif read_interface}
@@ -416,12 +419,6 @@ begin
   Result := 'BooleanFilter';
 end;
 
-class function TBooleanFilterNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNX3DNodes + ClassX3DType);
-end;
-
 procedure TBooleanSequencerNode.CreateNode;
 begin
   inherited;
@@ -438,12 +435,6 @@ end;
 class function TBooleanSequencerNode.ClassX3DType: string;
 begin
   Result := 'BooleanSequencer';
-end;
-
-class function TBooleanSequencerNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNX3DNodes + ClassX3DType);
 end;
 
 procedure TBooleanSequencerNode.SendValueChanged(const ValueIndex: Integer;
@@ -484,12 +475,6 @@ begin
   Result := 'BooleanToggle';
 end;
 
-class function TBooleanToggleNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNX3DNodes + ClassX3DType);
-end;
-
 procedure TBooleanTriggerNode.CreateNode;
 begin
   inherited;
@@ -515,12 +500,6 @@ begin
   Result := 'BooleanTrigger';
 end;
 
-class function TBooleanTriggerNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNX3DNodes + ClassX3DType);
-end;
-
 procedure TIntegerSequencerNode.CreateNode;
 begin
   inherited;
@@ -538,12 +517,6 @@ end;
 class function TIntegerSequencerNode.ClassX3DType: string;
 begin
   Result := 'IntegerSequencer';
-end;
-
-class function TIntegerSequencerNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNX3DNodes + ClassX3DType);
 end;
 
 procedure TIntegerSequencerNode.SendValueChanged(const ValueIndex: Integer;
@@ -586,12 +559,6 @@ begin
   Result := 'IntegerTrigger';
 end;
 
-class function TIntegerTriggerNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNX3DNodes + ClassX3DType);
-end;
-
 procedure TTimeTriggerNode.CreateNode;
 begin
   inherited;
@@ -611,16 +578,46 @@ begin
   Result := 'TimeTrigger';
 end;
 
-class function TTimeTriggerNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNX3DNodes + ClassX3DType);
-end;
-
 procedure TTimeTriggerNode.EventSet_BooleanReceive(
   Event: TX3DEvent; Value: TX3DField; const Time: TX3DTime);
 begin
   EventTriggerTime.Send(Time.Seconds, Time, Value.InternalPartialSend);
+end;
+
+{ TValueTriggerNode ---------------------------------------------------------- }
+
+constructor TValueTriggerNode.Create(const AX3DName: string = ''; const ABaseUrl: string = '');
+begin
+  inherited;
+  FEventTrigger.AddNotification({$ifdef CASTLE_OBJFPC}@{$endif} EventTriggerReceive);
+  HasInterfaceDeclarations := AllAccessTypes;
+end;
+
+procedure TValueTriggerNode.EventTriggerReceive(Event: TX3DEvent; Value: TX3DField;
+  const Time: TX3DTime);
+var
+  B: Boolean;
+  I: Integer;
+  F: TX3DField;
+begin
+  B := (Value as TSFBool).Value;
+  if B and Enabled then
+  begin
+    for I := 0 to FieldsCount - 1 do
+    begin
+      F := Fields[I];
+      { For "dynamic" (coming from "interface declaration") and exposed fields,
+        send an event with their current value. }
+      if (F.ParentInterfaceDeclaration <> nil) and
+         (F.EventOut <> nil) then
+      begin
+        // since we send F, it must have Value.InternalPartialSend set, to account for cross-fading
+        F.InternalPartialSend := Value.InternalPartialSend;
+        F.EventOut.Send(F, Time);
+        F.InternalPartialSend := nil;
+      end;
+    end;
+  end;
 end;
 
 procedure RegisterEventUtilitiesNodes;
@@ -632,7 +629,8 @@ begin
     TBooleanTriggerNode,
     TIntegerSequencerNode,
     TIntegerTriggerNode,
-    TTimeTriggerNode
+    TTimeTriggerNode,
+    TValueTriggerNode
   ]);
 end;
 

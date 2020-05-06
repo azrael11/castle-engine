@@ -25,7 +25,7 @@ uses SysUtils, Classes, Generics.Collections,
   {$ifdef CASTLE_OBJFPC} CastleGL, {$else} GL, GLExt, {$endif}
   CastleVectors, CastleBoxes, X3DNodes, CastleClassUtils,
   CastleUtils, CastleSceneCore, CastleRenderer, CastleInternalBackground,
-  CastleGLUtils, CastleInternalShapeOctree, CastleGLShadowVolumes, X3DFields,
+  CastleGLUtils, CastleInternalShapeOctree, CastleInternalGLShadowVolumes, X3DFields,
   CastleTriangles, CastleShapes, CastleFrustum, CastleTransform, CastleGLShaders,
   CastleRectangles, CastleCameras, CastleRendererInternalShader, CastleColors,
   CastleSceneInternalShape, CastleSceneInternalOcclusion, CastleSceneInternalBlending,
@@ -625,6 +625,11 @@ type
       const ProgressStep: boolean; const Params: TPrepareParams); override;
 
     procedure BeforeNodesFree(const InternalChangedAll: boolean = false); override;
+
+    { Adjust parameters for rendering 2D scenes. Sets BlendingSort := bs2D,
+      which is good when your transparent objects have proper order along the Z axis
+      (useful e.g. for Spine animations). }
+    procedure Setup2D;
   private
     FBackgroundSkySphereRadius: Single;
     { Node for which FBackground is currently prepared. }
@@ -658,14 +663,14 @@ type
       The scene manager should use this to render background.
 
       You should not access the background this way in your own code.
-      This is public only because our own TCastleSceneManager needs to access it.
+      This is public only because our own TCastleViewport needs to access it.
 
       If you want to change the background,
       instead of using this internal reference,
       access X3D background nodes in @code(BackgroundStack).
       You can modify existing background node by @code(BackgroundStack.Top),
       or you can push a different background node by adding @link(TBackgroundNode)
-      to @link(RootNode) and setting @link(TBackgroundNode.Bound) to @true.
+      to @link(RootNode) and setting @link(TAbstractBindableNode.Bound Background.Bound) to @true.
 
       Returns @nil if there is no currently bound (and supported) background node
       in this scene.
@@ -674,7 +679,9 @@ type
       and so on) by this TCastleScene instance. It is cached
       (so that it's recreated only when relevant things change,
       like VRML/X3D nodes affecting this background,
-      or changes to BackgroundSkySphereRadius, or OpenGL context is closed). }
+      or changes to BackgroundSkySphereRadius, or OpenGL context is closed).
+
+      @exclude }
     function InternalBackground: TBackground;
 
     { Rendering attributes.
@@ -695,7 +702,7 @@ type
     procedure VisibleChangeNotification(const Changes: TVisibleChanges); override;
     procedure CameraChanged(const ACamera: TCastleCamera); override;
 
-    { Screen effects information, used by TCastleAbstractViewport.ScreenEffects.
+    { Screen effects information, used by TCastleViewport.ScreenEffects.
       ScreenEffectsCount may actually prepare screen effects.
       @groupBegin }
     function ScreenEffects(Index: Integer): TGLSLProgram;
@@ -758,6 +765,8 @@ type
       read FDistanceCulling write SetDistanceCulling default 0;
   end;
 
+  TCastleSceneClass = class of TCastleScene;
+
   TCastleSceneList = class(specialize TObjectList<TCastleScene>)
   private
     { Call InvalidateBackground on all items. }
@@ -774,7 +783,7 @@ type
 
   { @exclude Internal.
 
-    Basic non-abstact implementation of render params for calling
+    Basic non-abstract implementation of render params for calling
     TCastleTransform.LocalRender.
 
     @bold(This is exposed here only to support some experiments with non-standard
@@ -784,8 +793,8 @@ type
     but you don't use scene manager.
     Usually this should not be needed.
     This class may be removed at some point!
-    You should always try to use TCastleSceneManager to manage and render
-    3D stuff in new programs, and then TCastleSceneManager will take care of creating
+    You should always try to use TCastleViewport to manage and render
+    3D stuff in new programs, and then TCastleViewport will take care of creating
     proper render params instance for you. }
   TBasicRenderParams = class(TRenderParams)
   public
@@ -827,6 +836,10 @@ const
   ssVisibleTriangles = CastleSceneCore.ssVisibleTriangles;
   ssStaticCollisions = CastleSceneCore.ssStaticCollisions;
 
+{$define read_interface}
+{$I castlescene_roottransform.inc}
+{$undef read_interface}
+
 implementation
 
 {$warnings off}
@@ -837,6 +850,10 @@ uses CastleGLVersion, CastleImages, CastleLog,
   CastleRenderingCamera, CastleShapeInternalRenderShadowVolumes,
   CastleComponentSerialize;
 {$warnings on}
+
+{$define read_implementation}
+{$I castlescene_roottransform.inc}
+{$undef read_implementation}
 
 var
   TemporaryAttributeChange: Cardinal = 0;
@@ -1513,7 +1530,7 @@ procedure TCastleScene.PrepareResources(
     { calculate OwnParams, GoodParams }
     if Params = nil then
     begin
-      WritelnWarning('PrepareResources', 'Do not pass Params=nil to TCastleScene.PrepareResources or T3DResource.Prepare or friends. Get the params from SceneManager.PrepareParams (create a temporary TCastleSceneManager if you need to).');
+      WritelnWarning('PrepareResources', 'Do not pass Params=nil to TCastleScene.PrepareResources or T3DResource.Prepare or friends. Get the params from Viewport.PrepareParams (create a temporary TCastleViewport if you need to).');
       OwnParams := TPrepareParams.Create;
       GoodParams := OwnParams;
     end else
@@ -1926,8 +1943,9 @@ begin
         if SVRenderer.CasterShadowPossiblyVisible then
         begin
           if ParentTransformIsIdentity then
-            T :=                   Shape.State.Transform else
-            T := ParentTransform * Shape.State.Transform;
+            T :=                   Shape.State.Transformation.Transform
+          else
+            T := ParentTransform * Shape.State.Transformation.Transform;
           Shape.InternalShadowVolumes.RenderSilhouetteShadowVolume(
             SVRenderer.LightPosition, T,
             SVRenderer.ZFailAndLightCap,
@@ -2430,6 +2448,11 @@ begin
   if FBatching = nil then
     FBatching := TBatchShapes.Create({$ifdef CASTLE_OBJFPC}@{$endif} CreateShape);
   Result := FBatching;
+end;
+
+procedure TCastleScene.Setup2D;
+begin
+  Attributes.BlendingSort := bs2D;
 end;
 
 { TSceneRenderingAttributes ---------------------------------------------- }

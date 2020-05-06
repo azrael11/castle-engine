@@ -156,6 +156,8 @@ uses CastleLog;
 { TDebugAxis ----------------------------------------------------------------- }
 
 constructor TDebugAxis.Create(const AOwner: TComponent; const Color: TCastleColorRGB);
+var
+  Material: TUnlitMaterialNode;
 begin
   inherited Create(AOwner);
 
@@ -170,11 +172,12 @@ begin
   FGeometry.SetVertexCount([2, 2, 2]);
   FGeometry.Coord := FCoord;
 
+  Material := TUnlitMaterialNode.Create;
+  Material.EmissiveColor := Color;
+
   FShape := TShapeNode.Create;
   FShape.Geometry := FGeometry;
-  FShape.Material := TMaterialNode.Create;
-  FShape.Material.ForcePureEmissive;
-  FShape.Material.EmissiveColor := Color;
+  FShape.Material := Material;
 
   FTransform := TTransformNode.Create;
   FTransform.AddChildren(FShape);
@@ -206,6 +209,8 @@ end;
 { TDebugBox ----------------------------------------------------------------- }
 
 constructor TDebugBox.Create(const AOwner: TComponent; const Color: TCastleColorRGB);
+var
+  Material: TUnlitMaterialNode;
 begin
   inherited Create(AOwner);
 
@@ -214,9 +219,10 @@ begin
   FShape := TShapeNode.Create;
   FShape.Geometry := FGeometry;
   FShape.Shading := shWireframe;
-  FShape.Material := TMaterialNode.Create;
-  FShape.Material.ForcePureEmissive;
-  FShape.Material.EmissiveColor := Color;
+
+  Material := TUnlitMaterialNode.Create;
+  Material.EmissiveColor := Color;
+  FShape.Material := Material;
 
   FTransform := TTransformNode.Create;
   FTransform.AddChildren(FShape);
@@ -235,6 +241,8 @@ end;
 { TDebugSphere ----------------------------------------------------------------- }
 
 constructor TDebugSphere.Create(const AOwner: TComponent; const Color: TCastleColorRGB);
+var
+  Material: TUnlitMaterialNode;
 begin
   inherited Create(AOwner);
 
@@ -245,9 +253,10 @@ begin
   FShape := TShapeNode.Create;
   FShape.Geometry := FGeometry;
   FShape.Shading := shWireframe;
-  FShape.Material := TMaterialNode.Create;
-  FShape.Material.ForcePureEmissive;
-  FShape.Material.EmissiveColor := Color;
+
+  Material := TUnlitMaterialNode.Create;
+  Material.EmissiveColor := Color;
+  FShape.Material := Material;
 
   FTransform := TTransformNode.Create;
   FTransform.AddChildren(FShape);

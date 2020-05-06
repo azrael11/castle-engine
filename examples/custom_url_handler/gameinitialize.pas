@@ -20,14 +20,15 @@ interface
 
 implementation
 
-uses SysUtils, Classes, Unzip51g,
+uses SysUtils, Classes, Zipper,
   CastleWindow, CastleScene, CastleControls, CastleLog, CastleUtils,
   CastleFilesUtils, CastleSceneCore, CastleKeysMouse, CastleColors,
   CastleUIControls, CastleApplicationProperties, CastleDownload, CastleStringUtils,
-  CastleURIUtils;
+  CastleURIUtils, CastleViewport;
 
 var
-  Window: TCastleWindow;
+  Window: TCastleWindowBase;
+  Viewport: TCastleViewport;
   Status: TCastleLabel;
   ExampleImage: TCastleImageControl;
   ExampleScene: TCastleScene;
@@ -49,15 +50,24 @@ var
 function TPackedDataReader.ReadUrl(const Url: string; out MimeType: string): TStream;
 var
   FileInZip: String;
+  Unzip: TUnZipper;
+  FilesInZipList: TStringlist;
 begin
-  { Unpack file to a temporary directory.
-    TODO: Preferably, this should be done without storing the temp file on disk. }
   FileInZip := PrefixRemove('/', URIDeleteProtocol(Url), false);
-  if FileUnzip(
-       PChar(SourceZipFileName),
-       PChar(TempDirectory),
-       PChar(FileInZip), nil, nil) <> 1 then
-    raise EDownloadError.CreateFmt('Cannot open "%s" inside ZIP', [FileInZip]);
+
+  { Unpack file to a temporary directory.
+    TODO: TPackedDataReader.ReadUrl should be implemented
+    without storing the temp file on disk. }
+  Unzip := TUnZipper.Create;
+  try
+    Unzip.FileName := SourceZipFileName;
+    Unzip.OutputPath := TempDirectory;
+    FilesInZipList := TStringlist.Create;
+    try
+      FilesInZipList.Add(FileInZip);
+      Unzip.UnZipFiles(FilesInZipList);
+    finally FreeAndNil(FilesInZipList) end;
+  finally FreeAndNil(Unzip) end;
 
   { Use Download with file:/ protocol to load filename to TStream }
   Result := Download(FilenameToURISafe(CombinePaths(TempDirectory, FileInZip)), [], MimeType);
@@ -90,7 +100,7 @@ begin
   PackedDataReader.SourceZipFileName := URIToFilenameSafe('castle-data:/packed_game_data.zip');
   PackedDataReader.TempDirectory := InclPathDelim(GetTempDir) + 'unpacked_data';
   ForceDirectories(PackedDataReader.TempDirectory);
-  WritelnLog('Using temporary directory "%s"', PackedDataReader.TempDirectory);
+  WritelnLog('Using temporary directory "%s"', [PackedDataReader.TempDirectory]);
   RegisterUrlProtocol('my-packed-data', @PackedDataReader.ReadUrl, nil);
 
   { make following calls to castle-data:/ also load data from ZIP }
@@ -104,6 +114,12 @@ begin
   Window.Container.UIReferenceWidth := 1024;
   Window.Container.UIReferenceHeight := 768;
   Window.Container.UIScaling := usEncloseReferenceSize;
+
+  Viewport := TCastleViewport.Create(Application);
+  Viewport.FullSize := true;
+  Viewport.AutoCamera := true;
+  Viewport.AutoNavigation := true;
+  Window.Controls.InsertFront(Viewport);
 
   { Show a label with frames per second information }
   Status := TCastleLabel.Create(Application);
@@ -121,14 +137,15 @@ begin
   ExampleImage.Left := 100;
   Window.Controls.InsertFront(ExampleImage);
 
-  { Show a 3D object (TCastleScene) inside a Window.SceneManager
+  { Show a 3D object (TCastleScene) inside a Viewport
     (which acts as a full-screen viewport by default). }
   ExampleScene := TCastleScene.Create(Application);
   ExampleScene.Load('castle-data:/example_scene.x3dv');
   ExampleScene.Spatial := [ssRendering, ssDynamicCollisions];
   ExampleScene.ProcessEvents := true;
-  Window.SceneManager.Items.Add(ExampleScene);
-  Window.SceneManager.MainScene := ExampleScene;
+
+  Viewport.Items.Add(ExampleScene);
+  Viewport.Items.MainScene := ExampleScene;
 end;
 
 initialization
@@ -144,7 +161,7 @@ initialization
   Application.OnInitialize := @ApplicationInitialize;
 
   { Create and assign Application.MainWindow. }
-  Window := TCastleWindow.Create(Application);
+  Window := TCastleWindowBase.Create(Application);
   Application.MainWindow := Window;
 
   { You should not need to do *anything* more in the unit "initialization" section.

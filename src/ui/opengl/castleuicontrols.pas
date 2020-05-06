@@ -210,7 +210,7 @@ type
 
     chCursor,
 
-    { Used by @link(TCamera) descendants to notify that the current
+    { Used by @link(TCastleCamera) descendants to notify that the current
       camera view (position, direction, up and everything related to it) changed. }
     chCamera,
 
@@ -231,7 +231,7 @@ type
     code with Castle Game Engine controls (TCastleUserInterface, that is the basis
     for all our 2D and 3D rendering). When you use TCastleWindowBase
     (a window) or TCastleControlBase (Lazarus component), they provide
-    you a non-abstact implementation of TUIContainer.
+    you a non-abstract implementation of TUIContainer.
 
     Basically, this class manages a @link(Controls) list.
 
@@ -271,8 +271,8 @@ type
     FForceCaptureInput: TCastleUserInterface;
     FTooltipDelay: Single;
     FTooltipDistance: Cardinal;
-    FTooltipVisible: boolean;
     FTooltipPosition: TVector2;
+    FTooltipParent: TCastleUserInterface; // @nil if do not display
     HasLastPositionForTooltip: boolean;
     LastPositionForTooltip: TVector2;
     LastPositionForTooltipTime: TTimerResult;
@@ -311,11 +311,20 @@ type
     class procedure RenderControlPrepare(const ViewportRect: TRectangle); static;
     function PassEvents(const C: TCastleUserInterface;
       const CheckMousePosition: Boolean = true): Boolean;
+    function PassEvents(const C: TCastleUserInterface;
+      const EventPosition: TVector2;
+      const CheckEventPosition: Boolean = true): Boolean;
+    function PassEvents(const C: TCastleUserInterface;
+      const Event: TInputPressRelease;
+      const CheckEventPosition: Boolean = true): Boolean;
+    function PassEvents(const C: TCastleUserInterface;
+      const Event: TInputMotion;
+      const CheckEventPosition: Boolean = true): Boolean;
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
 
-    { These should only be get/set by a container provider,
-      like TCastleWindow or TCastleControl.
+    { These should only be get/set by a container owner,
+      like TCastleWindowBase or TCastleControlBase.
       @groupBegin }
     property OnOpen: TContainerEvent read FOnOpen write FOnOpen;
     property OnOpenObject: TContainerObjectEvent read FOnOpenObject write FOnOpenObject;
@@ -369,7 +378,7 @@ type
       to "fake" some event by calling these methods.
 
       Most of these methods are called automatically
-      by the container owner, like TCastleWindow or TCastleControl.
+      by the container owner, like TCastleWindowBase or TCastleControlBase.
       Some are called by @link(EventUpdate),
       which is special in this regard, as @link(EventUpdate) is not only
       responsible for calling @link(TInputListener.Update) on all @link(Controls),
@@ -415,21 +424,6 @@ type
       from back to front. So the front-most control, that should receive events first,
       is last on this list. }
     property Focus: TCastleUserInterfaceList read FFocus;
-
-    { When the tooltip should be shown (mouse hovers over a control
-      with a tooltip) then the TooltipVisible is set to @true,
-      and TooltipPosition indicate left-bottom (in screen space, regardless of UIScaling)
-      suggested position of the tooltip.
-
-      The tooltip is only detected when TCastleUserInterface.TooltipExists.
-      See TCastleUserInterface.TooltipExists and TCastleUserInterface.TooltipStyle and
-      TCastleUserInterface.TooltipRender.
-      For simple purposes just set TCastleUserInterfaceFont.Tooltip to something
-      non-empty.
-      @groupBegin }
-    property TooltipVisible: boolean read FTooltipVisible;
-    property TooltipPosition: TVector2 read FTooltipPosition;
-    { @groupEnd }
 
     { Redraw the contents of of this window, at the nearest suitable time.
       This method does not redraw immediately
@@ -557,7 +551,7 @@ type
       See example ../../../examples/3d_rendering_processing/render_3d_to_texture_and_use_as_quad.lpr.
 
       This is a good method to render the UI control off-screen.
-      It can render any UI control, including e.g. TCastleSceneManager
+      It can render any UI control, including e.g. TCastleViewport
       with 3D stuff inside TCastleScene.
 
       The contents of the @link(Controls) list doesn't matter for this method.
@@ -594,12 +588,10 @@ type
         )
 
         @item(Calls @link(TInputListener.Resize Control.Resize),
-          required by some controls (like scene manager) to know viewport size.)
+          which may be expected by some controls.)
 
         @item(Calls @link(TCastleUserInterface.BeforeRender Control.BeforeRender),
-          required by some controls (like scene manager)
-          to prepare resources (like generated textures,
-          important for mirrors for screenshots in batch mode).)
+          which may be expected by some controls.)
       )
     }
     procedure RenderControl(const Control: TCastleUserInterface;
@@ -609,7 +601,7 @@ type
       (or straight to an image file, like png).
 
       Note that only capturing from the double-buffered OpenGL
-      windows (which the default for our TCastleWindow and TCastleControl)
+      windows (which the default for our TCastleWindowBase and TCastleControlBase)
       is reliable. Internally, these methods may need to redraw the screen
       to the back buffer, because that's the only guaranteed way to capture
       OpenGL drawing (you have to capture the back buffer, before swap).
@@ -676,7 +668,7 @@ type
         Result := inherited;
         if Result then Exit;
 
-        if Event.IsMouseButton(mbLook) then
+        if Event.IsMouseButton(mbLeft) then
         begin
           Drag := true;
           Cursor := mcForceNone;
@@ -689,7 +681,7 @@ type
         Result := inherited;
         if Result then Exit;
 
-        if Event.IsMouseButton(mbLook) then
+        if Event.IsMouseButton(mbLeft) then
         begin
           Drag := false;
           Cursor := mcDefault;
@@ -740,7 +732,7 @@ type
 
       An example when this is useful is when you use camera MouseLook,
       and the associated viewport does not fill the full window
-      (TCastleAbstractViewport.FullSize is @false, and actual sizes are smaller
+      (TCastleViewport.FullSize is @false, and actual sizes are smaller
       than window, and may not include window center). In this case you want
       to make sure that motion events get passed to this control,
       and that this control has focus (to keep mouse cursor hidden).
@@ -842,10 +834,10 @@ type
           @link(TCastleUserInterface.FullSize FullSize) = @true and set
           @link(TCastleRectangleControl.Color) as desired,)
 
-        @item(or use @link(TCastleSceneManager) with
+        @item(or use @link(TCastleViewport) with
           @link(TCastleUserInterface.FullSize) = @true and
-          @link(TCastleAbstractViewport.Transparent) = @false and set
-          @link(TCastleAbstractViewport.BackgroundColor) as desired,)
+          @link(TCastleViewport.Transparent) = @false and set
+          @link(TCastleViewport.BackgroundColor) as desired,)
 
         @item(eventually you can also call
           @link(TRenderContext.Clear RenderContext.Clear)
@@ -1513,17 +1505,20 @@ type
 
     { Render a tooltip of this control. If you want to have tooltip for
       this control detected, you have to override TooltipExists.
-      Then the TCastleWindowBase.TooltipVisible will be detected,
-      and your TooltipRender will be called.
+      Then the TooltipRender will be called.
 
-      TooltipRender is called in the same way as @link(Render),
-      so e.g. you can safely assume that modelview matrix is identity
-      and (for 2D) WindowPos is zero.
+      TooltipRender is called in the same way as @link(Render).
       TooltipRender is always called as a last (front-most) control.
+      Argument TooltipPosition is the left-bottom (in screen space, regardless of UIScaling)
+      suggested position of the tooltip.
+
+      It is simplest to descend from TCastleUserInterfaceFont,
+      that implements simple @link(TCastleUserInterfaceFont.Tooltip) property
+      and overrides these two methods as necessary.
 
       @groupBegin }
-    function TooltipExists: boolean; virtual;
-    procedure TooltipRender; virtual;
+    function TooltipExists: Boolean; virtual;
+    procedure TooltipRender(const TooltipPosition: TVector2); virtual;
     { @groupEnd }
 
     { Initialize your OpenGL resources.
@@ -1625,7 +1620,7 @@ type
 
           The control always fills the whole parent.
           If the control is added directly to the container,
-          it will fill the whole container (TCastleWindow or TCastleControl).
+          it will fill the whole container (TCastleWindowBase or TCastleControlBase).
         )
         @item(
           Otherwise (when @link(FullSize) and @link(AutoSizeToChildren)
@@ -2286,7 +2281,7 @@ var
 
   Returns @nil if OnMainContainer not assigned (possible if you don't use
   CastleWindow or CastleControl), or OnMainContainer returns @nil
-  (possible if you don't set Application.MainWindow or TCastleControl.MainControl).
+  (possible if you don't set Application.MainWindow or TCastleControlBase.MainControl).
 
   @exclude }
 function GetMainContainer: TUIContainer;
@@ -2305,7 +2300,7 @@ function GetMainContainer: TUIContainer;
   if you use TUIContainer.UIScaling).
 
   This is the @italic(easiest) way to make off-screen rendering,
-  i.e. to render 3D things (like TCastleScene or TCastleSceneManager)
+  i.e. to render 3D things (like TCastleScene in TCastleViewport)
   into an image. This is @italic(not the fastest way), as it creates
   new TGLRenderToTexture instance each time,
   and it grabs the image contents to CPU.
@@ -2455,6 +2450,9 @@ var
   Index: Integer;
   FingerIndex: TFingerIndex;
 begin
+  if C = FTooltipParent then
+    FTooltipParent := nil;
+
   if FFocus <> nil then
   begin
     Index := FFocus.IndexOf(C);
@@ -2496,13 +2494,34 @@ begin
 end;
 
 function TUIContainer.PassEvents(const C: TCastleUserInterface;
-  const CheckMousePosition: Boolean): Boolean;
+  const EventPosition: TVector2;
+  const CheckEventPosition: Boolean = true): Boolean;
 begin
   Result :=
     (not (csDestroying in C.ComponentState)) and
     C.GetExists and
-    ((not CheckMousePosition) or C.CapturesEventsAtPosition(MousePosition)) and
+    ((not CheckEventPosition) or C.CapturesEventsAtPosition(EventPosition)) and
     C.FVisible;
+end;
+
+function TUIContainer.PassEvents(const C: TCastleUserInterface;
+  const Event: TInputPressRelease;
+  const CheckEventPosition: Boolean = true): Boolean;
+begin
+  Result := PassEvents(C, Event.Position, CheckEventPosition);
+end;
+
+function TUIContainer.PassEvents(const C: TCastleUserInterface;
+  const Event: TInputMotion;
+  const CheckEventPosition: Boolean = true): Boolean;
+begin
+  Result := PassEvents(C, Event.Position, CheckEventPosition);
+end;
+
+function TUIContainer.PassEvents(const C: TCastleUserInterface;
+  const CheckMousePosition: Boolean): Boolean;
+begin
+  Result := PassEvents(C, MousePosition, CheckMousePosition);
 end;
 
 procedure TUIContainer.UpdateFocusAndMouseCursor;
@@ -2513,42 +2532,39 @@ var
     Update (add) to FNewFocus, update (set to true) AnythingForcesNoneCursor. }
   procedure CalculateNewFocus;
 
-    { AllowAddingToFocus is used to keep track whether we should
-      do FNewFocus.Add on new controls. This way when one control obscures
-      another, the obscured control does not land on the FNewFocus list.
-      However, the obscured control can still affect the AnythingForcesNoneCursor
-      value. }
-    procedure RecursiveCalculateNewFocus(const C: TCastleUserInterface; var AllowAddingToFocus: boolean);
+    procedure RecursiveCalculateNewFocus(const C: TCastleUserInterface);
     var
       I: Integer;
-      ChildAllowAddingToFocus: boolean;
     begin
       if PassEvents(C) then
       begin
         if C.Cursor = mcForceNone then
           AnythingForcesNoneCursor := true;
 
-        if AllowAddingToFocus then
-        begin
-          FNewFocus.Add(C);
-          // siblings to C, obscured by C, will not be added to FNewFocus
-          AllowAddingToFocus := false;
-        end;
+        FNewFocus.Add(C);
 
-        // our children can be added to FNewFocus
-        ChildAllowAddingToFocus := true;
-        for I := C.ControlsCount - 1 downto 0 do
-          RecursiveCalculateNewFocus(C.Controls[I], ChildAllowAddingToFocus);
+        // Iterate in back-to-front order, because that's the order on Focus list.
+        for I := 0 to C.ControlsCount - 1 do
+          RecursiveCalculateNewFocus(C.Controls[I]);
       end;
     end;
 
   var
     I: Integer;
-    AllowAddingToFocus: boolean;
   begin
-    AllowAddingToFocus := true;
-    for I := Controls.Count - 1 downto 0 do
-      RecursiveCalculateNewFocus(Controls[I], AllowAddingToFocus);
+    { Note that even if one sibling obscures another (they both satisfy
+      CapturesEventsAtPosition) both siblings are added to the FNewFocus
+      (later to Focus) list.
+      That's because they all can receive input event (like Press),
+      assuming that all controls return "not handled" (return false from Press).
+      This is crucial to make some "invisible" controls (like TCastleNavigation
+      or TCastleInspectorControl) work seamlessly, they should not prevent
+      other controls from appearing on Focus list.
+   }
+
+    // Iterate in back-to-front order, because that's the order on Focus list.
+    for I := 0 to Controls.Count - 1 do
+      RecursiveCalculateNewFocus(Controls[I]);
   end;
 
   { Possibly adds the control to FNewFocus and
@@ -2575,7 +2591,7 @@ var
       { Calculate cursor looking at Focus.Last.Cursor,
         unless that's mcDefault then look at previous control on Focus list,
         and so on.
-        This is crucial e.g. to allow TCastleAbstractViewport to display
+        This is crucial e.g. to allow TCastleViewport to display
         "hand" cursor over TouchSensor, even when TCastleXxxNavigation within
         this viewport has focus.
       }
@@ -2769,12 +2785,15 @@ procedure TUIContainer.EventUpdate;
   procedure UpdateTooltip;
   var
     T: TTimerResult;
-    NewTooltipVisible: boolean;
+    NewTooltipParent: TCastleUserInterface;
+    I: Integer;
   begin
-    { Update TooltipVisible and LastPositionForTooltip*.
+    { Update FTooltipParent and LastPositionForTooltip*.
       Idea is that user must move the mouse very slowly to activate tooltip. }
 
+    NewTooltipParent := nil;
     T := Fps.UpdateStartTime;
+
     if (not HasLastPositionForTooltip) or
        { reset the time counter to show tooltip, if you moved mouse/finger
          significantly }
@@ -2787,34 +2806,27 @@ procedure TUIContainer.EventUpdate;
       HasLastPositionForTooltip := true;
       LastPositionForTooltip := MousePosition;
       LastPositionForTooltipTime := T;
-      NewTooltipVisible := false;
     end else
-      { TODO: allow tooltips on other controls on Focus list,
-        if Focus.Last.TooltipExists = false but other control on Focus
-        has tooltips.
-        Set something like TooltipFocusIndex or just TooltipControl
-        to pass correct control to TUIContainer.EventRender then,
-        right now we hardcoded there rendering of Focus.Last tooltip. }
-      NewTooltipVisible :=
-        { make TooltipVisible only when we're over a control that has
-          focus. This avoids unnecessary changing of TooltipVisible
-          (and related Invalidate) when there's no tooltip possible. }
-        (Focus.Count <> 0) and
-        Focus.Last.TooltipExists and
-        (TimerSeconds(T, LastPositionForTooltipTime) > TooltipDelay);
-
-    if FTooltipVisible <> NewTooltipVisible then
+    if TimerSeconds(T, LastPositionForTooltipTime) > TooltipDelay then
     begin
-      FTooltipVisible := NewTooltipVisible;
+      { Any control on Focus can cause a tooltip.
+        This is especially useful when an invisible control like TCastleWalkNavigation
+        covers other controls. }
+      for I := Focus.Count - 1 downto 0 do
+        if Focus[I].TooltipExists then
+        begin
+          NewTooltipParent := Focus[I];
+          Break;
+        end;
+    end;
 
-      if TooltipVisible then
+    if FTooltipParent <> NewTooltipParent then
+    begin
+      FTooltipParent := NewTooltipParent;
+
+      if FTooltipParent <> nil then
       begin
-        { when setting TooltipVisible from false to true,
-          update LastPositionForTooltip. We don't want to hide the tooltip
-          at the slightest jiggle of the mouse :) On the other hand,
-          we don't want to update LastPositionForTooltip more often,
-          as it would disable the purpose of TooltipDistance: faster
-          mouse movement should hide the tooltip. }
+        { When changing FTooltipParent, update LastPositionForTooltip. }
         LastPositionForTooltip := MousePosition;
         { also update TooltipPosition }
         FTooltipPosition := MousePosition;
@@ -2971,7 +2983,7 @@ function TUIContainer.EventPress(const Event: TInputPressRelease): boolean;
   var
     I: Integer;
   begin
-    if PassEvents(C) then
+    if PassEvents(C, Event) then
     begin
       { try C.PreviewPress }
       if (C <> ForceCaptureInput) and C.PreviewPress(Event) then
@@ -3048,7 +3060,7 @@ function TUIContainer.EventRelease(const Event: TInputPressRelease): boolean;
   var
     I: Integer;
   begin
-    if PassEvents(C) then
+    if PassEvents(C, Event) then
     begin
       { try C.PreviewRelease }
       if (C <> ForceCaptureInput) and C.PreviewRelease(Event) then
@@ -3230,7 +3242,7 @@ var
 begin
   { Do not suspend when you're over a control that may have a tooltip,
     as EventUpdate must track and eventually show tooltip. }
-  if (Focus.Count <> 0) and Focus.Last.TooltipExists then
+  if FTooltipParent <> nil then
     Exit(false);
 
   for I := Controls.Count - 1 downto 0 do
@@ -3246,7 +3258,7 @@ procedure TUIContainer.EventMotion(const Event: TInputMotion);
   var
     I: Integer;
   begin
-    if PassEvents(C) then
+    if PassEvents(C, Event) then
     begin
       { try to pass release to C children }
       for I := C.ControlsCount - 1 downto 0 do
@@ -3389,10 +3401,10 @@ begin
   for I := 0 to Controls.Count - 1 do
     Controls[I].RecursiveRender(Rect);
 
-  if TooltipVisible and (Focus.Count <> 0) then
+  if FTooltipParent <> nil then
   begin
     RenderControlPrepare(Rect);
-    Focus.Last.TooltipRender;
+    FTooltipParent.TooltipRender(FTooltipPosition);
   end;
 
   RenderControlPrepare(Rect);
@@ -3810,7 +3822,7 @@ end;
 procedure TUIContainer.LoadSettings(const SettingsUrl: String);
 begin
   if not ApplicationProperties.IsGLContextOpen then
-    raise Exception.Create('Rendering context not open when calling TUIContainer.LoadSettings. Call LoadSettings later, e.g. in Application.OnInitialize, TCastleWindow.OnOpen, TCastleControl.OnOpen');
+    raise Exception.Create('Rendering context not open when calling TUIContainer.LoadSettings. Call LoadSettings later, e.g. in Application.OnInitialize, TCastleWindowBase.OnOpen, TCastleControlBase.OnOpen');
   SettingsLoad(Self, SettingsUrl);
 end;
 
@@ -3958,11 +3970,10 @@ begin
   { Note that ContainerSizeKnown is calculated looking at current Container,
     without waiting for Resize. This way it works even before
     we receive Resize method, which may happen to be useful:
-    if you insert a SceneManager to a window before it's open (like it happens
-    with standard scene manager in TCastleWindow and TCastleControl),
+    if you insert some TCastleUserInterface to a window before it's open,
     and then you do something inside OnOpen that wants to render
     this viewport (which may happen if you simply initialize a progress bar
-    without any predefined loading_image). Scene manager did not receive
+    without any predefined loading_image). TCastleUserInterface did not receive
     a Resize in this case yet (it will receive it from OnResize,
     which happens after OnOpen).
 
@@ -4272,7 +4283,7 @@ procedure TCastleUserInterface.RecursiveRender(const ViewportRect: TRectangle);
     RectLeftRightBorders: TFloatRectangle;
   begin
     if FBorderColor[3] = 0 then Exit; // early exit in a common case
-    { RenderControlPrepare necessary, since TCastleSceneManager could have
+    { RenderControlPrepare necessary, since TCastleViewport could have
       changed RenderContext.Viewport. }
     TUIContainer.RenderControlPrepare(ViewportRect);
 
@@ -4390,7 +4401,7 @@ begin
   end;
 end;
 
-procedure TCastleUserInterface.TooltipRender;
+procedure TCastleUserInterface.TooltipRender(const TooltipPosition: TVector2);
 begin
 end;
 

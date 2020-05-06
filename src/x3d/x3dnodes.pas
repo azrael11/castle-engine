@@ -1,5 +1,5 @@
 {
-  Copyright 2002-2018 Michalis Kamburelis.
+  Copyright 2002-2020 Michalis Kamburelis.
 
   This file is part of "Castle Game Engine".
 
@@ -190,6 +190,7 @@ type
   {$I x3dnodes_x3dnodeclasseslist.inc}
   {$I x3dnodes_sfnode.inc}
   {$I x3dnodes_mfnode.inc}
+  {$I x3dnodes_utils_materials.inc}
 
   { Nodes from standard X3D components }
   {$I x3dnodes_standard_core.inc}
@@ -323,6 +324,7 @@ uses
 {$I x3dnodes_names.inc}
 {$I x3dnodes_nodesmanager.inc}
 {$I x3dnodes_miscellaneous_globals.inc}
+{$I x3dnodes_utils_materials.inc}
 
 // These must be includes after x3dnodes_encoding_{classic,xml}.inc
 {$I x3dnodes_x3dnode.inc}
@@ -435,6 +437,7 @@ uses
 {$I auto_generated_node_helpers/x3dnodes_effect.inc}
 {$I auto_generated_node_helpers/x3dnodes_effectpart.inc}
 {$I auto_generated_node_helpers/x3dnodes_elevationgrid.inc}
+{$I auto_generated_node_helpers/x3dnodes_environmentlight.inc}
 {$I auto_generated_node_helpers/x3dnodes_espdutransform.inc}
 {$I auto_generated_node_helpers/x3dnodes_explosionemitter.inc}
 {$I auto_generated_node_helpers/x3dnodes_extrusion.inc}
@@ -531,6 +534,7 @@ uses
 {$I auto_generated_node_helpers/x3dnodes_orthoviewpoint.inc}
 {$I auto_generated_node_helpers/x3dnodes_packagedshader.inc}
 {$I auto_generated_node_helpers/x3dnodes_particlesystem.inc}
+{$I auto_generated_node_helpers/x3dnodes_physicalmaterial.inc}
 {$I auto_generated_node_helpers/x3dnodes_pickablegroup.inc}
 {$I auto_generated_node_helpers/x3dnodes_pixeltexture.inc}
 {$I auto_generated_node_helpers/x3dnodes_pixeltexture3d.inc}
@@ -609,6 +613,8 @@ uses
 {$I auto_generated_node_helpers/x3dnodes_trianglestripset.inc}
 {$I auto_generated_node_helpers/x3dnodes_twosidedmaterial.inc}
 {$I auto_generated_node_helpers/x3dnodes_universaljoint.inc}
+{$I auto_generated_node_helpers/x3dnodes_unlitmaterial.inc}
+{$I auto_generated_node_helpers/x3dnodes_valuetrigger.inc}
 {$I auto_generated_node_helpers/x3dnodes_vectorinterpolator.inc}
 {$I auto_generated_node_helpers/x3dnodes_viewpoint.inc}
 {$I auto_generated_node_helpers/x3dnodes_viewpointgroup.inc}
@@ -653,18 +659,21 @@ uses
 {$I auto_generated_node_helpers/x3dnodes_x3dnormalnode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3dnurbscontrolcurvenode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3dnurbssurfacegeometrynode.inc}
+{$I auto_generated_node_helpers/x3dnodes_x3donesidedmaterialnode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3dparametricgeometrynode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3dparticleemitternode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3dparticlephysicsmodelnode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3dpicksensornode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3dpointingdevicesensornode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3dproductstructurechildnode.inc}
+{$I auto_generated_node_helpers/x3dnodes_x3dpunctuallightnode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3drigidjointnode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3dscriptnode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3dsensornode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3dsequencernode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3dshadernode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3dshapenode.inc}
+{$I auto_generated_node_helpers/x3dnodes_x3dsingletexturenode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3dsoundnode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3dsoundsourcenode.inc}
 {$I auto_generated_node_helpers/x3dnodes_x3dtexture2dnode.inc}

@@ -27,11 +27,11 @@ In this sense, CGE editor may serve as just a GUI wrapper around our "build tool
 
 You can visually design:
 
-* a hierarchy of user-interface controls. Anything descending from `TCastleUserInterface`, like a button, label, or a powerful scene manager (that contains a hierarchy of 3D / 2D scenes and transformations inside).
+* a hierarchy of user-interface controls. Anything descending from `TCastleUserInterface`, like a button, label, or a powerful viewport (that contains a hierarchy of 3D / 2D scenes and transformations inside).
 
     Saved as `xxx.castle-user-interface` files. Load in your game using `UserInterfaceLoad` from `CastleComponentSerialize` unit.
 
-* a hierachy of 3D / 2D scenes and transformations. Anything descending from `TCastleTransform`, so `TCastleTransform`, `TCastleScene`, `TCastle2DScene` classes, that form a piece of 3D / 2D game world. You can add (using code) such hierarchy into an existing `TCastleSceneManager` world.
+* a hierachy of 3D / 2D scenes and transformations. Anything descending from `TCastleTransform`, so `TCastleTransform`, `TCastleScene` classes, that form a piece of 3D / 2D game world. You can add (using code) such hierarchy into an existing `TCastleViewport.Items`.
 
     Saved as `xxx.castle-transform` files. Load in your game using `TransformLoad` from `CastleComponentSerialize` unit.
 
@@ -70,11 +70,13 @@ Larger projects may define custom components (descendants of the `TCastleUserInt
     - Lazarus location is correctly set. You can set it in the editor "Preferences" window (or by adjusting `$PATH`). We need to execute `lazbuild` from Lazarus, to rebuild an editor with custom components.
     - Make sure the CGE location is correctly set. It should be detected automatically if you use the engine package (but you can always customize it using the environment variable `$CASTLE_ENGINE_PATH`).
 
-4. Click menu item _"Project -> Restart Editor (may rebuild editor with custom controls)"_ in the editor (once you open a project).
+4. Click menu item _"Project -> Restart Editor (With Custom Components)"_ in the editor (once you open a project).
 
     Alternatively, use the command-line [build tool](https://github.com/castle-engine/castle-engine/wiki/Build-Tool) command: `castle-engine editor`.
 
     Both ways will rebuild and run a customized version of the editor that includes your custom components.
+
+    You can confirm you are running an editor with custom components by looking at the window title, it should include "_(With Custom Components)_".
 
 ### Open and run source code with external applications
 
@@ -114,7 +116,7 @@ You can browse the application files. Our "Files Browser" just displays the file
     * TCastleScene to load a 3D model,
     * TCastle2DScene to load a Spine JSON model,
     * TCastleImageControl to show a 2D image.
-    * This has some requirements (TCastleScene can only be inside a scene manager, TCastleImageControl only inside UI hierarchy).
+    * This has some requirements (TCastleScene can only be inside a TCastleRootTransform, TCastleImageControl only inside UI hierarchy).
 
 ### Distributed in a binary form too
 

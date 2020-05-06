@@ -1,5 +1,5 @@
 {
-  Copyright 2016-2018 Michalis Kamburelis.
+  Copyright 2016-2019 Michalis Kamburelis.
 
   This file is part of "Castle Game Engine".
 
@@ -25,9 +25,28 @@ type
   { Shader types. }
   TShaderType = (stVertex, stGeometry, stFragment);
 
+  { Type of @link(TAbstractColorNode.Mode). }
+  TColorMode = (cmReplace, cmModulate);
+
+  TToneMapping = (
+    tmNone,
+    tmUncharted,
+    tmHejlRichard,
+    tmACES
+  );
+
 const
   ShaderTypeName: array [TShaderType] of string =
   ( 'Vertex', 'Geometry', 'Fragment' );
+
+var
+  { Log shadow volume information.
+    See https://castle-engine.io/manual_log.php about the log. }
+  LogShadowVolumes: Boolean = false;
+
+  GammaCorrection: Boolean = false;
+
+  ToneMapping: TToneMapping = tmNone;
 
 implementation
 

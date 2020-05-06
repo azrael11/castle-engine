@@ -27,14 +27,13 @@
   TMatrixTransformNode = class(TAbstractX3DGroupingNode, ITransformNode)
   protected
     function DirectEnumerateActive(Func: TEnumerateChildrenFunction): Pointer; override;
-    procedure ApplyTransform(State: TX3DGraphTraverseState); override;
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
     class function ForVRMLVersion(const Version: TX3DVersion): boolean;
       override;
     function TransformationChange: TNodeTransformationChange; override;
+    procedure ApplyTransform(var Transformation: TTransformation); override;
 
     strict private FFdMatrix: TSFMatrix4f;
     public property FdMatrix: TSFMatrix4f read FFdMatrix;
@@ -51,7 +50,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdSize: TSFVec3f;
     public property FdSize: TSFVec3f read FFdSize;
@@ -86,7 +84,6 @@
     procedure CreateNode; override;
     destructor Destroy; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdLevel: TSFInt32;
     public property FdLevel: TSFInt32 read FFdLevel;
@@ -110,7 +107,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdEnabled: TSFBool;
     public property FdEnabled: TSFBool read FFdEnabled;
@@ -126,7 +122,7 @@
 
   { Texture with contents created by rendering the scene from a specific
     viewpoint. }
-  TRenderedTextureNode = class(TAbstractTextureNode)
+  TRenderedTextureNode = class(TAbstractSingleTextureNode)
   strict private
     FGeneratedTextureHandler: TGeneratedTextureHandler;
   public
@@ -134,7 +130,6 @@
     destructor Destroy; override;
 
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     property GeneratedTextureHandler: TGeneratedTextureHandler
       read FGeneratedTextureHandler;
@@ -223,7 +218,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdSize: TSFVec2f;
     public property FdSize: TSFVec2f read FFdSize;
@@ -252,7 +246,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdStatus: TSFBool;
     public property FdStatus: TSFBool read FFdStatus;
@@ -295,28 +288,23 @@
   TCommonSurfaceShaderNode = class(TAbstractShaderNode)
   strict private
     type
-      TCommonSurfaceShaderInfo = class(TMaterialInfo)
+      TCommonSurfaceShaderInfo = class(TPhongMaterialInfo)
       strict private
         FNode: TCommonSurfaceShaderNode;
+      protected
+        function GetDiffuseColor: TVector3; override;
+        procedure SetDiffuseColor(const Value: TVector3); override;
+        function GetSpecularColor: TVector3; override;
+        procedure SetSpecularColor(const Value: TVector3); override;
       public
         constructor Create(ANode: TCommonSurfaceShaderNode);
 
         function AmbientColor: TVector3; override;
-        function DiffuseColor: TVector3; override;
-        function SpecularColor: TVector3; override;
         function EmissiveColor: TVector3; override;
         function Shininess: Single; override;
         function ReflectionColor: TVector3; override;
         function TransmissionColor: TVector3; override;
         function Transparency: Single; override;
-
-        function ReflSpecular: TVector3; override;
-        function ReflDiffuse: TVector3; override;
-        function TransSpecular: TVector3; override;
-        function TransDiffuse: TVector3; override;
-
-        function ReflSpecularExp: Single; override;
-        function TransSpecularExp: Single; override;
       end;
     var
       FMaterialInfo: TMaterialInfo;
@@ -324,7 +312,6 @@
     procedure CreateNode; override;
     destructor Destroy; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdAlphaFactor: TSFFloat;
     public property FdAlphaFactor: TSFFloat read FFdAlphaFactor;
@@ -560,7 +547,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdColor: TSFColorRGBA;
     { @seealso Color }
@@ -594,7 +580,7 @@ begin
   inherited;
 
   FFdMatrix := TSFMatrix4f.Create(Self, true, 'matrix', TMatrix4.Identity);
-   FdMatrix.ChangesAlways := [chTransform];
+   FdMatrix.ChangeAlways := chTransform;
   AddField(FFdMatrix);
 
   DefaultContainerField := 'children';
@@ -603,12 +589,6 @@ end;
 class function TMatrixTransformNode.ClassX3DType: string;
 begin
   Result := 'MatrixTransform';
-end;
-
-class function TMatrixTransformNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    URNMatchingCastle(URN, ClassX3DType);
 end;
 
 class function TMatrixTransformNode.ForVRMLVersion(const Version: TX3DVersion): boolean;
@@ -628,7 +608,7 @@ begin
   end;
 end;
 
-procedure TMatrixTransformNode.ApplyTransform(State: TX3DGraphTraverseState);
+procedure TMatrixTransformNode.ApplyTransform(var Transformation: TTransformation);
 var
   M, InvertedMatrix: TMatrix4;
 begin
@@ -636,12 +616,11 @@ begin
 
   M := Matrix;
 
-  { Inherited TAbstractGroupingNode already saved State.Transform and such. }
-  State.Transform := State.Transform * M;
+  Transformation.Transform := Transformation.Transform * M;
 
   if TryInverseHarder(M, InvertedMatrix) then
   begin
-    State.InvertedTransform := InvertedMatrix * State.InvertedTransform;
+    Transformation.InverseTransform := InvertedMatrix * Transformation.InverseTransform;
   end else
   begin
     WritelnLogMultiline('Matrix',
@@ -649,10 +628,10 @@ begin
 
     { When determinant is zero, we treat inverted matrix
       like identity (like in TMatrixTransformNode_1.Transformation).
-      So no need to multiply State.InvertedTransform by anything. }
+      So no need to multiply Transformation.InverseTransform by anything. }
   end;
 
-  State.TransformScale := State.TransformScale * FdMatrix.TransformScale;
+  Transformation.Scale := Transformation.Scale * FdMatrix.TransformScale;
 end;
 
 function TMatrixTransformNode.TransformationChange: TNodeTransformationChange;
@@ -665,31 +644,25 @@ begin
   inherited;
 
   FFdSize := TSFVec3f.Create(Self, false, 'size', Vector3(3, 3, 3));
-   FdSize.ChangesAlways := [chGeometry];
+   FdSize.ChangeAlways := chGeometry;
   AddField(FFdSize);
 
   FFdSolid := TSFBool.Create(Self, false, 'solid', true);
-   FdSolid.ChangesAlways := [chGeometry];
+   FdSolid.ChangeAlways := chGeometry;
   AddField(FFdSolid);
 
   FFdManifold := TSFBool.Create(Self, false, 'manifold', false);
-   FdManifold.ChangesAlways := [chGeometry];
+   FdManifold.ChangeAlways := chGeometry;
   AddField(FFdManifold);
 
   FFdTexCoord := TSFNode.Create(Self, true, 'texCoord', [TTextureCoordinateGeneratorNode, TProjectedTextureCoordinateNode, TMultiTextureCoordinateNode]);
-   FdTexCoord.ChangesAlways := [chGeometry];
+   FdTexCoord.ChangeAlways := chGeometry;
   AddField(FFdTexCoord);
 end;
 
 class function TTeapotNode.ClassX3DType: string;
 begin
   Result := 'Teapot';
-end;
-
-class function TTeapotNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    URNMatchingCastle(URN, ClassX3DType);
 end;
 
 function TTeapotNode.Proxy(var State: TX3DGraphTraverseState;
@@ -851,12 +824,6 @@ begin
   Result := 'Logger';
 end;
 
-class function TLoggerNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    URNMatchingCastle(URN, ClassX3DType);
-end;
-
 procedure TConverterNode.CreateNode;
 begin
   inherited;
@@ -887,56 +854,50 @@ begin
   Result := 'Converter';
 end;
 
-class function TConverterNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    URNMatchingCastle(URN, ClassX3DType);
-end;
-
 procedure TRenderedTextureNode.CreateNode;
 begin
   inherited;
 
   FFdViewpoint := TSFNode.Create(Self, true, 'viewpoint', [TAbstractViewpointNode, TViewpointMirrorNode]);
-   FdViewpoint.ChangesAlways := [chGeneratedTextureUpdateNeeded];
+   FdViewpoint.ChangeAlways := chGeneratedTextureUpdateNeeded;
   AddField(FFdViewpoint);
 
   FFdBackground := TSFNode.Create(Self, true, 'background', [TAbstractBackgroundNode]);
-   FdBackground.ChangesAlways := [chGeneratedTextureUpdateNeeded];
+   FdBackground.ChangeAlways := chGeneratedTextureUpdateNeeded;
   AddField(FFdBackground);
 
   FFdFog := TSFNode.Create(Self, true, 'fog', [TFogNode]);
-   FdFog.ChangesAlways := [chGeneratedTextureUpdateNeeded];
+   FdFog.ChangeAlways := chGeneratedTextureUpdateNeeded;
   AddField(FFdFog);
 
   FFdEnvironment := TSFNode.Create(Self, true, 'environment', [TX3DNode] { nothing sensible in core X3D for this });
-   FdEnvironment.ChangesAlways := [chGeneratedTextureUpdateNeeded];
+   FdEnvironment.ChangeAlways := chGeneratedTextureUpdateNeeded;
   AddField(FFdEnvironment);
 
   FFdScene := TSFNode.Create(Self, true, 'scene', [TX3DNode]);
-   FdScene.ChangesAlways := [chGeneratedTextureUpdateNeeded];
+   FdScene.ChangeAlways := chGeneratedTextureUpdateNeeded;
   AddField(FFdScene);
 
   FFdDimensions := TMFInt32.Create(Self, true, 'dimensions',
     [ DefaultRenderedTextureWidth,
       DefaultRenderedTextureHeight, 4, 1, 1]);
-   FdDimensions.ChangesAlways := [chTextureRendererProperties];
+   FdDimensions.ChangeAlways := chTextureRendererProperties;
   AddField(FFdDimensions);
 
   FFdDepthMap := TMFBool.Create(Self, true, 'depthMap', []);
-   FdDepthMap.ChangesAlways := [chTextureRendererProperties];
+   FdDepthMap.ChangeAlways := chTextureRendererProperties;
   AddField(FFdDepthMap);
 
   FFdForeground := TSFNode.Create(Self, true, 'foreground', [TX3DNode] { nothing sensible in core X3D for this });
-   FdForeground.ChangesAlways := [chGeneratedTextureUpdateNeeded];
+   FdForeground.ChangeAlways := chGeneratedTextureUpdateNeeded;
   AddField(FFdForeground);
 
   FFdZOffset := TMFInt32.Create(Self, true, 'zOffset', []);
-   FdZOffset.ChangesAlways := [chTextureRendererProperties];
+   FdZOffset.ChangeAlways := chTextureRendererProperties;
   AddField(FFdZOffset);
 
   FFdTargets := TMFNode.Create(Self, true, 'targets', [TAbstractTextureNode]);
-   FdTargets.ChangesAlways := [chTextureRendererProperties];
+   FdTargets.ChangeAlways := chTextureRendererProperties;
   AddField(FFdTargets);
 
   FFdDescription := TSFString.Create(Self, true, 'description', '');
@@ -952,11 +913,11 @@ begin
   AddField(FFdUpdate);
 
   FFdFrameBufferMode := TSFString.Create(Self, true, 'frameBufferMode', 'auto');
-   FdFrameBufferMode.ChangesAlways := [chTextureRendererProperties];
+   FdFrameBufferMode.ChangeAlways := chTextureRendererProperties;
   AddField(FFdFrameBufferMode);
 
   FFdExcludeNodes := TMFNode.Create(Self, false, 'excludeNodes', [TX3DNode]);
-   FdExcludeNodes.ChangesAlways := [chGeneratedTextureUpdateNeeded];
+   FdExcludeNodes.ChangeAlways := chGeneratedTextureUpdateNeeded;
   AddField(FFdExcludeNodes);
 
   FFdTriggerName := TSFString.Create(Self, false, 'triggerName', 'Render');
@@ -969,19 +930,19 @@ begin
   AddEvent(FEventImage_changed);
 
   FFdTextureProperties := TSFNode.Create(Self, false, 'textureProperties', [TTexturePropertiesNode]);
-   FdTextureProperties.ChangesAlways := [chTextureRendererProperties];
+   FdTextureProperties.ChangeAlways := chTextureRendererProperties;
   AddField(FFdTextureProperties);
 
   FFdRepeatS := TSFBool.Create(Self, false, 'repeatS', true);
-   FdRepeatS.ChangesAlways := [chTextureRendererProperties];
+   FdRepeatS.ChangeAlways := chTextureRendererProperties;
   AddField(FFdRepeatS);
 
   FFdRepeatT := TSFBool.Create(Self, false, 'repeatT', true);
-   FdRepeatT.ChangesAlways := [chTextureRendererProperties];
+   FdRepeatT.ChangeAlways := chTextureRendererProperties;
   AddField(FFdRepeatT);
 
   FFdRepeatR := TSFBool.Create(Self, false, 'repeatR', true);
-   FdRepeatR.ChangesAlways := [chTextureRendererProperties];
+   FdRepeatR.ChangeAlways := chTextureRendererProperties;
   AddField(FFdRepeatR);
 
   FEventRendering := TSFBoolEvent.Create(Self, 'rendering', false);
@@ -1002,35 +963,23 @@ begin
   Result := 'RenderedTexture';
 end;
 
-class function TRenderedTextureNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    URNMatchingCastle(URN, ClassX3DType);
-end;
-
 procedure TPlaneNode.CreateNode;
 begin
   inherited;
 
   FFdSize := TSFVec2f.Create(Self, false, 'size', Vector2(2, 2));
-   FdSize.ChangesAlways := [chGeometry];
+   FdSize.ChangeAlways := chGeometry;
   AddField(FFdSize);
   { X3D specification comment: (0,Inf) }
 
   FFdSolid := TSFBool.Create(Self, false, 'solid', true);
-   FdSolid.ChangesAlways := [chGeometry];
+   FdSolid.ChangeAlways := chGeometry;
   AddField(FFdSolid);
 end;
 
 class function TPlaneNode.ClassX3DType: string;
 begin
   Result := 'Plane';
-end;
-
-class function TPlaneNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    URNMatchingCastle(URN, ClassX3DType);
 end;
 
 function TPlaneNode.Proxy(var State: TX3DGraphTraverseState;
@@ -1110,12 +1059,6 @@ begin
   Result := 'Toggler';
 end;
 
-class function TTogglerNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    URNMatchingCastle(URN, ClassX3DType);
-end;
-
 procedure TTogglerNode.EventStatusReceive(
   Event: TX3DEvent; Value: TX3DField; const Time: TX3DTime);
 begin
@@ -1182,14 +1125,24 @@ begin
   Result := FNode.AmbientFactor;
 end;
 
-function TCommonSurfaceShaderNode.TCommonSurfaceShaderInfo.DiffuseColor: TVector3;
+function TCommonSurfaceShaderNode.TCommonSurfaceShaderInfo.GetDiffuseColor: TVector3;
 begin
   Result := FNode.DiffuseFactor;
 end;
 
-function TCommonSurfaceShaderNode.TCommonSurfaceShaderInfo.SpecularColor: TVector3;
+procedure TCommonSurfaceShaderNode.TCommonSurfaceShaderInfo.SetDiffuseColor(const Value: TVector3);
+begin
+  FNode.DiffuseFactor := Value;
+end;
+
+function TCommonSurfaceShaderNode.TCommonSurfaceShaderInfo.GetSpecularColor: TVector3;
 begin
   Result := FNode.SpecularFactor;
+end;
+
+procedure TCommonSurfaceShaderNode.TCommonSurfaceShaderInfo.SetSpecularColor(const Value: TVector3);
+begin
+  FNode.SpecularFactor := Value;
 end;
 
 function TCommonSurfaceShaderNode.TCommonSurfaceShaderInfo.EmissiveColor: TVector3;
@@ -1217,36 +1170,6 @@ begin
   Result := FNode.Transparency;
 end;
 
-function TCommonSurfaceShaderNode.TCommonSurfaceShaderInfo.ReflSpecular: TVector3;
-begin
-  CalculateReflSpecular(Result);
-end;
-
-function TCommonSurfaceShaderNode.TCommonSurfaceShaderInfo.ReflDiffuse: TVector3;
-begin
-  CalculateReflDiffuse(Result);
-end;
-
-function TCommonSurfaceShaderNode.TCommonSurfaceShaderInfo.TransSpecular: TVector3;
-begin
-  CalculateTransSpecular(Result);
-end;
-
-function TCommonSurfaceShaderNode.TCommonSurfaceShaderInfo.TransDiffuse: TVector3;
-begin
-  CalculateTransDiffuse(Result);
-end;
-
-function TCommonSurfaceShaderNode.TCommonSurfaceShaderInfo.ReflSpecularExp: Single;
-begin
-  Result := 1000000;
-end;
-
-function TCommonSurfaceShaderNode.TCommonSurfaceShaderInfo.TransSpecularExp: Single;
-begin
-  Result := 1000000;
-end;
-
 { TCommonSurfaceShaderNode ----------------------------------------------------- }
 
 procedure TCommonSurfaceShaderNode.CreateNode;
@@ -1254,285 +1177,285 @@ begin
   inherited;
 
   FFdAlphaFactor := TSFFloat.Create(Self, true, 'alphaFactor', 1);
-   FdAlphaFactor.ChangesAlways := [chVisibleNonGeometry];
+   FdAlphaFactor.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdAlphaFactor);
 
   FFdAlphaTextureId := TSFInt32.Create(Self, true, 'alphaTextureId', -1);
-   FdAlphaTextureId.ChangesAlways := [chVisibleNonGeometry];
+   FdAlphaTextureId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdAlphaTextureId);
 
   FFdAlphaTextureCoordinatesId := TSFInt32.Create(Self, true, 'alphaTextureCoordinatesId', 0);
-   FdAlphaTextureCoordinatesId.ChangesAlways := [chVisibleNonGeometry];
+   FdAlphaTextureCoordinatesId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdAlphaTextureCoordinatesId);
 
   FFdAlphaTextureChannelMask := TSFString.Create(Self, true, 'alphaTextureChannelMask', 'a');
-   FdAlphaTextureChannelMask.ChangesAlways := [chVisibleNonGeometry];
+   FdAlphaTextureChannelMask.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdAlphaTextureChannelMask);
 
   FFdAlphaTexture := TSFNode.Create(Self, true, 'alphaTexture', [TAbstractTextureNode]);
-   FdAlphaTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdAlphaTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdAlphaTexture);
 
   FFdAmbientFactor := TSFVec3f.Create(Self, true, 'ambientFactor', Vector3(0.2, 0.2, 0.2));
-   FdAmbientFactor.ChangesAlways := [chVisibleNonGeometry];
+   FdAmbientFactor.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdAmbientFactor);
 
   FFdAmbientTextureId := TSFInt32.Create(Self, true, 'ambientTextureId', -1);
-   FdAmbientTextureId.ChangesAlways := [chVisibleNonGeometry];
+   FdAmbientTextureId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdAmbientTextureId);
 
   FFdAmbientTextureCoordinatesId := TSFInt32.Create(Self, true, 'ambientTextureCoordinatesId', 0);
-   FdAmbientTextureCoordinatesId.ChangesAlways := [chVisibleNonGeometry];
+   FdAmbientTextureCoordinatesId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdAmbientTextureCoordinatesId);
 
   FFdAmbientTextureChannelMask := TSFString.Create(Self, true, 'ambientTextureChannelMask', 'rgb');
-   FdAmbientTextureChannelMask.ChangesAlways := [chVisibleNonGeometry];
+   FdAmbientTextureChannelMask.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdAmbientTextureChannelMask);
 
   FFdAmbientTexture := TSFNode.Create(Self, true, 'ambientTexture', [TAbstractTextureNode]);
-   FdAmbientTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdAmbientTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdAmbientTexture);
 
   FFdDiffuseFactor := TSFVec3f.Create(Self, true, 'diffuseFactor', Vector3(0.8, 0.8, 0.8));
-   FdDiffuseFactor.ChangesAlways := [chVisibleNonGeometry];
+   FdDiffuseFactor.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdDiffuseFactor);
 
   FFdDiffuseTextureId := TSFInt32.Create(Self, true, 'diffuseTextureId', -1);
-   FdDiffuseTextureId.ChangesAlways := [chVisibleNonGeometry];
+   FdDiffuseTextureId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdDiffuseTextureId);
 
   FFdDiffuseTextureCoordinatesId := TSFInt32.Create(Self, true, 'diffuseTextureCoordinatesId', 0);
-   FdDiffuseTextureCoordinatesId.ChangesAlways := [chVisibleNonGeometry];
+   FdDiffuseTextureCoordinatesId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdDiffuseTextureCoordinatesId);
 
   FFdDiffuseTextureChannelMask := TSFString.Create(Self, true, 'diffuseTextureChannelMask', 'rgb');
-   FdDiffuseTextureChannelMask.ChangesAlways := [chVisibleNonGeometry];
+   FdDiffuseTextureChannelMask.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdDiffuseTextureChannelMask);
 
   FFdDiffuseTexture := TSFNode.Create(Self, true, 'diffuseTexture', [TAbstractTextureNode]);
-   FdDiffuseTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdDiffuseTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdDiffuseTexture);
 
   FFdDiffuseDisplacementTexture := TSFNode.Create(Self, true, 'diffuseDisplacementTexture', [TAbstractTextureNode]);
-   FdDiffuseDisplacementTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdDiffuseDisplacementTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdDiffuseDisplacementTexture);
 
   FFdDisplacementAxis := TSFString.Create(Self, true, 'displacementAxis', 'y');
-   FdDisplacementAxis.ChangesAlways := [chVisibleNonGeometry];
+   FdDisplacementAxis.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdDisplacementAxis);
 
   FFdDisplacementFactor := TSFFloat.Create(Self, true, 'displacementFactor', 255.0);
-   FdDisplacementFactor.ChangesAlways := [chVisibleNonGeometry];
+   FdDisplacementFactor.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdDisplacementFactor);
 
   FFdDisplacementTextureId := TSFInt32.Create(Self, true, 'displacementTextureId', -1);
-   FdDisplacementTextureId.ChangesAlways := [chVisibleNonGeometry];
+   FdDisplacementTextureId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdDisplacementTextureId);
 
   FFdDisplacementTextureCoordinatesId := TSFInt32.Create(Self, true, 'displacementTextureCoordinatesId', 0);
-   FdDisplacementTextureCoordinatesId.ChangesAlways := [chVisibleNonGeometry];
+   FdDisplacementTextureCoordinatesId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdDisplacementTextureCoordinatesId);
 
   FFdDisplacementTexture := TSFNode.Create(Self, true, 'displacementTexture', [TAbstractTextureNode]);
-   FdDisplacementTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdDisplacementTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdDisplacementTexture);
 
   FFdEmissiveFactor := TSFVec3f.Create(Self, true, 'emissiveFactor', Vector3(0, 0, 0));
-   FdEmissiveFactor.ChangesAlways := [chVisibleNonGeometry];
+   FdEmissiveFactor.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdEmissiveFactor);
 
   FFdEmissiveTextureId := TSFInt32.Create(Self, true, 'emissiveTextureId', -1);
-   FdEmissiveTextureId.ChangesAlways := [chVisibleNonGeometry];
+   FdEmissiveTextureId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdEmissiveTextureId);
 
   FFdEmissiveTextureCoordinatesId := TSFInt32.Create(Self, true, 'emissiveTextureCoordinatesId', 0);
-   FdEmissiveTextureCoordinatesId.ChangesAlways := [chVisibleNonGeometry];
+   FdEmissiveTextureCoordinatesId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdEmissiveTextureCoordinatesId);
 
   FFdEmissiveTextureChannelMask := TSFString.Create(Self, true, 'emissiveTextureChannelMask', 'rgb');
-   FdEmissiveTextureChannelMask.ChangesAlways := [chVisibleNonGeometry];
+   FdEmissiveTextureChannelMask.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdEmissiveTextureChannelMask);
 
   FFdEmissiveTexture := TSFNode.Create(Self, true, 'emissiveTexture', [TAbstractTextureNode]);
-   FdEmissiveTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdEmissiveTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdEmissiveTexture);
 
   FFdEnvironmentFactor := TSFVec3f.Create(Self, true, 'environmentFactor', Vector3(1, 1, 1));
-   FdEnvironmentFactor.ChangesAlways := [chVisibleNonGeometry];
+   FdEnvironmentFactor.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdEnvironmentFactor);
 
   FFdEnvironmentTextureId := TSFInt32.Create(Self, true, 'environmentTextureId', -1);
-   FdEnvironmentTextureId.ChangesAlways := [chVisibleNonGeometry];
+   FdEnvironmentTextureId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdEnvironmentTextureId);
 
   FFdEnvironmentTextureCoordinatesId := TSFInt32.Create(Self, true, 'environmentTextureCoordinatesId', 0);
-   FdEnvironmentTextureCoordinatesId.ChangesAlways := [chVisibleNonGeometry];
+   FdEnvironmentTextureCoordinatesId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdEnvironmentTextureCoordinatesId);
 
   FFdEnvironmentTextureChannelMask := TSFString.Create(Self, true, 'environmentTextureChannelMask', 'rgb');
-   FdEnvironmentTextureChannelMask.ChangesAlways := [chVisibleNonGeometry];
+   FdEnvironmentTextureChannelMask.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdEnvironmentTextureChannelMask);
 
   FFdEnvironmentTexture := TSFNode.Create(Self, true, 'environmentTexture', [TAbstractEnvironmentTextureNode]);
-   FdEnvironmentTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdEnvironmentTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdEnvironmentTexture);
 
   FFdMultiDiffuseAlphaTexture := TSFNode.Create(Self, true, 'multiDiffuseAlphaTexture', [TAbstractTextureNode]);
-   FdMultiDiffuseAlphaTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdMultiDiffuseAlphaTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdMultiDiffuseAlphaTexture);
 
   FFdMultiEmmisiveAmbientIntensityTexture := TSFNode.Create(Self, true, 'multiEmmisiveAmbientIntensityTexture', [TAbstractTextureNode]);
-   FdMultiEmmisiveAmbientIntensityTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdMultiEmmisiveAmbientIntensityTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdMultiEmmisiveAmbientIntensityTexture);
 
   FFdMultiSpecularShininessTexture := TSFNode.Create(Self, true, 'multiSpecularShininessTexture', [TAbstractTextureNode]);
-   FdMultiSpecularShininessTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdMultiSpecularShininessTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdMultiSpecularShininessTexture);
 
   FFdMultiVisibilityTexture := TSFNode.Create(Self, true, 'multiVisibilityTexture', [TAbstractTextureNode]);
-   FdMultiVisibilityTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdMultiVisibilityTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdMultiVisibilityTexture);
 
   FFdNormalFormat := TSFStringEnum.Create(Self, true, 'normalFormat', ['UNORM'], 0);
-   FdNormalFormat.ChangesAlways := [chVisibleNonGeometry];
+   FdNormalFormat.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdNormalFormat);
   { X3D specification comment: ["UNORM"] }
 
   FFdNormalSpace := TSFStringEnum.Create(Self, true, 'normalSpace', ['TANGENT'], 0);
-   FdNormalSpace.ChangesAlways := [chVisibleNonGeometry];
+   FdNormalSpace.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdNormalSpace);
   { X3D specification comment: ["TANGENT"] }
 
   FFdNormalTextureId := TSFInt32.Create(Self, true, 'normalTextureId', -1);
-   FdNormalTextureId.ChangesAlways := [chVisibleNonGeometry];
+   FdNormalTextureId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdNormalTextureId);
 
   FFdNormalTextureCoordinatesId := TSFInt32.Create(Self, true, 'normalTextureCoordinatesId', 0);
-   FdNormalTextureCoordinatesId.ChangesAlways := [chVisibleNonGeometry];
+   FdNormalTextureCoordinatesId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdNormalTextureCoordinatesId);
 
   FFdNormalTextureChannelMask := TSFString.Create(Self, true, 'normalTextureChannelMask', 'rgb');
-   FdNormalTextureChannelMask.ChangesAlways := [chVisibleNonGeometry];
+   FdNormalTextureChannelMask.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdNormalTextureChannelMask);
 
   FFdNormalScale := TSFVec3f.Create(Self, false, 'normalScale', Vector3(2, 2, 2));
-   FdNormalScale.ChangesAlways := [chVisibleNonGeometry];
+   FdNormalScale.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdNormalScale);
 
   FFdNormalBias := TSFVec3f.Create(Self, false, 'normalBias', Vector3(-1, -1, -1));
-   FdNormalBias.ChangesAlways := [chVisibleNonGeometry];
+   FdNormalBias.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdNormalBias);
 
   FFdNormalTexture := TSFNode.Create(Self, true, 'normalTexture', [TAbstractTextureNode]);
-   FdNormalTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdNormalTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdNormalTexture);
 
   FFdNormalTextureParallaxHeight := TSFFloat.Create(Self, true, 'normalTextureParallaxHeight', 0);
-   FdNormalTextureParallaxHeight.ChangesAlways := [chVisibleNonGeometry];
+   FdNormalTextureParallaxHeight.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdNormalTextureParallaxHeight);
 
   FFdReflectionFactor := TSFVec3f.Create(Self, true, 'reflectionFactor', Vector3(0, 0, 0));
-   FdReflectionFactor.ChangesAlways := [chVisibleNonGeometry];
+   FdReflectionFactor.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdReflectionFactor);
 
   FFdReflectionTextureId := TSFInt32.Create(Self, true, 'reflectionTextureId', -1);
-   FdReflectionTextureId.ChangesAlways := [chVisibleNonGeometry];
+   FdReflectionTextureId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdReflectionTextureId);
 
   FFdReflectionTextureCoordinatesId := TSFInt32.Create(Self, true, 'reflectionTextureCoordinatesId', 0);
-   FdReflectionTextureCoordinatesId.ChangesAlways := [chVisibleNonGeometry];
+   FdReflectionTextureCoordinatesId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdReflectionTextureCoordinatesId);
 
   FFdReflectionTextureChannelMask := TSFString.Create(Self, true, 'reflectionTextureChannelMask', 'rgb');
-   FdReflectionTextureChannelMask.ChangesAlways := [chVisibleNonGeometry];
+   FdReflectionTextureChannelMask.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdReflectionTextureChannelMask);
 
   FFdReflectionTexture := TSFNode.Create(Self, true, 'reflectionTexture', [TAbstractTextureNode]);
-   FdReflectionTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdReflectionTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdReflectionTexture);
 
   FFdShininessFactor := TSFFloat.Create(Self, true, 'shininessFactor', 0.2);
-   FdShininessFactor.ChangesAlways := [chVisibleNonGeometry];
+   FdShininessFactor.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdShininessFactor);
 
   FFdShininessTextureId := TSFInt32.Create(Self, true, 'shininessTextureId', -1);
-   FdShininessTextureId.ChangesAlways := [chVisibleNonGeometry];
+   FdShininessTextureId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdShininessTextureId);
 
   FFdShininessTextureCoordinatesId := TSFInt32.Create(Self, true, 'shininessTextureCoordinatesId', 0);
-   FdShininessTextureCoordinatesId.ChangesAlways := [chVisibleNonGeometry];
+   FdShininessTextureCoordinatesId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdShininessTextureCoordinatesId);
 
   FFdShininessTextureChannelMask := TSFString.Create(Self, true, 'shininessTextureChannelMask', 'a');
-   FdShininessTextureChannelMask.ChangesAlways := [chVisibleNonGeometry];
+   FdShininessTextureChannelMask.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdShininessTextureChannelMask);
 
   FFdShininessTexture := TSFNode.Create(Self, true, 'shininessTexture', [TAbstractTextureNode]);
-   FdShininessTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdShininessTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdShininessTexture);
 
   FFdSpecularFactor := TSFVec3f.Create(Self, true, 'specularFactor', Vector3(0, 0, 0));
-   FdSpecularFactor.ChangesAlways := [chVisibleNonGeometry];
+   FdSpecularFactor.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdSpecularFactor);
 
   FFdSpecularTextureId := TSFInt32.Create(Self, true, 'specularTextureId', -1);
-   FdSpecularTextureId.ChangesAlways := [chVisibleNonGeometry];
+   FdSpecularTextureId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdSpecularTextureId);
 
   FFdSpecularTextureCoordinatesId := TSFInt32.Create(Self, true, 'specularTextureCoordinatesId', 0);
-   FdSpecularTextureCoordinatesId.ChangesAlways := [chVisibleNonGeometry];
+   FdSpecularTextureCoordinatesId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdSpecularTextureCoordinatesId);
 
   FFdSpecularTextureChannelMask := TSFString.Create(Self, true, 'specularTextureChannelMask', 'rgb');
-   FdSpecularTextureChannelMask.ChangesAlways := [chVisibleNonGeometry];
+   FdSpecularTextureChannelMask.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdSpecularTextureChannelMask);
 
   FFdSpecularTexture := TSFNode.Create(Self, true, 'specularTexture', [TAbstractTextureNode]);
-   FdSpecularTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdSpecularTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdSpecularTexture);
 
   FFdTransmissionFactor := TSFVec3f.Create(Self, true, 'transmissionFactor', Vector3(0, 0, 0));
-   FdTransmissionFactor.ChangesAlways := [chVisibleNonGeometry];
+   FdTransmissionFactor.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdTransmissionFactor);
 
   FFdTransmissionTextureId := TSFInt32.Create(Self, true, 'transmissionTextureId', -1);
-   FdTransmissionTextureId.ChangesAlways := [chVisibleNonGeometry];
+   FdTransmissionTextureId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdTransmissionTextureId);
 
   FFdTransmissionTextureCoordinatesId := TSFInt32.Create(Self, true, 'transmissionTextureCoordinatesId', 0);
-   FdTransmissionTextureCoordinatesId.ChangesAlways := [chVisibleNonGeometry];
+   FdTransmissionTextureCoordinatesId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdTransmissionTextureCoordinatesId);
 
   FFdTransmissionTextureChannelMask := TSFString.Create(Self, true, 'transmissionTextureChannelMask', 'rgb');
-   FdTransmissionTextureChannelMask.ChangesAlways := [chVisibleNonGeometry];
+   FdTransmissionTextureChannelMask.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdTransmissionTextureChannelMask);
 
   FFdTransmissionTexture := TSFNode.Create(Self, true, 'transmissionTexture', [TAbstractTextureNode]);
-   FdTransmissionTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdTransmissionTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdTransmissionTexture);
 
   FFdTangentTextureCoordinatesId := TSFInt32.Create(Self, true, 'tangentTextureCoordinatesId', -1);
-   FdTangentTextureCoordinatesId.ChangesAlways := [chVisibleNonGeometry];
+   FdTangentTextureCoordinatesId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdTangentTextureCoordinatesId);
 
   FFdBinormalTextureCoordinatesId := TSFInt32.Create(Self, true, 'binormalTextureCoordinatesId', -1);
-   FdBinormalTextureCoordinatesId.ChangesAlways := [chVisibleNonGeometry];
+   FdBinormalTextureCoordinatesId.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdBinormalTextureCoordinatesId);
 
   FFdInvertAlphaTexture := TSFBool.Create(Self, true, 'invertAlphaTexture', false);
-   FdInvertAlphaTexture.ChangesAlways := [chVisibleNonGeometry];
+   FdInvertAlphaTexture.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdInvertAlphaTexture);
 
   FFdRelativeIndexOfRefraction := TSFFloat.Create(Self, true, 'relativeIndexOfRefraction', 1);
-   FdRelativeIndexOfRefraction.ChangesAlways := [chVisibleNonGeometry];
+   FdRelativeIndexOfRefraction.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdRelativeIndexOfRefraction);
 
   FFdFresnelBlend := TSFFloat.Create(Self, true, 'fresnelBlend', 0);
-   FdFresnelBlend.ChangesAlways := [chVisibleNonGeometry];
+   FdFresnelBlend.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdFresnelBlend);
 
   FFdTextureTransformEnabled := TMFBool.Create(Self, false, 'textureTransformEnabled', [false, false, false, false, false, false, false, false]);
-   FdTextureTransformEnabled.ChangesAlways := [chVisibleNonGeometry];
+   FdTextureTransformEnabled.ChangeAlways := chVisibleNonGeometry;
   AddField(FFdTextureTransformEnabled);
 
   DefaultContainerField := 'shaders';
@@ -1547,12 +1470,6 @@ end;
 class function TCommonSurfaceShaderNode.ClassX3DType: string;
 begin
   Result := 'CommonSurfaceShader';
-end;
-
-class function TCommonSurfaceShaderNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNX3DNodes + ClassX3DType);
 end;
 
 function TCommonSurfaceShaderNode.ShininessFactorExp: Single;
@@ -1596,12 +1513,6 @@ end;
 class function TImageBackgroundNode.ClassX3DType: string;
 begin
   Result := 'ImageBackground';
-end;
-
-class function TImageBackgroundNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    URNMatchingCastle(URN, ClassX3DType);
 end;
 
 function TImageBackgroundNode.DirectEnumerateActive(Func: TEnumerateChildrenFunction): Pointer;

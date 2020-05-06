@@ -315,7 +315,6 @@
     procedure CreateNode; override;
 
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdCycleInterval: TSFTimeIgnoreWhenActive;
     public property FdCycleInterval: TSFTimeIgnoreWhenActive read FFdCycleInterval;
@@ -872,22 +871,22 @@ begin
   AddField(FFdLoop);
 
   FFdPauseTime := TSFTime.Create(Self, true, 'pauseTime', 0);
-   FdPauseTime.ChangesAlways := [chTimeStopStart];
+   FdPauseTime.ChangeAlways := chTimeStopStart;
   AddField(FFdPauseTime);
   { X3D specification comment: (-Inf,Inf) }
 
   FFdResumeTime := TSFTime.Create(Self, true, 'resumeTime', 0);
-   FdResumeTime.ChangesAlways := [chTimeStopStart];
+   FdResumeTime.ChangeAlways := chTimeStopStart;
   AddField(FFdResumeTime);
   { X3D specification comment: (-Inf,Inf) }
 
   FFdStartTime := TSFTimeIgnoreWhenActive.Create(Self, true, 'startTime', 0);
-   FdStartTime.ChangesAlways := [chTimeStopStart];
+   FdStartTime.ChangeAlways := chTimeStopStart;
   AddField(FFdStartTime);
   { X3D specification comment: (-Inf,Inf) }
 
   FFdStopTime := TSFStopTime.Create(Self, true, 'stopTime', 0);
-   FdStopTime.ChangesAlways := [chTimeStopStart];
+   FdStopTime.ChangeAlways := chTimeStopStart;
   AddField(FFdStopTime);
   { X3D specification comment: (-Inf,Inf) }
 
@@ -1008,13 +1007,6 @@ end;
 class function TTimeSensorNode.ClassX3DType: string;
 begin
   Result := 'TimeSensor';
-end;
-
-class function TTimeSensorNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNVRML97Nodes + ClassX3DType) or
-    (URN = URNX3DNodes + ClassX3DType);
 end;
 
 procedure TTimeSensorNode.EventElapsedTimeReceive(

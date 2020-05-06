@@ -54,6 +54,7 @@
     FToggle: boolean;
     ClickStarted: boolean;
     ClickStartedPosition: TVector2;
+    ClickStartedFinger: Integer;
     FMinImageWidth: Single;
     FMinImageHeight: Single;
     FImageLayout: TCastleButtonImageLayout;
@@ -216,7 +217,7 @@
 
     { Should we use custom text color in @link(CustomTextColor)
       instead of @code(Theme.TextColor) or @code(Theme.DisabledTextColor). }
-    property CustomTextColorUse: boolean read FCustomTextColorUse write FCustomTextColorUse;
+    property CustomTextColorUse: boolean read FCustomTextColorUse write FCustomTextColorUse default false;
 
     { Horizontal distance between text or @link(Image) and the button border. }
     property PaddingHorizontal: Single
@@ -567,6 +568,7 @@ begin
     // regardless of Toggle value, set ClickStarted, to be able to reach OnClick.
     ClickStarted := true;
     ClickStartedPosition := Event.Position;
+    ClickStartedFinger := Event.FingerIndex;
   end;
 end;
 
@@ -575,7 +577,7 @@ begin
   Result := inherited;
   if Result or (Event.EventType <> itMouseButton) then Exit;
 
-  if ClickStarted then
+  if ClickStarted and (ClickStartedFinger = Event.FingerIndex) then
   begin
     Result := ExclusiveEvents;
 
@@ -621,7 +623,9 @@ begin
   Result := inherited;
   if Result then Exit;
 
-  if ClickStarted and EnableParentDragging and
+  if ClickStarted and
+    (ClickStartedFinger = Event.FingerIndex) and
+    EnableParentDragging and
     (PointsDistanceSqr(ClickStartedPosition, Event.Position) >
      { scaling with UIScale is helpful. Scaling with physical size
        would probably be even better, for mobiles. }

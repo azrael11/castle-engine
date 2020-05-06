@@ -136,11 +136,10 @@
     FCameraVectorsKnown: boolean;
   protected
     function DirectEnumerateActive(Func: TEnumerateChildrenFunction): Pointer; override;
-    procedure ApplyTransform(State: TX3DGraphTraverseState); override;
+    procedure ApplyTransform(var Transformation: TTransformation); override;
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
     function TransformationChange: TNodeTransformationChange; override;
 
     procedure CameraChanged(const ACameraVectors: TCameraVectors);
@@ -162,7 +161,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdEnabled: TSFBool;
     public property FdEnabled: TSFBool read FFdEnabled;
@@ -178,16 +176,22 @@
     strict private FFdProxy: TSFNode;
     public property FdProxy: TSFNode read FFdProxy;
 
-    { Setup this Collision node to show VisibleNode, but collide as
-      a Box. This sets VisibleNode as the only child of this collision node,
-      and sets the @link(Proxy) field to a simple box with given bounds.
+    { Setup this Collision node to collide as a Box.
+
+      This sets the @link(Proxy) field to a simple box with given bounds.
+
       The @code(Enabled) field is unchanged (by default @true).
+
+      The overloaded version with VisibleNode also sets VisibleNode
+      as the only displayed child of this collision node.
+      The overloaded version without VisibleNode doesn't modify the displayed children.
 
       It honors the case of Box being empty correctly. Proxy is then
       non-nil, but without any geometry. So the collisions are
       effectively disabled, in a consistent way (without changing the
       @code(Enabled) field).
     }
+    procedure CollideAsBox(const Box: TBox3D);
     procedure CollideAsBox(const VisibleNode: TX3DNode; const Box: TBox3D);
 
     {$I auto_generated_node_helpers/x3dnodes_collision.inc}
@@ -256,7 +260,6 @@
 
     class function ForVRMLVersion(const Version: TX3DVersion): boolean;
       override;
-    class function URNMatching(const URN: string): boolean; override;
   end;
 
   { Provides various levels of detail for a given object,
@@ -265,7 +268,6 @@
   public
     class function ForVRMLVersion(const Version: TX3DVersion): boolean;
       override;
-    class function URNMatching(const URN: string): boolean; override;
   end;
   TLODNode_3 = TLODNode;
 
@@ -281,7 +283,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdAvatarSize: TMFFloat;
     public property FdAvatarSize: TMFFloat read FFdAvatarSize;
@@ -327,7 +328,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdFieldOfView: TMFFloat;
     public property FdFieldOfView: TMFFloat read FFdFieldOfView;
@@ -381,7 +381,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdFieldOfView: TSFFloat;
     public property FdFieldOfView: TSFFloat read FFdFieldOfView;
@@ -419,7 +418,6 @@
   public
     procedure CreateNode; override;
     class function ClassX3DType: string; override;
-    class function URNMatching(const URN: string): boolean; override;
 
     strict private FFdCenter: TSFVec3f;
     public property FdCenter: TSFVec3f read FFdCenter;
@@ -459,20 +457,20 @@ begin
     In our engine, X3DViewpointNode descends from TAbstractViewpointNode
     inheriting "orientation" field this way. }
   FFdOrientation := TSFRotation.Create(Self, true, 'orientation', Vector3(0, 0, 1), 0);
-   FdOrientation.ChangesAlways := [chViewpointVectors];
+   FdOrientation.ChangeAlways := chViewpointVectors;
   AddField(FFdOrientation);
   { X3D specification comment: [-1,1],(-Inf,Inf) }
 
   FFdDirection := TMFVec3f.Create(Self, true, 'direction', []);
-   FdDirection.ChangesAlways := [chViewpointVectors];
+   FdDirection.ChangeAlways := chViewpointVectors;
   AddField(FFdDirection);
 
   FFdUp := TMFVec3f.Create(Self, true, 'up', []);
-   FdUp.ChangesAlways := [chViewpointVectors];
+   FdUp.ChangeAlways := chViewpointVectors;
   AddField(FFdUp);
 
   FFdGravityUp := TSFVec3f.Create(Self, true, 'gravityUp', DefaultX3DGravityUp);
-   FdGravityUp.ChangesAlways := [chViewpointVectors];
+   FdGravityUp.ChangeAlways := chViewpointVectors;
   AddField(FFdGravityUp);
 
   FEventCameraMatrix := TSFMatrix4fEvent.Create(Self, 'cameraMatrix', false);
@@ -636,20 +634,13 @@ begin
   Result := 'Billboard';
 end;
 
-class function TBillboardNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNVRML97Nodes + ClassX3DType) or
-    (URN = URNX3DNodes + ClassX3DType);
-end;
-
 function TBillboardNode.DirectEnumerateActive(Func: TEnumerateChildrenFunction): Pointer;
 begin
   Result := FdChildren.Enumerate(Func);
   if Result <> nil then Exit;
 end;
 
-procedure TBillboardNode.ApplyTransform(State: TX3DGraphTraverseState);
+procedure TBillboardNode.ApplyTransform(var Transformation: TTransformation);
 var
   NewX, NewY, NewZ, BillboardToViewer, P1, P2, LocalDirection, LocalUp: TVector3;
   Angle: Single;
@@ -661,10 +652,10 @@ begin
   begin
     if FdAxisOfRotation.Value.IsPerfectlyZero then
     begin
-      LocalDirection := State.InvertedTransform.MultDirection(FCameraVectors.Direction);
-      LocalUp        := State.InvertedTransform.MultDirection(FCameraVectors.Up);
+      LocalDirection := Transformation.InverseTransform.MultDirection(FCameraVectors.Direction);
+      LocalUp        := Transformation.InverseTransform.MultDirection(FCameraVectors.Up);
       { although FCameraVectors.Direction/Up are for sure normalized and orthogonal,
-        but State.InvertedTransform may contain scaling,
+        but Transformation.InverseTransform may contain scaling,
         so be sure to normalize again the result.
         For safety, also call MakeVectorsOrthoOnTheirPlane. }
       LocalDirection.NormalizeMe;
@@ -676,12 +667,12 @@ begin
       NewZ := -LocalDirection;
 
       TransformCoordsMatrices(NewX, NewY, NewZ, M, IM);
-      State.Transform := State.Transform * M;
-      State.InvertedTransform := IM * State.InvertedTransform;
+      Transformation.Transform := Transformation.Transform * M;
+      Transformation.InverseTransform := IM * Transformation.InverseTransform;
     end else
     begin
       { vector from node origin to FCameraVectors.Position, in local coords }
-      BillboardToViewer := State.InvertedTransform.MultPoint(FCameraVectors.Position);
+      BillboardToViewer := Transformation.InverseTransform.MultPoint(FCameraVectors.Position);
 
       { plane of axisOfRotation }
       PlaneAxisDir := FdAxisOfRotation.Value;
@@ -720,8 +711,8 @@ begin
       end;
 
       RotationMatricesRad(Angle, FdAxisOfRotation.Value, M, IM);
-      State.Transform := State.Transform * M;
-      State.InvertedTransform := IM * State.InvertedTransform;
+      Transformation.Transform := Transformation.Transform * M;
+      Transformation.InverseTransform := IM * Transformation.InverseTransform;
     end;
   end;
 end;
@@ -748,7 +739,7 @@ begin
     special field "collide". In X3D, "enabled" is used for the exact
     same purpose. }
    FdEnabled.AddAlternativeName('collide', 2);
-   FdEnabled.ChangesAlways := [chEverything];
+   FdEnabled.ChangeAlways := chEverything;
   AddField(FFdEnabled);
 
   FEventCollideTime := TSFTimeEvent.Create(Self, 'collideTime', false);
@@ -758,7 +749,7 @@ begin
   AddEvent(FEventIsActive);
 
   FFdProxy := TSFNode.Create(Self, false, 'proxy', IAbstractChildNode);
-   FdProxy.ChangesAlways := [chEverything];
+   FdProxy.ChangeAlways := chEverything;
   AddField(FFdProxy);
 
   DefaultContainerField := 'children';
@@ -767,13 +758,6 @@ end;
 class function TCollisionNode.ClassX3DType: string;
 begin
   Result := 'Collision';
-end;
-
-class function TCollisionNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNVRML97Nodes + ClassX3DType) or
-    (URN = URNX3DNodes + ClassX3DType);
 end;
 
 function TCollisionNode.DirectEnumerateActive(Func: TEnumerateChildrenFunction): Pointer;
@@ -827,7 +811,7 @@ begin
   end;
 end;
 
-procedure TCollisionNode.CollideAsBox(const VisibleNode: TX3DNode; const Box: TBox3D);
+procedure TCollisionNode.CollideAsBox(const Box: TBox3D);
 var
   ProxyTransform: TTransformNode;
   ProxyShape: TShapeNode;
@@ -849,7 +833,11 @@ begin
     ProxyTransform.AddChildren(ProxyShape);
   end;
   Proxy := ProxyTransform;
+end;
 
+procedure TCollisionNode.CollideAsBox(const VisibleNode: TX3DNode; const Box: TBox3D);
+begin
+  CollideAsBox(Box);
   FdChildren.Clear;
   FdChildren.Add(VisibleNode);
 end;
@@ -862,12 +850,12 @@ begin
 
   FFdCenter := TSFVec3f.Create(Self, false, 'center', TVector3.Zero);
    { Just redisplay, and new appropriate LOD children will be displayed. }
-   FdCenter.ChangesAlways := [chRedisplay];
+   FdCenter.ChangeAlways := chRedisplay;
   AddField(FFdCenter);
 
   FFdRange := TMFFloat.Create(Self, false, 'range', []);
    { Just redisplay, and new appropriate LOD children will be displayed. }
-   FdRange.ChangesAlways := [chRedisplay];
+   FdRange.ChangeAlways := chRedisplay;
   AddField(FFdRange);
   { X3D specification comment: [0,Inf) or -1 }
 
@@ -931,24 +919,12 @@ begin
   Eventlevel_changed.AddAlternativeName('levelIndex_changed', 2);
 end;
 
-class function TLODNode_2.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNVRML97Nodes + ClassX3DType);
-end;
-
 class function TLODNode_2.ForVRMLVersion(const Version: TX3DVersion): boolean;
 begin
   Result := Version.Major = 2;
 end;
 
 { TLODNode ------------------------------------------------------------------- }
-
-class function TLODNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNX3DNodes + ClassX3DType);
-end;
 
 class function TLODNode.ForVRMLVersion(const Version: TX3DVersion): boolean;
 begin
@@ -965,16 +941,16 @@ begin
   inherited;
 
   FFdAvatarSize := TMFFloat.Create(Self, true, 'avatarSize', [0.25, 1.6, 0.75]);
-   FdAvatarSize.ChangesAlways := [chNavigationInfo];
+   FdAvatarSize.ChangeAlways := chNavigationInfo;
   AddField(FFdAvatarSize);
   { X3D specification comment: [0,Inf) }
 
   FFdHeadlight := TSFBool.Create(Self, true, 'headlight', true);
-   FdHeadlight.ChangesAlways := [chHeadLightOn];
+   FdHeadlight.ChangeAlways := chHeadLightOn;
   AddField(FFdHeadlight);
 
   FFdSpeed := TSFFloat.Create(Self, true, 'speed', 1.0);
-   FdSpeed.ChangesAlways := [chNavigationInfo];
+   FdSpeed.ChangeAlways := chNavigationInfo;
   AddField(FFdSpeed);
   { X3D specification comment: [0,Inf) }
 
@@ -989,7 +965,7 @@ begin
   { TODO: default value was ["WALK", "ANY"] in VRML 97.
     X3D changed default value. }
   FFdType := TMFString.Create(Self, true, 'type', ['EXAMINE', 'ANY']);
-   FdType.ChangesAlways := [chNavigationInfo];
+   FdType.ChangeAlways := chNavigationInfo;
   AddField(FFdType);
   { X3D specification comment: ["ANY","WALK","EXAMINE","FLY","LOOKAT","NONE",...] }
 
@@ -1001,7 +977,7 @@ begin
   AddEvent(FEventTransitionComplete);
 
   FFdBlendingSort := TSFStringEnum.Create(Self, true, 'blendingSort', BlendingSortNames, Ord(obsDefault));
-   FdBlendingSort.ChangesAlways := [];
+   FdBlendingSort.ChangeAlways := chRedisplay;
   AddField(FFdBlendingSort);
 
   DefaultContainerField := 'children';
@@ -1012,13 +988,6 @@ end;
 class function TNavigationInfoNode.ClassX3DType: string;
 begin
   Result := 'NavigationInfo';
-end;
-
-class function TNavigationInfoNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNVRML97Nodes + ClassX3DType) or
-    (URN = URNX3DNodes + ClassX3DType);
 end;
 
 procedure TNavigationInfoNode.EventSet_BindReceive(
@@ -1045,12 +1014,12 @@ begin
   inherited;
 
   FFdFieldOfView := TMFFloat.Create(Self, true, 'fieldOfView', [-1, -1, 1, 1]);
-   FdFieldOfView.ChangesAlways := [chViewpointProjection];
+   FdFieldOfView.ChangeAlways := chViewpointProjection;
   AddField(FFdFieldOfView);
   { X3D specification comment:  (-Inf,Inf) }
 
   FFdPosition := TSFVec3f.Create(Self, true, 'position', Vector3(0, 0, 10));
-   FdPosition.ChangesAlways := [chViewpointVectors];
+   FdPosition.ChangeAlways := chViewpointVectors;
   AddField(FFdPosition);
   { X3D specification comment: (-Inf,Inf) }
 
@@ -1060,12 +1029,6 @@ end;
 class function TOrthoViewpointNode.ClassX3DType: string;
 begin
   Result := 'OrthoViewpoint';
-end;
-
-class function TOrthoViewpointNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNX3DNodes + ClassX3DType);
 end;
 
 function TOrthoViewpointNode.PositionField: TSFVec3f;
@@ -1197,16 +1160,16 @@ begin
   inherited;
 
   FFdFieldOfView := TSFFloat.Create(Self, true, 'fieldOfView', DefaultViewpointFieldOfView);
-   FdFieldOfView.ChangesAlways := [chViewpointProjection];
+   FdFieldOfView.ChangeAlways := chViewpointProjection;
   AddField(FFdFieldOfView);
   { X3D specification comment: (0,Pi) }
 
   FFdFieldOfViewForceVertical := TSFBool.Create(Self, true, 'fieldOfViewForceVertical', false);
-   FdFieldOfViewForceVertical.ChangesAlways := [chViewpointProjection];
+   FdFieldOfViewForceVertical.ChangeAlways := chViewpointProjection;
   AddField(FdFieldOfViewForceVertical);
 
   FFdPosition := TSFVec3f.Create(Self, true, 'position', Vector3(0, 0, 10));
-   FdPosition.ChangesAlways := [chViewpointVectors];
+   FdPosition.ChangeAlways := chViewpointVectors;
   AddField(FFdPosition);
   { X3D specification comment: (-Inf,Inf) }
 
@@ -1216,13 +1179,6 @@ end;
 class function TViewpointNode.ClassX3DType: string;
 begin
   Result := 'Viewpoint';
-end;
-
-class function TViewpointNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNVRML97Nodes + ClassX3DType) or
-    (URN = URNX3DNodes + ClassX3DType);
 end;
 
 function TViewpointNode.PositionField: TSFVec3f;
@@ -1346,12 +1302,6 @@ end;
 class function TViewpointGroupNode.ClassX3DType: string;
 begin
   Result := 'ViewpointGroup';
-end;
-
-class function TViewpointGroupNode.URNMatching(const URN: string): boolean;
-begin
-  Result := (inherited URNMatching(URN)) or
-    (URN = URNX3DNodes + ClassX3DType);
 end;
 
 function TViewpointGroupNode.DirectEnumerateActive(Func: TEnumerateChildrenFunction): Pointer;

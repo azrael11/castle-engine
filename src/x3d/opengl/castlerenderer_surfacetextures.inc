@@ -13,8 +13,10 @@
   ----------------------------------------------------------------------------
 }
 
-{ Textures that affect surface parameters, like normal maps and other
-  textures defined by the CommonSurfaceShader. }
+{ Textures that affect surface parameters beyond standard MainTexture
+  (diffuse for Phong, emissive for Unlit, base for PhysicalMaterial).
+  Like normal maps, and various other
+  textures defined by the CommonSurfaceShader and materials in X3D v4. }
 
 {$ifdef read_interface}
 
@@ -34,9 +36,9 @@ private
   procedure SurfaceTexturesEnable(State: TX3DGraphTraverseState;
     var ABoundTextureUnits, ATexCoordsNeeded: Cardinal; Shader: TShader);
 
-  { Is this shape possibly use some texture that requires Phong shading.
+  { Does this shape possibly use some texture that requires Phong shading.
     Decide before actually making any OpenGL operations. }
-  class function ShapeMaybeUsesPhongSurfaceTexture(const Shape: TX3DRendererShape): boolean;
+  class function ShapeMaybeUsesSurfaceTexture(const Shape: TX3DRendererShape): boolean;
 
 {$endif read_interface}
 
@@ -66,14 +68,19 @@ begin
   Result := GLTexture2D(Node, IgnoreTextureHasAlpha);
 end;
 
-class function TGLRenderer.ShapeMaybeUsesPhongSurfaceTexture(const Shape: TX3DRendererShape): boolean;
+class function TGLRenderer.ShapeMaybeUsesSurfaceTexture(const Shape: TX3DRendererShape): boolean;
 var
   SurfaceShader: TCommonSurfaceShaderNode;
+  MatOne: TAbstractOneSidedMaterialNode;
+  MatPhong: TMaterialNode;
+  MatPhysical: TPhysicalMaterialNode;
 begin
   Result := false;
   if Shape.Node <> nil then
   begin
+    {$warnings off} // using deprecated to keep backward compatibility
     SurfaceShader := Shape.Node.CommonSurfaceShader;
+    {$warnings on}
     if SurfaceShader <> nil then
     begin
       Result :=
@@ -85,7 +92,34 @@ begin
     end else
     if Shape.Node.Appearance <> nil then
     begin
-      Result := Shape.Node.Appearance.NormalMap <> nil;
+      if Shape.Node.Appearance.NormalMap <> nil then
+        Exit(true);
+
+      if Shape.Node.Appearance.Material is TAbstractOneSidedMaterialNode then
+      begin
+        MatOne := TAbstractOneSidedMaterialNode(Shape.Node.Appearance.Material);
+        if (MatOne.EmissiveTexture <> nil) or
+           (MatOne.NormalTexture <> nil) then
+          Exit(true);
+      end;
+
+      if Shape.Node.Appearance.Material is TMaterialNode then
+      begin
+        MatPhong := TMaterialNode(Shape.Node.Appearance.Material);
+        if (MatPhong.AmbientTexture <> nil) or
+           // (MatPhong.DiffuseTexture <> nil) or // this is OK for Gouraud shading
+           (MatPhong.ShininessTexture <> nil) or
+           (MatPhong.SpecularTexture <> nil) then
+          Exit(true);
+      end;
+
+      if Shape.Node.Appearance.Material is TPhysicalMaterialNode then
+      begin
+        MatPhysical := TPhysicalMaterialNode(Shape.Node.Appearance.Material);
+        if // (MatPhysical.BaseTexture <> nil) or // this is OK for Gouraud shading? Actually PhysicalMaterial always requires Phong shading anyway.
+           (MatPhysical.MetallicRoughnessTexture <> nil) then
+          Exit(true);
+      end;
     end;
   end;
 end;
@@ -131,11 +165,15 @@ procedure TGLRenderer.BumpMappingEnable(State: TX3DGraphTraverseState;
 
 var
   SurfaceShader: TCommonSurfaceShaderNode;
+  Mat: TAbstractMaterialNode;
+  MatOneSided: TAbstractOneSidedMaterialNode;
   Appearance: TAppearanceNode;
 begin
   if State.ShapeNode <> nil then
   begin
+    {$warnings off} // using deprecated to keep backward compatibility
     SurfaceShader := State.ShapeNode.CommonSurfaceShader;
+    {$warnings on}
     if SurfaceShader <> nil then
     begin
       Enable(
@@ -146,7 +184,16 @@ begin
     if State.ShapeNode.Appearance <> nil then
     begin
       Appearance := State.ShapeNode.Appearance;
-      Enable(Appearance.NormalMap, 0, Appearance.HeightMapScale);
+      Mat := Appearance.Material;
+      if (Mat is TAbstractOneSidedMaterialNode) and
+         (TAbstractOneSidedMaterialNode(Mat).NormalTexture <> nil) then
+      begin
+        MatOneSided := TAbstractOneSidedMaterialNode(Mat);
+        Enable(MatOneSided.NormalTexture, MatOneSided.NormalTextureChannel, 0.0);
+      end else
+      begin
+        Enable(Appearance.NormalMap, 0, Appearance.HeightMapScale);
+      end;
     end;
   end;
 end;
@@ -154,15 +201,20 @@ end;
 procedure TGLRenderer.SurfaceTexturesEnable(State: TX3DGraphTraverseState;
   var ABoundTextureUnits, ATexCoordsNeeded: Cardinal; Shader: TShader);
 
+  procedure RequireTexCoord(const TextureCoordinatesId: Integer);
+  begin
+    { Note that there is no need to increase the TexCoordNeeded unconditionally.
+      If the NormalTextureCoordinatesId = 0 and
+      TexCoordNeeded = 1 then we're already satisfied, as then the normalmap
+      will use the existing texture coordinates from e.g. diffuse texture. }
+
+    MaxVar(ATexCoordsNeeded, TextureCoordinatesId + 1);
+  end;
+
   procedure SurfaceTextureEnable(const SurfaceTexture: TSurfaceTexture;
     const Texture: TAbstractTextureNode;
     const TextureCoordinatesId: Integer;
-    const ChannelMask,
-      VariableTextureValue,
-      VariableTextureType,
-      PlugNameSuffix,
-      PlugParameterType,
-      PlugMultiplicateChannels: String);
+    const UniformTextureName, PlugCode: String);
   var
     GLTextureId: TGLTextureId;
   begin
@@ -176,58 +228,168 @@ procedure TGLRenderer.SurfaceTexturesEnable(State: TX3DGraphTraverseState;
         glBindTexture(GL_TEXTURE_2D, GLTextureId);
         Shader.EnableSurfaceTexture(SurfaceTexture, ABoundTextureUnits,
           Max(0, TextureCoordinatesId),
-          ChannelMask,
-          VariableTextureValue,
-          VariableTextureType,
-          PlugNameSuffix,
-          PlugParameterType,
-          PlugMultiplicateChannels);
+          UniformTextureName,
+          PlugCode);
         Inc(ABoundTextureUnits);
 
-        { There is no need to increase the TexCoordNeeded unconditionally.
-          If the NormalTextureCoordinatesId = 0 and
-          TexCoordNeeded = 1 then we're already satisfied, as then the normalmap
-          will use the existing texture coordinates from e.g. diffuse texture. }
-        MaxVar(ATexCoordsNeeded, TextureCoordinatesId + 1);
+        RequireTexCoord(TextureCoordinatesId);
       end;
     end;
   end;
 
+  procedure EmissiveTextureEnable(
+    const Texture: TAbstractTextureNode;
+    const TextureChannel: Integer;
+    const ChannelMask: String = 'rgb');
+  begin
+    SurfaceTextureEnable(stEmissive,
+      Texture,
+      TextureChannel,
+      'castle_SurfaceTexture_emissive',
+      'void PLUG_material_emissive(inout vec3 parameter)' + NL +
+      '{' + NL +
+      '  parameter *= texture2D({uniform_texture_name}, {coord_name}.st).' + ChannelMask + ';' + NL +
+      '}');
+  end;
+
+  procedure AmbientTextureEnable(
+    const Texture: TAbstractTextureNode;
+    const TextureChannel: Integer;
+    const ChannelMask: String = 'rgb');
+  begin
+    SurfaceTextureEnable(stAmbient,
+      Texture,
+      TextureChannel,
+      'castle_SurfaceTexture_ambient',
+      'void PLUG_material_ambient(inout vec3 parameter)' + NL +
+      '{' + NL +
+      '  parameter *= texture2D({uniform_texture_name}, {coord_name}.st).' + ChannelMask + ';' + NL +
+      '}');
+  end;
+
+  procedure SpecularTextureEnable(
+    const Texture: TAbstractTextureNode;
+    const TextureChannel: Integer;
+    const ChannelMask: String = 'rgb');
+  begin
+    SurfaceTextureEnable(stSpecular,
+      Texture,
+      TextureChannel,
+      'castle_SurfaceTexture_specular',
+      'void PLUG_material_specular(inout vec3 parameter)' + NL +
+      '{' + NL +
+      '  parameter *= texture2D({uniform_texture_name}, {coord_name}.st).' + ChannelMask + ';' + NL +
+      '}');
+  end;
+
+  procedure ShininessTextureEnable(
+    const Texture: TAbstractTextureNode;
+    const TextureChannel: Integer;
+    const ChannelMask: String = 'r');
+  begin
+    SurfaceTextureEnable(stShininess,
+      Texture,
+      TextureChannel,
+      'castle_SurfaceTexture_shininess',
+      'void PLUG_material_shininess(inout float parameter)' + NL +
+      '{' + NL +
+      '  parameter *= texture2D({uniform_texture_name}, {coord_name}.st).' + ChannelMask + ';' + NL +
+      '}');
+  end;
+
+  procedure MetallicRoughnessTextureEnable(
+    const Texture: TAbstractTextureNode;
+    const TextureChannel: Integer);
+  begin
+    SurfaceTextureEnable(stMetallicRoughness,
+      Texture,
+      TextureChannel,
+      'castle_SurfaceTexture_metallic_roughness',
+      'void PLUG_material_metallic_roughness(inout float metallic, inout float roughness)' + NL +
+      '{' + NL +
+      { Roughness is stored in the 'g' channel, metallic is stored in the 'b' channel.
+        Read it to place metallic is x, roughness in y. }
+      '  vec2 sample = texture2D({uniform_texture_name}, {coord_name}.st).bg;' + NL +
+      '  metallic *= sample.x;' + NL +
+      '  roughness *= sample.y;' + NL +
+      '}');
+  end;
+
 var
   SurfaceShader: TCommonSurfaceShaderNode;
+  MatPhong: TMaterialNode;
+  MatPhysical: TPhysicalMaterialNode;
+  MatUnlit: TUnlitMaterialNode;
 begin
   if State.ShapeNode <> nil then
   begin
+    {$warnings off} // using deprecated to keep backward compatibility
     SurfaceShader := State.ShapeNode.CommonSurfaceShader;
+    {$warnings on}
     if SurfaceShader <> nil then
     begin
-      SurfaceTextureEnable(stAmbient,
+      EmissiveTextureEnable(
+        SurfaceShader.EmissiveTexture,
+        SurfaceShader.EmissiveTextureCoordinatesId,
+        SurfaceShader.EmissiveTextureChannelMask);
+      AmbientTextureEnable(
         SurfaceShader.AmbientTexture,
         SurfaceShader.AmbientTextureCoordinatesId,
-        SurfaceShader.AmbientTextureChannelMask,
-        'castle_texture_ambient',
-        'vec3',
-        'light_ambient',
-        'vec4',
-        '.rgb');
-      SurfaceTextureEnable(stSpecular,
+        SurfaceShader.AmbientTextureChannelMask);
+      SpecularTextureEnable(
         SurfaceShader.SpecularTexture,
         SurfaceShader.SpecularTextureCoordinatesId,
-        SurfaceShader.SpecularTextureChannelMask,
-        'castle_texture_specular',
-        'vec3',
-        'light_specular',
-        'vec4',
-        '.rgb');
-      SurfaceTextureEnable(stShininess,
+        SurfaceShader.SpecularTextureChannelMask);
+      ShininessTextureEnable(
         SurfaceShader.ShininessTexture,
         SurfaceShader.ShininessTextureCoordinatesId,
-        SurfaceShader.ShininessTextureChannelMask,
-        'castle_texture_shininess',
-        'float',
-        'shininess',
-        'float',
-        '');
+        SurfaceShader.ShininessTextureChannelMask);
+      // These textures will be rendered using the MainTexture mechanism, but they still need tex coords
+      if SurfaceShader.DiffuseTexture <> nil then
+        RequireTexCoord(SurfaceShader.DiffuseTextureCoordinatesId);
+      if SurfaceShader.MultiDiffuseAlphaTexture <> nil then
+        RequireTexCoord(SurfaceShader.DiffuseTextureCoordinatesId); // TODO test X3DOM/InstantReality are they using DiffuseTextureCoordinatesId in this case
+    end else
+    begin
+      if State.ShapeNode.Material is TMaterialNode then
+      begin
+        MatPhong := TMaterialNode(State.ShapeNode.Material);
+        EmissiveTextureEnable(
+          MatPhong.EmissiveTexture,
+          MatPhong.EmissiveTextureChannel);
+        AmbientTextureEnable(
+          MatPhong.AmbientTexture,
+          MatPhong.AmbientTextureChannel);
+        SpecularTextureEnable(
+          MatPhong.SpecularTexture,
+          MatPhong.SpecularTextureChannel);
+        ShininessTextureEnable(
+          MatPhong.ShininessTexture,
+          MatPhong.ShininessTextureChannel);
+        // These textures will be rendered using the MainTexture mechanism, but they still need tex coords
+        if MatPhong.DiffuseTexture <> nil then
+          RequireTexCoord(MatPhong.DiffuseTextureChannel);
+      end else
+      if State.ShapeNode.Material is TPhysicalMaterialNode then
+      begin
+        MatPhysical := TPhysicalMaterialNode(State.ShapeNode.Material);
+        EmissiveTextureEnable(
+          MatPhysical.EmissiveTexture,
+          MatPhysical.EmissiveTextureChannel);
+        MetallicRoughnessTextureEnable(
+          MatPhysical.MetallicRoughnessTexture,
+          MatPhysical.MetallicRoughnessTextureChannel);
+        // These textures will be rendered using the MainTexture mechanism, but they still need tex coords
+        if MatPhysical.BaseTexture <> nil then
+          RequireTexCoord(MatPhysical.BaseTextureChannel);
+      end else
+      if State.ShapeNode.Material is TPhysicalMaterialNode then
+      begin
+        MatUnlit := TUnlitMaterialNode(State.ShapeNode.Material);
+        // These textures will be rendered using the MainTexture mechanism, but they still need tex coords
+        if MatUnlit.EmissiveTexture <> nil then
+          RequireTexCoord(MatUnlit.EmissiveTextureChannel);
+      end;
     end;
   end;
 end;

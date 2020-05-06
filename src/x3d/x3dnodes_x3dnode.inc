@@ -13,7 +13,7 @@
   ----------------------------------------------------------------------------
 }
 
-{ TX3DNode class. Huge class, the basic building block of VRML nodes. }
+{ TX3DNode class. Huge class, the basic building block of X3D nodes. }
 
 {$ifdef read_interface}
 
@@ -872,6 +872,7 @@
     property Routes [Index: Integer]: TX3DRoute read GetRoutes;
     function RoutesCount: Integer;
     procedure AddRoute(const Value: TX3DRoute);
+    procedure AddRoute(const Source, Destination: TX3DFieldOrEvent);
 
     property ImportsList [Index: Integer]: TX3DImport read GetImports;
     function ImportsCount: Integer;
@@ -957,14 +958,6 @@
     property PrototypeInstanceHelpers: TX3DNode read FPrototypeInstanceHelpers;
     { @groupEnd }
 
-    { Does this node matches the given URN. This is used when searching for an built-in
-      implementation of a node declared in X3D using the EXTERNPROTO.
-
-      Implementors note: in this class, this returns @false.
-      You can use constants like @link(URNVRML97Nodes) and functions like
-      @link(URNMatchingCastle) to implement this easily. }
-    class function URNMatching(const URN: string): boolean; virtual;
-
     { Default value of "containerField" attribute for this node in X3D XML
       encoding. }
     property DefaultContainerField: string
@@ -1034,7 +1027,6 @@
     procedure PostAddInterfaceDeclaration(IDecl: TX3DInterfaceDeclaration); virtual;
 
     { Add to node InterfaceDeclarations given field.
-      Sets the field's exposed to given Exposed parameter, for comfort.
       This should only be used with nodes having
       HasInterfaceDeclarations = @true, like Script or ComposedShader. }
     procedure AddCustomField(AField: TX3DField);
@@ -2405,8 +2397,8 @@ var
 begin
   Res := TTryFindNodeTransformResult.Create;
   Res.Node := ANode;
-  Res.Transform := StateStack.Top.Transform;
-  Res.TransformScale := StateStack.Top.TransformScale;
+  Res.Transform := StateStack.Top.Transformation.Transform;
+  Res.TransformScale := StateStack.Top.Transformation.Scale;
   Result := Res;
 end;
 
@@ -2992,11 +2984,6 @@ begin
   finally FreeAndNil(Helper) end;
 end;
 
-class function TX3DNode.URNMatching(const URN: string): boolean;
-begin
-  Result := false;
-end;
-
 function TX3DNode.Field(const AName: string; const RaiseOnError: Boolean): TX3DField;
 var
   I: Integer;
@@ -3238,6 +3225,7 @@ begin
   IDecl := TX3DInterfaceDeclaration.Create(Self);
   IDecl.FieldOrEvent := AFieldOrEvent;
   AFieldOrEvent.ParentInterfaceDeclaration := IDecl;
+  AFieldOrEvent.ParentNode := Self;
   InterfaceDeclarations.Add(IDecl);
   PostAddInterfaceDeclaration(IDecl);
 end;
@@ -3355,6 +3343,16 @@ begin
   if FRoutes = nil then
     FRoutes := TX3DRouteList.Create(true);
   FRoutes.Add(Value);
+end;
+
+procedure TX3DNode.AddRoute(const Source, Destination: TX3DFieldOrEvent);
+var
+  Route: TX3DRoute;
+begin
+  Route := TX3DRoute.Create;
+  Route.SetSourceDirectly(Source);
+  Route.SetDestinationDirectly(Destination);
+  AddRoute(Route);
 end;
 
 function TX3DNode.GetImports(const Index: Integer): TX3DImport;

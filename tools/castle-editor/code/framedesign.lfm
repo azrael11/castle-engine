@@ -378,7 +378,7 @@ object DesignFrame: TDesignFrame
       object ButtonInteractMode: TSpeedButton
         Left = 0
         Height = 40
-        Hint = 'Use components as a normal user.'#10#10'Allows to press buttons, navigate in scene managers by mouse dragging, and more.'
+        Hint = 'Use components as a normal user.'#10#10'Allows to press buttons, navigate in viewports by mouse dragging, and more.'
         Top = 0
         Width = 40
         AllowAllUp = True
@@ -685,7 +685,7 @@ object DesignFrame: TDesignFrame
         Width = 176
         BorderSpacing.Left = 32
         BorderSpacing.Right = 8
-        Caption = 'MySceneManager:'
+        Caption = 'MyViewport:'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
@@ -1284,7 +1284,7 @@ object DesignFrame: TDesignFrame
       object ButtonViewportMenu: TSpeedButton
         Left = 555
         Height = 40
-        Hint = 'Scene Manager Options'
+        Hint = 'Viewport Options'
         Top = 0
         Width = 40
         Constraints.MinHeight = 40
@@ -1430,7 +1430,7 @@ object DesignFrame: TDesignFrame
     top = 96
     object MenuItemViewportCameraSetInitial: TMenuItem
       Caption = 'Camera Initial (stored in design file) := Current'
-      Hint = 'Sets SceneManager.Camera InitialPosition/Direction/Up to current view, and sets SceneManager.AutoCamera to false.'
+      Hint = 'Sets Viewport.Camera InitialPosition/Direction/Up to current view, and sets Viewport.AutoCamera to false.'
       OnClick = MenuItemViewportCameraSetInitialClick
     end
     object MenuItemViewportCameraCurrentFromInitial: TMenuItem
@@ -1445,24 +1445,28 @@ object DesignFrame: TDesignFrame
       Caption = '-'
     end
     object MenuItemViewportCamera2DViewInitial: TMenuItem
-      Caption = 'Camera Setup (Initial and Current) for  2D View and Projection'
-      Hint = 'Call TCastleSceneManager.Setup2D'
+      Caption = 'Camera Setup (Initial and Current) for 2D View and Projection'
+      Hint = 'Call Viewport.Setup2D'
       OnClick = MenuItemViewportCamera2DViewInitialClick
     end
     object MenuItemSeparator2: TMenuItem
       Caption = '-'
     end
     object MenuViewportNavigationNone: TMenuItem
-      Caption = 'Set Navigation to None (SceneManager.Navigation := nil)'
+      Caption = 'Set Navigation to None (Viewport.Navigation := nil)'
       OnClick = MenuViewportNavigationNoneClick
     end
-    object MenuViewportNavigationWalk: TMenuItem
-      Caption = 'Set Navigation to Walk/Fly (SceneManager.Navigation := TCastleWalkNavigation.Create)'
-      OnClick = MenuViewportNavigationWalkClick
-    end
     object MenuViewportNavigationExamine: TMenuItem
-      Caption = 'Set Navigation to Examine (SceneManager.Navigation := TCastleExamineNavigation.Create)'
+      Caption = 'Set Navigation to Examine (Viewport.Navigation := TCastleExamineNavigation.Create)'
       OnClick = MenuViewportNavigationExamineClick
+    end
+    object MenuViewportNavigationFly: TMenuItem
+      Caption = 'Set Navigation to Fly (Viewport.Navigation := TCastleWalkNavigation.Create, Gravity := false)'
+      OnClick = MenuViewportNavigationFlyClick
+    end
+    object MenuViewportNavigationWalk: TMenuItem
+      Caption = 'Set Navigation to Walk (Viewport.Navigation := TCastleWalkNavigation.Create, Gravity := true)'
+      OnClick = MenuViewportNavigationWalkClick
     end
     object MenuItemSeparator1: TMenuItem
       Caption = '-'

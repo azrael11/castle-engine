@@ -46,6 +46,9 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
+  protected
+    procedure Show;
+    procedure Hide;
   private
     RecentProjects: TCastleRecentFiles;
     CommandLineHandled: Boolean;
@@ -64,14 +67,48 @@ implementation
 {$R *.lfm}
 
 uses CastleConfig, CastleLCLUtils, CastleURIUtils, CastleUtils,
-  CastleFilesUtils, CastleParameters, CastleLog,
+  CastleFilesUtils, CastleParameters, CastleLog, CastleStringUtils,
   ProjectUtils, EditorUtils, FormNewProject, FormPreferences,
   ToolCompilerInfo, ToolFpcVersion;
 
 { TChooseProjectForm ------------------------------------------------------------- }
 
+procedure TChooseProjectForm.Show;
+begin
+  {$ifdef MSWINDOWS}
+  Application.ShowMainForm := True;
+  {$else}
+  inherited Show;
+  {$endif}
+end;
+
+procedure TChooseProjectForm.Hide;
+begin
+  {$ifdef MSWINDOWS}
+  Application.ShowMainForm := False;
+  {$else}
+  inherited Hide;
+  {$endif}
+end;
+
 procedure TChooseProjectForm.ButtonOpenClick(Sender: TObject);
 begin
+  { This is critical in a corner case:
+    - You run CGE editor such that it detects as "data directory"
+      current directory. E.g. you compiled it manually and run on Unix as
+      "tools/castle-editor/castle-editor"
+    - Now you open project in subdirectory. (E.g. some CGE example,
+      to continue previous example.)
+    - With UseCastleDataProtocol, OpenProject.URL will now be like
+      'castle-data:/examples/xxx/CastleEngineManifest.xml'.
+      Which means that it's absolute (AbsoluteURI in ProjectOpen will not change it),
+      but it's also bad to be used (because later we will set ApplicationDataOverride
+      to something derived from it, thus ResolveCastleDataURL will resolve
+      castle-data:/ to another castle-data:/ , and it will make no sense
+      since one castle-data:/ assumes ApplicationDataOverride = '' ...).
+  }
+  OpenProject.UseCastleDataProtocol := false;
+
   if OpenProject.Execute then
   begin
     RecentProjects.Add(OpenProject.URL, false);
@@ -108,10 +145,13 @@ begin
       if NewProjectForm.ButtonTemplateEmpty.Down then
         TemplateName := 'empty'
       else
-      if NewProjectForm.ButtonTemplate3D.Down then
-        TemplateName := '3d'
+      if NewProjectForm.ButtonTemplate3dModelViewer.Down then
+        TemplateName := '3d_model_viewer'
       else
-      if NewProjectForm.ButtonTemplate2D.Down then
+      if NewProjectForm.ButtonTemplate3dFps.Down then
+        TemplateName := '3d_fps'
+      else
+      if NewProjectForm.ButtonTemplate2d.Down then
         TemplateName := '2d'
       else
         raise EInternalError.Create('Unknown project template selected');
@@ -145,14 +185,22 @@ procedure TChooseProjectForm.ButtonOpenRecentClick(Sender: TObject);
 var
   MenuItem: TMenuItem;
   I: Integer;
-  Url: String;
+  Url, S: String;
 begin
   PopupMenuRecentProjects.Items.Clear;
   for I := 0 to RecentProjects.URLs.Count - 1 do
   begin
     Url := RecentProjects.URLs[I];
     MenuItem := TMenuItem.Create(Self);
-    MenuItem.Caption := SQuoteLCLCaption(Url);
+
+    // show file URLs simpler, esp to avoid showing space as %20
+    Url := SuffixRemove('/CastleEngineManifest.xml', Url, true);
+    if URIProtocol(Url) = 'file' then
+      S := URIToFilenameSafeUTF8(Url)
+    else
+      S := URIDisplay(Url);
+    MenuItem.Caption := SQuoteLCLCaption(S);
+
     MenuItem.Tag := I;
     MenuItem.OnClick := @MenuItemRecentClick;
     PopupMenuRecentProjects.Items.Add(MenuItem);

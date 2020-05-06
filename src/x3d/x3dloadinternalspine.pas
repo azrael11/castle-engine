@@ -66,6 +66,7 @@ type
   {$I x3dloadinternalspine_bonetimelines.inc}
   {$I x3dloadinternalspine_slottimelines.inc}
   {$I x3dloadinternalspine_drawordertimelines.inc}
+  {$I x3dloadinternalspine_deformtimelines.inc}
   {$I x3dloadinternalspine_animations.inc}
   {$I x3dloadinternalspine_skeleton.inc}
   {$undef read_interface}
@@ -79,6 +80,7 @@ type
   {$I x3dloadinternalspine_bonetimelines.inc}
   {$I x3dloadinternalspine_slottimelines.inc}
   {$I x3dloadinternalspine_drawordertimelines.inc}
+  {$I x3dloadinternalspine_deformtimelines.inc}
   {$I x3dloadinternalspine_animations.inc}
   {$I x3dloadinternalspine_skeleton.inc}
   {$undef read_implementation}
@@ -186,8 +188,8 @@ begin
               begin
                 Skeleton := TSkeleton.Create;
                 try
-                  Skeleton.Parse(Json);
-                  Skeleton.BuildNodes(URL, TextureLoader, Result, SkinName);
+                  Skeleton.Parse(URL, Json, SkinName);
+                  Skeleton.BuildNodes(URL, TextureLoader, Result);
                   if Skeleton.DefaultSkin = nil then Exit;
                   Skeleton.Animations.Exported(Result);
                 finally FreeAndNil(Skeleton) end;

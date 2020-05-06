@@ -42,6 +42,10 @@ type
 
   ECheckFailed = class(Exception);
 
+type
+  { Simple notify event with no Sender }
+  TSimpleNotifyEvent = procedure of object;
+
 { Check condition.
   @raises ECheckFailed Raised with ErrMessage if condition TrueValue if false. }
 procedure Check(TrueValue: boolean; const ErrMessage: string = 'Check failed');
@@ -235,10 +239,7 @@ function Iff(boolval: boolean; trueval, falseval: char)    : char;     begin if 
 {$ifdef FPC}
 function SFPCVersion: string;
 begin
-  Result := {$I %FPCVERSION%} +
-    ' (' + {$I %FPCTARGETOS%} + ' / ' + {$I %FPCTARGETCPU%} +
-      {$ifdef CASTLE_NINTENDO_SWITCH} ' for Nintendo Switch' + {$endif}
-    ')';
+  Result := {$I %FPCVERSION%} + ' (' + {$I %FPCTARGETOS%} + ' / ' + {$I %FPCTARGETCPU%} + ')';
 end;
 {$endif FPC}
 
@@ -260,6 +261,8 @@ begin
     'Unrecognized compiler'
 
     {$endif} {$endif} {$endif};
+
+  Result += ', platform: ' + PlatformToStr(Platform);
 end;
 
 function SCastleEngineProgramHelpSuffix(const DisplayApplicationName: string;
