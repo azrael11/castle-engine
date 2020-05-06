@@ -128,17 +128,10 @@ implementation
 uses
   SysUtils, CastleLog, Math;
 
-type
-  TWindowsJoystickBackendInfo = class
-    Caps    : TJOYCAPSW;
-    AxesMap : array[ 0..5 ] of Byte;
-  end;
-
 procedure TWindowsJoysticksBackend.Initialize(const List: TJoystickList);
 var
   JoyError: LongWord;
   State: TJOYINFOEX;
-  NewBackendInfo: TWindowsJoystickBackendInfo;
   I: Integer;
   NewJoystick: TWindowsJoystick;
 begin
@@ -155,9 +148,8 @@ begin
       //workaround Windows reporting recently disconnected joysticks as connected
       state.dwSize := SizeOf( TJOYINFOEX );
       state.dwFlags := JOY_RETURNALL or JOY_USEDEADZONE;
-      NewBackendInfo := TWindowsJoystickBackendInfo.Create;
-      if NewBackendInfo.Caps.wCaps and JOYCAPS_POVCTS > 0 then
-        state.dwFlags := state.dwFlags or JOY_RETURNPOVCTS;
+      if NewJoystick.Capabilities.wCaps and JOYCAPS_POVCTS > 0 then
+        State.dwFlags := State.dwFlags or JOY_RETURNPOVCTS;
       JoyError := joyGetPosEx( i, @state );
       //if no errors, then add this joystick
       if JoyError = JOYERR_NOERROR then
